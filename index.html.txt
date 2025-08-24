@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Biblioteca Digital</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .config-notice {
+            background: #ffeaa7;
+            border: 2px solid #fdcb6e;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #2d3436;
+        }
+
+        .config-notice strong {
+            color: #e17055;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .search-bar input, .search-bar select {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-bar input:focus, .search-bar select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+        }
+
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .tags-input {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            min-height: 45px;
+            cursor: text;
+        }
+
+        .tag {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tag-remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .book-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .book-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(31, 38, 135, 0.4);
+        }
+
+        .book-cover {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #666;
+        }
+
+        .book-info {
+            padding: 20px;
+        }
+
+        .book-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+            line-height: 1.3;
+        }
+
+        .book-author {
+            color: #666;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .book-format {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .book-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .book-tag {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .book-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-weight: 600;
+        }
+
+        .empty-state, .error-state, .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+
+        .error-state {
+            border: 2px solid #ff6b6b;
+        }
+
+        .error-state h3 {
+            color: #c92a2a;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 30px 0;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #f8f9fa;
+        }
+
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .search-bar {
+                flex-direction: column;
+            }
+            
+            .search-bar input, .search-bar select {
+                width: 100%;
+            }
+            
+            .books-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                margin: 10px;
+                max-width: calc(100% - 20px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Mi Biblioteca Digital</h1>
+            <p>Gestiona tu colección personal de libros con Supabase</p>
+            
+            <!-- Aviso de configuración -->
+            <div class="config-notice" id="configNotice">
+                <strong>⚠️ Configuración requerida:</strong> 
+                Para usar la aplicación, necesitas configurar tu proyecto de Supabase. 
+                Revisa las instrucciones en la consola del navegador (F12) o el comentario al final del código.
+            </div>
+            
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Buscar por título o autor...">
+                <select id="formatFilter">
+                    <option value="">Todos los formatos</option>
+                    <option value="PDF">PDF</option>
+                    <option value="EPUB">EPUB</option>
+                    <option value="MOBI">MOBI</option>
+                    <option value="DOC">DOC</option>
+                    <option value="TXT">TXT</option>
+                </select>
+                <select id="tagFilter">
+                    <option value="">Todas las categorías</option>
+                </select>
+                <button class="btn btn-primary" onclick="openModal()" id="addBookBtn">
+                    <span>+ Agregar Libro</span>
+                    <div class="loading"><div class="spinner"></div></div>
+                </button>
+            </div>
+        </header>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalBooks">-</div>
+                <div class="stat-label">Total de Libros</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalAuthors">-</div>
+                <div class="stat-label">Autores</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalFormats">-</div>
+                <div class="stat-label">Formatos</div>
+            </div>
+        </div>
+
+        <div id="booksGrid" class="books-grid">
+            <div class="loading-state">
+                <div class="spinner" style="margin: 0 auto 20px;"></div>
+                <h3>Cargando biblioteca...</h3>
+                <p>Conectando con la base de datos</p>
+            </div>
+        </div>
+
+        <div class="pagination" id="pagination" style="display: none;">
+            <button onclick="changePage(currentPage - 1)" id="prevBtn">« Anterior</button>
+            <span id="pageInfo">Página 1 de 1</span>
+            <button onclick="changePage(currentPage + 1)" id="nextBtn">Siguiente »</button>
+        </div>
+    </div>
+
+    <!-- Modal para agregar/editar libro -->
+    <div id="bookModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Agregar Nuevo Libro</h2>
+            <form id="bookForm">
+                <div class="form-group">
+                    <label for="title">Título *</label>
+                    <input type="text" id="title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="author">Autor *</label>
+                    <input type="text" id="author" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="format">Formato *</label>
+                    <select id="format" required>
+                        <option value="">Seleccionar formato</option>
+                        <option value="PDF">PDF</option>
+                        <option value="EPUB">EPUB</option>
+                        <option value="MOBI">MOBI</option>
+                        <option value="DOC">DOC</option>
+                        <option value="TXT">TXT</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="coverImage">URL de la Portada</label>
+                    <input type="url" id="coverImage" placeholder="https://ejemplo.com/portada.jpg">
+                </div>
+                
+                <div class="form-group">
+                    <label for="downloadUrl">URL de Descarga *</label>
+                    <input type="url" id="downloadUrl" required placeholder="https://drive.google.com/... o https://mega.nz/...">
+                </div>
+                
+                <div class="form-group">
+                    <label>Tags/Categorías</label>
+                    <div class="tags-input" id="tagsInput">
+                        <input type="text" id="tagInput" placeholder="Escribe un tag y presiona Enter">
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn">
+                        <span>Guardar Libro</span>
+                        <div class="loading"><div class="spinner"></div></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CDN de Supabase -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.38.0/umd/index.js"></script>
+
+    <script>
+        // 🔧 CONFIGURACIÓN DE SUPABASE
+        // ⚠️ IMPORTANTE: Reemplaza estos valores con los de tu proyecto de Supabase
+        const SUPABASE_URL = 'https://fanyuclarbgwraiwbcmr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+
+        // Verificar configuración
+        const isConfigured = SUPABASE_URL !== 'https://fanyuclarbgwraiwbcmr.supabase.co' && 
+                            SUPABASE_ANON_KEY !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+
+        let supabase = null;
+        let books = [];
+        let filteredBooks = [];
+        let editingId = null;
+        let currentTags = [];
+        let currentPage = 1;
+        let totalPages = 1;
+        const booksPerPage = 12;
+
+        // Inicializar Supabase si está configurado
+        if (isConfigured) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            document.getElementById('configNotice').style.display = 'none';
+        } else {
+            showConfigurationInstructions();
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            if (isConfigured) {
+                loadBooks();
+            }
+            
+            document.getElementById('searchInput').addEventListener('input', debounce(filterBooks, 300));
+            document.getElementById('formatFilter').addEventListener('change', filterBooks);
+            document.getElementById('tagFilter').addEventListener('change', filterBooks);
+            document.getElementById('bookForm').addEventListener('submit', saveBook);
+            
+            setupTagsInput();
+        });
+
+        function showConfigurationInstructions() {
+            console.log(`
+🚀 INSTRUCCIONES PARA CONFIGURAR SUPABASE:
+
+1. Ve a https://supabase.com y crea una cuenta gratuita
+2. Crea un nuevo proyecto
+3. Ve a Settings → API en tu dashboard de Supabase
+4. Copia tu "Project URL" y "anon/public key"
+5. Reemplaza en este código:
+   - SUPABASE_URL: tu Project URL
+   - SUPABASE_ANON_KEY: tu anon/public key
+
+6. En el SQL Editor de Supabase, ejecuta este script para crear la tabla:
+
+CREATE TABLE books (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    author VARCHAR(300) NOT NULL,
+    format VARCHAR(50) NOT NULL,
+    cover_image TEXT,
+    download_url TEXT NOT NULL,
+    tags TEXT[] DEFAULT ARRAY[]::TEXT[],
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Crear índices para búsquedas más rápidas
+CREATE INDEX idx_books_title ON books USING gin(to_tsvector('spanish', title));
+CREATE INDEX idx_books_author ON books USING gin(to_tsvector('spanish', author));
+CREATE INDEX idx_books_tags ON books USING gin(tags);
+CREATE INDEX idx_books_format ON books(format);
+
+-- Habilitar Row Level Security (opcional, para seguridad)
+ALTER TABLE books ENABLE ROW LEVEL SECURITY;
+
+-- Política para permitir todas las operaciones (puedes restringir más tarde)
+CREATE POLICY "Enable all operations for all users" ON books
+FOR ALL USING (true);
+
+7. ¡Ya está listo! Recarga la página después de la configuración.
+            `);
+            
+            document.getElementById('booksGrid').innerHTML = `
+                <div class="error-state">
+                    <h3>🔧 Configuración Requerida</h3>
+                    <p>Para usar la aplicación, configura tu proyecto de Supabase.</p>
+                    <p><strong>Revisa las instrucciones detalladas en la consola del navegador (presiona F12)</strong></p>
+                    <button class="btn btn-primary" onclick="window.open('https://supabase.com', '_blank')">
+                        Ir a Supabase
+                    </button>
+                </div>
+            `;
+        }
+
+        // Función debounce para optimizar búsquedas
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Configurar input de tags
+        function setupTagsInput() {
+            const tagInput = document.getElementById('tagInput');
+            const tagsContainer = document.getElementById('tagsInput');
+            
+            tagInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    addTag();
+                }
+            });
+            
+            tagInput.addEventListener('blur', addTag);
+        }
+
+        function addTag() {
+            const tagInput = document.getElementById('tagInput');
+            const tagText = tagInput.value.trim();
+            if (tagText && !currentTags.includes(tagText)) {
+                currentTags.push(tagText);
+                renderTags();
+                tagInput.value = '';
+            }
+        }
+
+        function removeTag(tagToRemove) {
+            currentTags = currentTags.filter(tag => tag !== tagToRemove);
+            renderTags();
+        }
+
+        function renderTags() {
+            const tagsContainer = document.getElementById('tagsInput');
+            const existingTags = tagsContainer.querySelectorAll('.tag');
+            existingTags.forEach(tag => tag.remove());
+            
+            const tagInput = document.getElementById('tagInput');
+            
+            currentTags.forEach(tag => {
+                const tagElement = document.createElement('span');
+                tagElement.className = 'tag';
+                tagElement.innerHTML = `${tag} <span class="tag-remove" onclick="removeTag('${tag}')">×</span>`;
+                tagsContainer.insertBefore(tagElement, tagInput);
+            });
+        }
+
+        async function loadBooks() {
+            if (!supabase) return;
+            
+            try {
+                showLoading(true);
+                
+                const { data, error } = await supabase
+                    .from('books')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                books = data || [];
+                filteredBooks = [...books];
+                updatePagination();
+                renderBooks();
+                updateStats();
+                updateTagFilter();
+                
+            } catch (error) {
+                console.error('Error cargando libros:', error);
+                showError('Error al cargar los libros: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showLoading(show) {
+            const grid = document.getElementById('booksGrid');
+            if (show) {
+                grid.innerHTML = `
+                    <div class="loading-state">
+                        <div class="spinner" style="margin: 0 auto 20px;"></div>
+                        <h3>Cargando biblioteca...</h3>
+                        <p>Intenta cambiar los filtros de búsqueda o agregar tu primer libro</p>
+                        <button class="btn btn-primary" onclick="openModal()">Agregar mi primer libro</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Paginación
+            const startIndex = (currentPage - 1) * booksPerPage;
+            const endIndex = startIndex + booksPerPage;
+            const paginatedBooks = filteredBooks.slice(startIndex, endIndex);
+            
+            grid.innerHTML = paginatedBooks.map(book => `
+                <div class="book-card">
+                    ${book.cover_image 
+                        ? `<img src="${book.cover_image}" alt="${book.title}" class="book-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+                        : ''
+                    }
+                    <div class="book-cover" style="${book.cover_image ? 'display: none;' : 'display: flex;'}">📚</div>
+                    
+                    <div class="book-info">
+                        <h3 class="book-title">${escapeHtml(book.title)}</h3>
+                        <p class="book-author">por ${escapeHtml(book.author)}</p>
+                        <span class="book-format">${book.format}</span>
+                        
+                        <div class="book-tags">
+                            ${(book.tags || []).map(tag => `<span class="book-tag">${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                        
+                        <div class="book-actions">
+                            <button class="btn btn-primary btn-small" onclick="openBook('${book.download_url}')">
+                                📥 Abrir
+                            </button>
+                            <button class="btn btn-secondary btn-small" onclick="openModal(${book.id})">
+                                ✏️ Editar
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="deleteBook(${book.id})">
+                                🗑️ Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            const totalBooks = books.length;
+            const totalAuthors = new Set(books.map(book => book.author)).size;
+            const totalFormats = new Set(books.map(book => book.format)).size;
+            
+            document.getElementById('totalBooks').textContent = totalBooks;
+            document.getElementById('totalAuthors').textContent = totalAuthors;
+            document.getElementById('totalFormats').textContent = totalFormats;
+        }
+
+        function updateTagFilter() {
+            const tagFilter = document.getElementById('tagFilter');
+            const allTags = new Set();
+            
+            books.forEach(book => {
+                if (book.tags) {
+                    book.tags.forEach(tag => allTags.add(tag));
+                }
+            });
+            
+            const currentValue = tagFilter.value;
+            tagFilter.innerHTML = '<option value="">Todas las categorías</option>';
+            
+            [...allTags].sort().forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag;
+                option.textContent = tag;
+                tagFilter.appendChild(option);
+            });
+            
+            tagFilter.value = currentValue;
+        }
+
+        // Utilidades
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function setButtonLoading(button, loading) {
+            const text = button.querySelector('span');
+            const loader = button.querySelector('.loading');
+            
+            if (loading) {
+                text.style.opacity = '0';
+                loader.style.display = 'block';
+                button.disabled = true;
+            } else {
+                text.style.opacity = '1';
+                loader.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+
+        function showNotification(message) {
+            // Simple notification - puedes mejorarlo con una librería
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #28a745;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 2000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Cerrar modal al hacer clic fuera
+        window.onclick = function(event) {
+            const modal = document.getElementById('bookModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Atajos de teclado
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
+
+        // Agregar estilos adicionales para animaciones
+        const additionalStyles = `
+            @keyframes slideOut {
+                from { 
+                    opacity: 1; 
+                    transform: translateX(0); 
+                }
+                to { 
+                    opacity: 0; 
+                    transform: translateX(100%); 
+                }
+            }
+        `;
+        
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = additionalStyles;
+        document.head.appendChild(styleSheet);
+    </script>
+</body>
+</html>
+
+<!-- 
+📋 INSTRUCCIONES DETALLADAS PARA CONFIGURAR SUPABASE:
+
+1. 🚀 CREAR PROYECTO EN SUPABASE:
+   - Ve a https://supabase.com
+   - Crea una cuenta gratuita
+   - Haz clic en "New Project"
+   - Elige una organización y nombre para tu proyecto
+   - Espera a que se cree (2-3 minutos)
+
+2. 🔑 OBTENER CREDENCIALES:
+   - Ve a Settings → API en el dashboard
+   - Copia "Project URL" y "anon public key"
+   - Reemplaza en el código:
+     * SUPABASE_URL con tu Project URL
+     * SUPABASE_ANON_KEY con tu anon public key
+
+3. 🗃️ CREAR LA TABLA:
+   - Ve a "SQL Editor" en el sidebar
+   - Ejecuta este script SQL:
+
+CREATE TABLE books (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    author VARCHAR(300) NOT NULL,
+    format VARCHAR(50) NOT NULL,
+    cover_image TEXT,
+    download_url TEXT NOT NULL,
+    tags TEXT[] DEFAULT ARRAY[]::TEXT[],
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Índices para búsquedas rápidas
+CREATE INDEX idx_books_title ON books USING gin(to_tsvector('spanish', title));
+CREATE INDEX idx_books_author ON books USING gin(to_tsvector('spanish', author));
+CREATE INDEX idx_books_tags ON books USING gin(tags);
+CREATE INDEX idx_books_format ON books(format);
+
+-- Seguridad (opcional)
+ALTER TABLE books ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable all operations for all users" ON books FOR ALL USING (true);
+
+4. 📊 FUNCIONALIDADES INCLUIDAS:
+   ✅ CRUD completo (Crear, Leer, Actualizar, Eliminar)
+   ✅ Búsqueda en tiempo real
+   ✅ Filtros por formato y tags
+   ✅ Paginación (12 libros por página)
+   ✅ Estadísticas dinámicas
+   ✅ Interfaz responsive
+   ✅ Indicadores de carga
+   ✅ Manejo de errores
+   ✅ Notificaciones
+   ✅ Atajos de teclado (Esc, Ctrl+K)
+
+5. 🎯 OPTIMIZACIONES PARA 1000+ LIBROS:
+   ✅ Índices de base de datos para búsquedas rápidas
+   ✅ Paginación automática
+   ✅ Búsqueda con debounce (300ms)
+   ✅ Carga asíncrona
+   ✅ Consultas optimizadas
+
+6. 💡 CONSEJOS:
+   - La capa gratuita de Supabase incluye 500MB (suficiente para 10,000+ libros)
+   - Los índices GIN permiten búsqueda de texto completo en español
+   - Las políticas RLS te dan control granular de acceso
+   - Puedes agregar autenticación más tarde si quieres
+
+7. 🔧 PRÓXIMOS PASOS OPCIONALES:
+   - Importar libros existentes vía CSV
+   - Agregar más campos (género, fecha de lectura, calificación)
+   - Implementar autenticación de usuarios
+   - Añadir exportación de datos
+   - Crear backups automáticos
+-->>Obteniendo datos de Supabase</p>
+                    </div>
+                `;
+            }
+        }
+
+        function showError(message) {
+            const grid = document.getElementById('booksGrid');
+            grid.innerHTML = `
+                <div class="error-state">
+                    <h3>❌ Error</h3>
+                    <p>${message}</p>
+                    <button class="btn btn-primary" onclick="loadBooks()">
+                        🔄 Reintentar
+                    </button>
+                </div>
+            `;
+        }
+
+        async function saveBook(e) {
+            e.preventDefault();
+            if (!supabase) return;
+            
+            const saveBtn = document.getElementById('saveBtn');
+            setButtonLoading(saveBtn, true);
+            
+            try {
+                const bookData = {
+                    title: document.getElementById('title').value,
+                    author: document.getElementById('author').value,
+                    format: document.getElementById('format').value,
+                    cover_image: document.getElementById('coverImage').value || null,
+                    download_url: document.getElementById('downloadUrl').value,
+                    tags: currentTags
+                };
+
+                let result;
+                if (editingId) {
+                    result = await supabase
+                        .from('books')
+                        .update({ ...bookData, updated_at: new Date().toISOString() })
+                        .eq('id', editingId);
+                } else {
+                    result = await supabase
+                        .from('books')
+                        .insert([bookData]);
+                }
+
+                if (result.error) throw result.error;
+
+                await loadBooks();
+                closeModal();
+                showNotification(editingId ? 'Libro actualizado correctamente' : 'Libro agregado correctamente');
+                
+            } catch (error) {
+                console.error('Error guardando libro:', error);
+                alert('Error al guardar: ' + error.message);
+            } finally {
+                setButtonLoading(saveBtn, false);
+            }
+        }
+
+        async function deleteBook(id) {
+            if (!supabase || !confirm('¿Estás seguro de que quieres eliminar este libro?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('books')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                await loadBooks();
+                showNotification('Libro eliminado correctamente');
+                
+            } catch (error) {
+                console.error('Error eliminando libro:', error);
+                alert('Error al eliminar: ' + error.message);
+            }
+        }
+
+        function openModal(id = null) {
+            editingId = id;
+            const modal = document.getElementById('bookModal');
+            const modalTitle = document.getElementById('modalTitle');
+            
+            if (id) {
+                modalTitle.textContent = 'Editar Libro';
+                const book = books.find(b => b.id === id);
+                if (book) {
+                    document.getElementById('title').value = book.title;
+                    document.getElementById('author').value = book.author;
+                    document.getElementById('format').value = book.format;
+                    document.getElementById('coverImage').value = book.cover_image || '';
+                    document.getElementById('downloadUrl').value = book.download_url;
+                    currentTags = [...(book.tags || [])];
+                    renderTags();
+                }
+            } else {
+                modalTitle.textContent = 'Agregar Nuevo Libro';
+                document.getElementById('bookForm').reset();
+                currentTags = [];
+                renderTags();
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('bookModal').style.display = 'none';
+            editingId = null;
+        }
+
+        function openBook(url) {
+            window.open(url, '_blank');
+        }
+
+        function filterBooks() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const formatFilter = document.getElementById('formatFilter').value;
+            const tagFilter = document.getElementById('tagFilter').value;
+            
+            filteredBooks = books.filter(book => {
+                const matchesSearch = book.title.toLowerCase().includes(searchTerm) || 
+                                    book.author.toLowerCase().includes(searchTerm);
+                const matchesFormat = !formatFilter || book.format === formatFilter;
+                const matchesTag = !tagFilter || (book.tags && book.tags.includes(tagFilter));
+                
+                return matchesSearch && matchesFormat && matchesTag;
+            });
+            
+            currentPage = 1;
+            updatePagination();
+            renderBooks();
+        }
+
+        function updatePagination() {
+            totalPages = Math.ceil(filteredBooks.length / booksPerPage);
+            
+            const pagination = document.getElementById('pagination');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageInfo = document.getElementById('pageInfo');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            pagination.style.display = 'flex';
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+            pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+        }
+
+        function changePage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            updatePagination();
+            renderBooks();
+        }
+
+        function renderBooks() {
+            const grid = document.getElementById('booksGrid');
+            
+            if (filteredBooks.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>📖 No se encontraron libros</h3>
+                        <p
