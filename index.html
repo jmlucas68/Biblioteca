@@ -23,11 +23,17 @@
     .badge { padding:2px 8px; border-radius:999px; font-weight:600; }
     .badge.series { background:#eef2ff; color:#4338ca; }
     .badge.genre { background:#ecfeff; color:#0369a1; }
-    .desc { color:#4b5563; font-size:13px; max-height:3.6em; overflow:hidden; }
     .formats { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
-    .format-tile { font-size:12px; border:1px solid #d1d5db; border-radius:8px; padding:4px 8px; background:#f9fafb; }
+    .format-link { 
+      font-size:12px; border:1px solid #d1d5db; border-radius:8px; padding:4px 8px; 
+      background:#f9fafb; text-decoration:none; color:#374151; cursor:pointer;
+      transition: all 0.2s ease;
+    }
+    .format-link:hover { 
+      background:#2563eb; color:#fff; border-color:#2563eb; 
+      text-decoration:none; transform: translateY(-1px);
+    }
     .actions { display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap; }
-    .format-select { padding:8px; border-radius:8px; border:1px solid #cfd8e3; background:#fff; }
     .btn { padding:8px 12px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-weight:700; cursor:pointer; }
     .btn.secondary { background:#6b7280; }
     .btn.ghost { background:#eef2f7; color:#1f2937; }
@@ -46,7 +52,7 @@
     .modal-header { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
     .modal-title { font-weight: 700; color: #111827; margin: 0; }
     .modal-close { background: transparent; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: #6b7280; }
-    .modal-body { padding: 16px; overflow: auto; color: #111827; }
+    .modal-body { padding: 16px; overflow: auto; color: #111827; line-height: 1.6; }
     .modal-footer { padding: 12px 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 8px; }
     @media (max-width: 480px) {
       .card { flex-direction:column; align-items:center; }
@@ -100,7 +106,6 @@
       initFilters();
       applyFilters();
 
-      // Cerrar modal con Escape y clic fuera
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeModal();
       });
@@ -186,29 +191,28 @@
 
     function renderCard(b) {
       const viewerId = 'viewer_' + hash(b.titulo + '|' + b.autor + '|' + (b.carpetaObra || ''));
-      const selectId = 'sel_' + viewerId;
       const portadaSrc = resolveCoverThumb(b.urlPortada);
       const coverHref = b.urlPortada || '#';
       const series = b.serie ? `<span class="badge series">${esc(b.serie)}${b.numeroSerie ? ' #' + esc(b.numeroSerie) : ''}</span>` : '';
       const genres = b._genres.slice(0, 3).map(g => `<span class="badge genre">${esc(g)}</span>`).join(' ');
       const year = safeYear(b.fechaPublicacion);
 
-      const options = (b.formatos || []).map(f => {
-        const preview = buildPreviewUrl(f.url);
-        const size = f.tamano ? ` — ${esc(f.tamano)}` : '';
-        return `<option value="${esc(f.url)}" data-preview="${esc(preview)}">${esc(f.formato)}${size}</option>`;
+      // Enlaces directos por formato (clickables)
+      const formatLinks = (b.formatos || []).map(f => {
+        const text = f.tamano ? `${f.formato} · ${f.tamano}` : f.formato;
+        return `<a href="${esc(f.url)}" target="_blank" rel="noopener" class="format-link" title="Abrir ${f.formato}">${esc(text)}</a>`;
       }).join('');
 
-      const tiles = (b.formatos || []).map(f => `<span class="format-tile">${esc(f.formato)}${f.tamano ? ' · ' + esc(f.tamano) : ''}</span>`).join('');
-
-      // Botón de “Ver descripción” si hay descripción
+      // Botón de descripción solo si hay descripción
       const hasDesc = !!stripHtml(b.descripcion || '').trim();
-      const descBlock = b.descripcion
-        ? `<div class="desc">${truncate(stripHtml(b.descripcion), 180)}</div>`
+      const descButton = hasDesc
+        ? `<button class="btn ghost" onclick="openDescription('${esc(b.titulo)}','${esc(b.autor || '')}', \`${escMultiline(stripHtml(b.descripcion))}\`)">📄 Descripción</button>`
         : '';
 
-      const descButton = hasDesc
-        ? `<button class="btn ghost" onclick="openDescription('${esc(b.titulo)}','${esc(b.autor || '')}', \`${escMultiline(stripHtml(b.descripcion))}\`)">Ver descripción</button>`
+      // Botón de visor (usa el primer formato disponible)
+      const firstFormat = (b.formatos || [])[0];
+      const viewerButton = firstFormat
+        ? `<button class="btn secondary" onclick="toggleViewer('${viewerId}', '${esc(firstFormat.url)}')">👁️ Visor</button>`
         : '';
 
       return `
@@ -227,17 +231,12 @@
               ${b.editorial ? `<span>Editorial: ${esc(b.editorial)}</span>` : ''}
               ${series}
             </div>
-            ${descBlock}
             <div class="meta">${genres}</div>
 
-            <div class="formats">${tiles}</div>
+            <div class="formats">${formatLinks}</div>
 
             <div class="actions">
-              <select id="${selectId}" class="format-select" onchange="updateViewer('${viewerId}','${selectId}')">
-                ${options}
-              </select>
-              <button class="btn" onclick="openSelected('${selectId}')">Abrir</button>
-              <button class="btn secondary" onclick="toggleViewer('${viewerId}','${selectId}')">Visor</button>
+              ${viewerButton}
               ${descButton}
             </div>
 
@@ -256,7 +255,6 @@
       titleEl.textContent = author ? `${title} — ${author}` : title;
       bodyEl.textContent = description || '(Sin descripción)';
       backdrop.style.display = 'flex';
-      // Enfocar el botón cerrar para accesibilidad
       setTimeout(() => {
         const closeBtn = backdrop.querySelector('.modal-close');
         if (closeBtn) closeBtn.focus();
@@ -268,7 +266,26 @@
       backdrop.style.display = 'none';
     }
 
-    // Visor embebido
+    // Visor embebido (usa URL directa del formato)
+    function toggleViewer(viewerId, formatUrl) {
+      const iframe = document.getElementById(viewerId);
+      if (!iframe) return;
+      
+      if (iframe.style.display === 'none' || !iframe.style.display) {
+        const previewUrl = buildPreviewUrl(formatUrl);
+        if (!previewUrl) {
+          iframe.style.display = 'none';
+          return;
+        }
+        iframe.style.display = 'block';
+        iframe.onerror = () => { iframe.style.display = 'none'; };
+        iframe.src = previewUrl;
+      } else {
+        iframe.style.display = 'none';
+        iframe.removeAttribute('src');
+      }
+    }
+
     function buildPreviewUrl(viewUrl) {
       const m = String(viewUrl || '').match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/i);
       if (m && m[1]) {
@@ -276,41 +293,6 @@
         return `https://drive.google.com/file/d/${id}/preview`;
       }
       return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(viewUrl || '')}`;
-    }
-
-    function toggleViewer(viewerId, selectId) {
-      const iframe = document.getElementById(viewerId);
-      if (!iframe) return;
-      if (iframe.style.display === 'none' || !iframe.style.display) {
-        updateViewer(viewerId, selectId);
-        iframe.style.display = 'block';
-      } else {
-        iframe.style.display = 'none';
-      }
-    }
-
-    function updateViewer(viewerId, selectId) {
-      const iframe = document.getElementById(viewerId);
-      const sel = document.getElementById(selectId);
-      if (!iframe || !sel) return;
-      const opt = sel.options[sel.selectedIndex];
-      const preview = opt ? opt.getAttribute('data-preview') : '';
-      if (!preview) {
-        iframe.removeAttribute('src');
-        iframe.style.display = 'none';
-        return;
-      }
-      iframe.style.display = 'block';
-      iframe.onerror = () => { iframe.style.display = 'none'; };
-      iframe.src = preview;
-    }
-
-    function openSelected(selectId) {
-      const sel = document.getElementById(selectId);
-      if (!sel) return;
-      const url = sel.value;
-      if (!url) return;
-      window.open(url, '_blank', 'noopener');
     }
 
     // Thumbnail de portada (Drive)
@@ -330,13 +312,11 @@
       return isNaN(y) ? '' : String(y);
     }
     function stripHtml(s){ return String(s || '').replace(/<[^>]+>/g,''); }
-    function truncate(s,n){ return s.length>n ? s.slice(0,n)+'…' : s; }
     function esc(s){
       return String(s || '')
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
     }
-    // Escapar para incrustar en template literal preservando saltos de línea
     function escMultiline(s) {
       return String(s || '').replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g,'\\$').replace(/\r?\n/g, '\\n');
     }
