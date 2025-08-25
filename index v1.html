@@ -39,7 +39,6 @@
     .btn.ghost { background:#eef2f7; color:#1f2937; }
     .viewer { margin-top:10px; width:100%; height:360px; border:0; border-radius:8px; background:#f0f2f5; display:none; }
     .no-results { text-align:center; color:#6b7280; padding:40px 0; }
-    .loading { text-align:center; padding:50px; font-size:18px; color:#6b7280; }
 
     /* Modal */
     .modal-backdrop {
@@ -68,8 +67,8 @@
     <header>
       <h1>📚 Mi Biblioteca Personal</h1>
       <div class="stats">
-        <div>Total obras: <b id="statTotal">-</b></div>
-        <div>Autores: <b id="statAuthors">-</b></div>
+        <div>Total obras: <b id="statTotal">0</b></div>
+        <div>Autores: <b id="statAuthors">0</b></div>
       </div>
     </header>
 
@@ -80,11 +79,7 @@
       <select id="genre"><option value="">Todos los géneros</option></select>
     </div>
 
-    <div id="loading" class="loading">
-      🔄 Cargando biblioteca desde la base de datos...
-    </div>
-    
-    <div id="grid" class="grid" style="display:none;"></div>
+    <div id="grid" class="grid"></div>
     <div id="noResults" class="no-results" style="display:none;">No se encontraron resultados</div>
   </div>
 
@@ -102,21 +97,12 @@
     </div>
   </div>
 
-  <!-- Supabase Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
   <script>
-    // ⚠️ CONFIGURAR CON TUS CREDENCIALES DE SUPABASE
-const supabaseUrl = 'https://fanyuclarbgwraiwbcmr.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
-    
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
     let books = [];
     let filtered = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
-      await loadBooksFromSupabase();
+      await loadJson();
       initFilters();
       applyFilters();
 
@@ -128,50 +114,28 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
       });
     });
 
-    async function loadBooksFromSupabase() {
-      try {
-        console.log('🔄 Cargando libros desde Supabase...');
-        
-        // Usar la vista que combina libros con formatos
-        const { data, error } = await supabase
-          .from('books_with_formats')
-          .select('*')
-          .order('titulo');
-
-        if (error) {
-          throw error;
-        }
-
-        books = data.map(book => ({
-          ...book,
-          // Compatibilidad con formato anterior
-          formatos: Array.isArray(book.formatos) ? book.formatos : [],
-          _genres: (book.genero || '')
-            .split(',')
-            .map(g => g.trim())
-            .filter(Boolean)
-        }));
-
-        console.log(`✅ ${books.length} libros cargados desde Supabase`);
-        
-        document.getElementById('statTotal').textContent = books.length;
-        document.getElementById('statAuthors').textContent = new Set(books.map(b => b.autor)).size;
-        
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('grid').style.display = 'grid';
-        
-      } catch (error) {
-        console.error('❌ Error cargando desde Supabase:', error);
-        document.getElementById('loading').innerHTML = 
-          `❌ Error cargando la biblioteca: ${error.message}<br>
-           <small>Verifica la configuración de Supabase y los permisos de las tablas.</small>`;
+    async function loadJson() {
+      const res = await fetch('catalogo_biblioteca.json');
+      if (!res.ok) {
+        showError('No se pudo cargar catalogo_biblioteca.json');
+        return;
       }
+      books = await res.json();
+      books.forEach(b => {
+        if (!Array.isArray(b.formatos)) b.formatos = [];
+        b._genres = (b.genero || '')
+          .split(',')
+          .map(g => g.trim())
+          .filter(Boolean);
+      });
+      document.getElementById('statTotal').textContent = books.length;
+      document.getElementById('statAuthors').textContent = new Set(books.map(b => b.autor)).size;
     }
 
     function initFilters() {
       fillSelect('author', [...new Set(books.map(b => b.autor))].sort());
       const allFormats = new Set();
-      books.forEach(b => (b.formatos || []).forEach(f => allFormats.add(f.formato)));
+      books.forEach(b => b.formatos.forEach(f => allFormats.add(f.formato)));
       fillSelect('format', [...allFormats].sort());
       const allGenres = new Set();
       books.forEach(b => b._genres.forEach(g => allGenres.add(g)));
@@ -226,16 +190,16 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
     }
 
     function renderCard(b) {
-      const viewerId = 'viewer_' + hash(b.titulo + '|' + b.autor + '|' + (b.carpeta_obra || ''));
-      const portadaSrc = resolveCoverThumb(b.url_portada);
-      const coverHref = b.url_portada || '#';
-      const series = b.serie ? `<span class="badge series">${esc(b.serie)}${b.numero_serie ? ' #' + esc(b.numero_serie) : ''}</span>` : '';
+      const viewerId = 'viewer_' + hash(b.titulo + '|' + b.autor + '|' + (b.carpetaObra || ''));
+      const portadaSrc = resolveCoverThumb(b.urlPortada);
+      const coverHref = b.urlPortada || '#';
+      const series = b.serie ? `<span class="badge series">${esc(b.serie)}${b.numeroSerie ? ' #' + esc(b.numeroSerie) : ''}</span>` : '';
       const genres = b._genres.slice(0, 3).map(g => `<span class="badge genre">${esc(g)}</span>`).join(' ');
-      const year = safeYear(b.fecha_publicacion);
+      const year = safeYear(b.fechaPublicacion);
 
-      // Enlaces directos por formato
+      // Enlaces directos por formato (clickables)
       const formatLinks = (b.formatos || []).map(f => {
-        const text = f.tamanio ? `${f.formato} · ${f.tamanio}` : f.formato;
+        const text = f.tamano ? `${f.formato} · ${f.tamano}` : f.formato;
         return `<a href="${esc(f.url)}" target="_blank" rel="noopener" class="format-link" title="Abrir ${f.formato}">${esc(text)}</a>`;
       }).join('');
 
@@ -302,16 +266,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
       backdrop.style.display = 'none';
     }
 
-    // Visor embebido
-    function buildPreviewUrl(viewUrl) {
-      const m = String(viewUrl || '').match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/i);
-      if (m && m[1]) {
-        const id = m[1];
-        return `https://drive.google.com/file/d/${id}/preview`;
-      }
-      return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(viewUrl || '')}`;
-    }
-
+    // Visor embebido (usa URL directa del formato)
     function toggleViewer(viewerId, formatUrl) {
       const iframe = document.getElementById(viewerId);
       if (!iframe) return;
@@ -329,6 +284,15 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
         iframe.style.display = 'none';
         iframe.removeAttribute('src');
       }
+    }
+
+    function buildPreviewUrl(viewUrl) {
+      const m = String(viewUrl || '').match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/i);
+      if (m && m[1]) {
+        const id = m[1];
+        return `https://drive.google.com/file/d/${id}/preview`;
+      }
+      return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(viewUrl || '')}`;
     }
 
     // Thumbnail de portada (Drive)
@@ -357,6 +321,12 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
       return String(s || '').replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g,'\\$').replace(/\r?\n/g, '\\n');
     }
     function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i); h|=0;} return String(Math.abs(h)); }
+
+    function showError(msg){
+      const el = document.getElementById('noResults');
+      el.style.display = 'block';
+      el.textContent = msg;
+    }
   </script>
 </body>
 </html>
