@@ -128,45 +128,55 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
       });
     });
 
-    async function loadBooksFromSupabase() {
-      try {
-        console.log('🔄 Cargando libros desde Supabase...');
-        
-        // Usar la vista que combina libros con formatos
-        const { data, error } = await supabase
-          .from('books_with_formats')
-          .select('*')
-          .order('titulo');
-
-        if (error) {
-          throw error;
-        }
-
-        books = data.map(book => ({
-          ...book,
-          // Compatibilidad con formato anterior
-          formatos: Array.isArray(book.formatos) ? book.formatos : [],
-          _genres: (book.genero || '')
-            .split(',')
-            .map(g => g.trim())
-            .filter(Boolean)
-        }));
-
-        console.log(`✅ ${books.length} libros cargados desde Supabase`);
-        
-        document.getElementById('statTotal').textContent = books.length;
-        document.getElementById('statAuthors').textContent = new Set(books.map(b => b.autor)).size;
-        
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('grid').style.display = 'grid';
-        
-      } catch (error) {
-        console.error('❌ Error cargando desde Supabase:', error);
-        document.getElementById('loading').innerHTML = 
-          `❌ Error cargando la biblioteca: ${error.message}<br>
-           <small>Verifica la configuración de Supabase y los permisos de las tablas.</small>`;
-      }
+async function loadBooksFromSupabase() {
+  try {
+    console.log('🔄 Cargando con método alternativo...');
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Consulta 1: Obtener libros
+    const { data: booksData, error: booksError } = await supabase
+      .from('books')
+      .select('*')
+      .order('titulo');
+    
+    if (booksError) {
+      throw new Error(`Error libros: ${booksError.message}`);
     }
+    
+    console.log(`📚 ${booksData.length} libros obtenidos`);
+    
+    // Consulta 2: Obtener formatos
+    const { data: formatsData, error: formatsError } = await supabase
+      .from('book_formats')
+      .select('*');
+    
+    if (formatsError) {
+      throw new Error(`Error formatos: ${formatsError.message}`);
+    }
+    
+    console.log(`💿 ${formatsData.length} formatos obtenidos`);
+    
+    // Combinar datos
+    books = booksData.map(book => ({
+      ...book,
+      formatos: formatsData.filter(format => format.book_id === book.id),
+      _genres: (book.genero || '').split(',').map(g => g.trim()).filter(Boolean)
+    }));
+    
+    console.log('✅ Datos combinados exitosamente');
+    
+    document.getElementById('statTotal').textContent = books.length;
+    document.getElementById('statAuthors').textContent = new Set(books.map(b => b.autor)).size;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('grid').style.display = 'grid';
+    
+  } catch (error) {
+    console.error('❌ Error:', error);
+    document.getElementById('loading').innerHTML = 
+      `❌ Error: ${error.message}<br><small>Revisa credenciales y estado del proyecto</small>`;
+  }
+}
 
     function initFilters() {
       fillSelect('author', [...new Set(books.map(b => b.autor))].sort());
