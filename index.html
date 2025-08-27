@@ -1,255 +1,372 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <title>Tabla precargada en memoria (Opción 1)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi Biblioteca Personal</title>
   <style>
-    :root {
-      color-scheme: light dark;
-      --gap: 8px;
-      --border: 1px solid #ddd;
-      --bg: #f8f9fa;
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f5f7fb; margin:0; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 18px; }
+    header { background:#1f2937; color:#fff; padding:18px; border-radius:12px; }
+    header h1 { margin:0 0 6px 0; font-size:22px; }
+    .stats { display:flex; gap:24px; font-size:14px; opacity:.9; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; padding:12px 0; }
+    .controls input, .controls select { padding:10px 12px; border-radius:8px; border:1px solid #cfd8e3; background:#fff; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap:14px; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; display:flex; gap:12px; padding:12px; }
+    .cover-wrap { position: relative; flex:0 0 110px; }
+    .cover { width:110px; height:150px; border-radius:8px; background:#eef2f6; object-fit:cover; cursor:pointer; display:block; }
+    .content { flex:1; display:flex; flex-direction:column; gap:6px; }
+    .title { font-weight:700; color:#111827; line-height:1.2; }
+    .author { color:#6b7280; font-size:14px; }
+    .meta { display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:#374151; }
+    .badge { padding:2px 8px; border-radius:999px; font-weight:600; }
+    .badge.series { background:#eef2ff; color:#4338ca; }
+    .badge.genre { background:#ecfeff; color:#0369a1; }
+    .formats { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+    .format-link { 
+      font-size:12px; border:1px solid #d1d5db; border-radius:8px; padding:4px 8px; 
+      background:#f9fafb; text-decoration:none; color:#374151; cursor:pointer;
+      transition: all 0.2s ease;
     }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
-    .toolbar { display: flex; flex-wrap: wrap; gap: var(--gap); align-items: center; margin-bottom: 12px; }
-    .toolbar input[type="search"] { flex: 1 1 280px; padding: 8px 10px; }
-    .toolbar button { padding: 8px 12px; cursor: pointer; }
-    .status { font-size: 12px; color: #666; }
-    table { width: 100%; border-collapse: collapse; background: white; }
-    thead th { position: sticky; top: 0; background: var(--bg); border-bottom: var(--border); text-align: left; padding: 8px; cursor: pointer; }
-    tbody td { border-top: var(--border); padding: 8px; }
-    .right { text-align: right; }
-    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ccc; border-top-color: #333; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: text-bottom; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .pager { display: flex; gap: var(--gap); align-items: center; margin-top: 10px; }
-    .pager button { padding: 6px 10px; }
-    .muted { opacity: 0.66; }
-    .hidden { display: none; }
+    .format-link:hover { 
+      background:#2563eb; color:#fff; border-color:#2563eb; 
+      text-decoration:none; transform: translateY(-1px);
+    }
+    .actions { display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap; }
+    .btn { padding:8px 12px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-weight:700; cursor:pointer; }
+    .btn.secondary { background:#6b7280; }
+    .btn.ghost { background:#eef2f7; color:#1f2937; }
+    .viewer { margin-top:10px; width:100%; height:360px; border:0; border-radius:8px; background:#f0f2f5; display:none; }
+    .no-results { text-align:center; color:#6b7280; padding:40px 0; }
+    .loading { text-align:center; padding:50px; font-size:18px; color:#6b7280; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+    }
+    .modal {
+      width: min(800px, 100%); background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.2);
+      max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-header { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-weight: 700; color: #111827; margin: 0; }
+    .modal-close { background: transparent; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: #6b7280; }
+    .modal-body { padding: 16px; overflow: auto; color: #111827; line-height: 1.6; }
+    .modal-footer { padding: 12px 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 8px; }
+    @media (max-width: 480px) {
+      .card { flex-direction:column; align-items:center; }
+      .cover-wrap { flex: 0 0 auto; }
+      .cover { width:160px; height:220px; }
+      .content { width:100%; }
+    }
   </style>
 </head>
 <body>
-  <h1>Listado</h1>
+  <div class="container">
+    <header>
+      <h1>📚 Mi Biblioteca Personal</h1>
+      <div class="stats">
+        <div>Total obras: <b id="statTotal">-</b></div>
+        <div>Autores: <b id="statAuthors">-</b></div>
+      </div>
+    </header>
 
-  <div class="toolbar">
-    <input id="q" type="search" placeholder="Buscar..." autocomplete="off" />
-    <button id="refreshBtn" title="Recargar manualmente desde el servidor">Refrescar</button>
-    <span id="loading" class="status hidden"><span class="spinner"></span> Cargando...</span>
-    <span id="info" class="status muted"></span>
+    <div class="controls">
+      <input id="q" type="search" placeholder="Buscar por título, autor o género..." />
+      <select id="author"><option value="">Todos los autores</option></select>
+      <select id="format"><option value="">Todos los formatos</option></select>
+      <select id="genre"><option value="">Todos los géneros</option></select>
+    </div>
+
+    <div id="loading" class="loading">
+      🔄 Cargando biblioteca desde la base de datos...
+    </div>
+    
+    <div id="grid" class="grid" style="display:none;"></div>
+    <div id="noResults" class="no-results" style="display:none;">No se encontraron resultados</div>
   </div>
 
-  <div style="overflow:auto; max-height: 70vh; border: 1px solid #eee;">
-    <table id="grid">
-      <thead>
-        <!-- Ajustar nombres de columnas y data-key a los campos reales -->
-        <tr>
-          <th data-key="id" data-type="number">ID</th>
-          <th data-key="nombre" data-type="string">Nombre</th>
-          <th data-key="categoria" data-type="string">Categoría</th>
-          <th data-key="precio" class="right" data-type="number">Precio</th>
-          <th data-key="fecha" data-type="date">Fecha</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <!-- Modal reutilizable -->
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle" class="modal-title">Descripción</h2>
+        <button class="modal-close" aria-label="Cerrar" onclick="closeModal()">×</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">Cerrar</button>
+      </div>
+    </div>
   </div>
 
-  <div class="pager">
-    <button id="prev">Anterior</button>
-    <span id="pageInfo" class="muted"></span>
-    <button id="next">Siguiente</button>
-    <select id="pageSize">
-      <option value="10">10 filas</option>
-      <option value="25">25 filas</option>
-      <option value="50">50 filas</option>
-      <option value="100">100 filas</option>
-    </select>
-  </div>
-
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <script>
-    // ===================== Ajustes =====================
-    // Reemplazar por el endpoint real que devuelve TODA la tabla en JSON
-    const ENDPOINT = "/api/tabla-completa"; // ej.: GET devuelve [{id, nombre, categoria, precio, fecha}, ...]
-    // Caché opcional en localStorage para no re-pedir en recargas de página
-    const CACHE_KEY = "tabla_completa_cache_v1";
-    // Establecer a null si no se desea TTL; en milisegundos (ej. 12h)
-    const CACHE_TTL = 12 * 60 * 60 * 1000;
+    // ⚠️ CONFIGURAR CON TUS CREDENCIALES DE SUPABASE
+const SUPABASE_URL = 'https://fanyuclarbgwraiwbcmr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    let books = [];
+    let filtered = [];
 
-    // ===================== Estado =====================
-    let ALL_ROWS = [];      // toda la tabla en memoria (opción 1)
-    let VIEW_ROWS = [];     // filas tras filtro/orden
-    let sortKey = null;
-    let sortDir = 1;        // 1 asc, -1 desc
-    let page = 1;
-    let pageSize = 10;
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadBooksFromSupabase();
+      initFilters();
+      applyFilters();
 
-    // ===================== Utilidades =====================
-    const $ = (sel) => document.querySelector(sel);
-    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+      });
+      document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'modalBackdrop') closeModal();
+      });
+    });
 
-    function escapeHTML(v) {
-      return String(v ?? "").replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+async function loadBooksFromSupabase() {
+  try {
+    console.log('🔄 Cargando con método alternativo...');
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Consulta 1: Obtener libros
+    const { data: booksData, error: booksError } = await supabase
+      .from('books')
+      .select('*')
+      .order('titulo');
+    
+    if (booksError) {
+      throw new Error(`Error libros: ${booksError.message}`);
     }
-    function parseDate(v) {
-      // Asegurar formato de fecha parseable o personalizar según backend (YYYY-MM-DD, ISO, etc.)
-      const d = new Date(v);
-      return isNaN(d) ? null : d;
+    
+    console.log(`📚 ${booksData.length} libros obtenidos`);
+    
+    // Consulta 2: Obtener formatos
+    const { data: formatsData, error: formatsError } = await supabase
+      .from('book_formats')
+      .select('*');
+    
+    if (formatsError) {
+      throw new Error(`Error formatos: ${formatsError.message}`);
     }
-    function formatNumber(n) {
-      const x = Number(n);
-      return Number.isFinite(x) ? x.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
+    
+    console.log(`💿 ${formatsData.length} formatos obtenidos`);
+    
+    // Combinar datos
+    books = booksData.map(book => ({
+      ...book,
+      formatos: formatsData.filter(format => format.book_id === book.id),
+      _genres: (book.genero || '').split(',').map(g => g.trim()).filter(Boolean)
+    }));
+    
+    console.log('✅ Datos combinados exitosamente');
+    
+    document.getElementById('statTotal').textContent = books.length;
+    document.getElementById('statAuthors').textContent = new Set(books.map(b => b.autor)).size;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('grid').style.display = 'grid';
+    
+  } catch (error) {
+    console.error('❌ Error:', error);
+    document.getElementById('loading').innerHTML = 
+      `❌ Error: ${error.message}<br><small>Revisa credenciales y estado del proyecto</small>`;
+  }
+}
+
+    function initFilters() {
+      fillSelect('author', [...new Set(books.map(b => b.autor))].sort());
+      const allFormats = new Set();
+      books.forEach(b => (b.formatos || []).forEach(f => allFormats.add(f.formato)));
+      fillSelect('format', [...allFormats].sort());
+      const allGenres = new Set();
+      books.forEach(b => b._genres.forEach(g => allGenres.add(g)));
+      fillSelect('genre', [...allGenres].sort());
+
+      document.getElementById('q').addEventListener('input', applyFilters);
+      document.getElementById('author').addEventListener('change', applyFilters);
+      document.getElementById('format').addEventListener('change', applyFilters);
+      document.getElementById('genre').addEventListener('change', applyFilters);
     }
 
-    function setLoading(on) { $("#loading").classList.toggle("hidden", !on); }
-    function setInfo(txt) { $("#info").textContent = txt || ""; }
-
-    // ===================== Carga inicial única =====================
-    async function fetchAllFromServer() {
-      setLoading(true);
-      try {
-        const res = await fetch(ENDPOINT, { cache: "no-store" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const data = await res.json();
-        // Guardar en caché opcional con sello de tiempo
-        try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), data }));
-        } catch(e) { /* almacenamiento lleno o bloqueado */ }
-        return data;
-      } finally {
-        setLoading(false);
-      }
+    function fillSelect(id, values) {
+      const sel = document.getElementById(id);
+      values.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        sel.appendChild(opt);
+      });
     }
 
-    function loadFromCache() {
-      try {
-        const raw = localStorage.getItem(CACHE_KEY);
-        if (!raw) return null;
-        const { t, data } = JSON.parse(raw);
-        if (CACHE_TTL != null && t && (Date.now() - t) > CACHE_TTL) {
-          localStorage.removeItem(CACHE_KEY);
-          return null;
-        }
-        return data;
-      } catch(e) {
-        return null;
-      }
+    function applyFilters() {
+      const q = document.getElementById('q').value.toLowerCase();
+      const a = document.getElementById('author').value;
+      const f = document.getElementById('format').value;
+      const g = document.getElementById('genre').value;
+
+      filtered = books.filter(b => {
+        const matchesQ = !q ||
+          (b.titulo && b.titulo.toLowerCase().includes(q)) ||
+          (b.autor && b.autor.toLowerCase().includes(q)) ||
+          (b.genero && b.genero.toLowerCase().includes(q));
+        const matchesA = !a || b.autor === a;
+        const matchesF = !f || (b.formatos || []).some(x => x.formato === f);
+        const matchesG = !g || b._genres.includes(g);
+        return matchesQ && matchesA && matchesF && matchesG;
+      });
+
+      render();
     }
 
-    async function loadAllOnce() {
-      // 1) Intentar caché (misma sesión o dentro del TTL)
-      const cached = loadFromCache();
-      if (cached && Array.isArray(cached)) {
-        ALL_ROWS = cached;
+    function render() {
+      const grid = document.getElementById('grid');
+      const empty = document.getElementById('noResults');
+      if (!filtered.length) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
         return;
       }
-      // 2) Obtener del servidor solo una vez
-      ALL_ROWS = await fetchAllFromServer();
+      empty.style.display = 'none';
+      grid.innerHTML = filtered.map(renderCard).join('');
     }
 
-    // ===================== Render =====================
-    function applyFilterSort() {
-      const q = $("#q").value.trim().toLowerCase();
-      const keys = $$("#grid thead th").map(th => th.dataset.key).filter(Boolean);
+    function renderCard(b) {
+      const viewerId = 'viewer_' + hash(b.titulo + '|' + b.autor + '|' + (b.carpeta_obra || ''));
+      const portadaSrc = resolveCoverThumb(b.url_portada);
+      const coverHref = b.url_portada || '#';
+      const series = b.serie ? `<span class="badge series">${esc(b.serie)}${b.numero_serie ? ' #' + esc(b.numero_serie) : ''}</span>` : '';
+      const genres = b._genres.slice(0, 3).map(g => `<span class="badge genre">${esc(g)}</span>`).join(' ');
+      const year = safeYear(b.fecha_publicacion);
 
-      // Filtrado simple en cliente
-      VIEW_ROWS = ALL_ROWS.filter(row => {
-        if (!q) return true;
-        return keys.some(k => String(row[k] ?? "").toLowerCase().includes(q));
-      });
+      // Enlaces directos por formato
+      const formatLinks = (b.formatos || []).map(f => {
+        const text = f.tamanio ? `${f.formato} · ${f.tamanio}` : f.formato;
+        return `<a href="${esc(f.url)}" target="_blank" rel="noopener" class="format-link" title="Abrir ${f.formato}">${esc(text)}</a>`;
+      }).join('');
 
-      // Ordenación en cliente
-      if (sortKey) {
-        const type = ($(`#grid thead th[data-key="${sortKey}"]`)?.dataset.type) || "string";
-        VIEW_ROWS.sort((a, b) => {
-          let av = a[sortKey], bv = b[sortKey];
-          if (type === "number") {
-            av = Number(av); bv = Number(bv);
-            if (!Number.isFinite(av)) av = -Infinity;
-            if (!Number.isFinite(bv)) bv = -Infinity;
-          } else if (type === "date") {
-            av = parseDate(av)?.getTime() ?? 0;
-            bv = parseDate(bv)?.getTime() ?? 0;
-          } else {
-            av = String(av ?? "").toLowerCase();
-            bv = String(bv ?? "").toLowerCase();
-          }
-          return av < bv ? -1 * sortDir : av > bv ? 1 * sortDir : 0;
-        });
+      // Botón de descripción solo si hay descripción
+      const hasDesc = !!stripHtml(b.descripcion || '').trim();
+      const descButton = hasDesc
+        ? `<button class="btn ghost" onclick="openDescription('${esc(b.titulo)}','${esc(b.autor || '')}', \`${escMultiline(stripHtml(b.descripcion))}\`)">📄 Descripción</button>`
+        : '';
+
+      // Botón de visor (usa el primer formato disponible)
+      const firstFormat = (b.formatos || [])[0];
+      const viewerButton = firstFormat
+        ? `<button class="btn secondary" onclick="toggleViewer('${viewerId}', '${esc(firstFormat.url)}')">👁️ Visor</button>`
+        : '';
+
+      return `
+        <div class="card">
+          <div class="cover-wrap">
+            <a href="${esc(coverHref)}" target="_blank" rel="noopener">
+              <img class="cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(b.titulo)}"
+                onerror="this.style.display='none';"/>
+            </a>
+          </div>
+          <div class="content">
+            <div class="title">${esc(b.titulo)}</div>
+            <div class="author">por ${esc(b.autor || 'Autor desconocido')}</div>
+            <div class="meta">
+              ${year ? `<span>Año: ${year}</span>` : ''}
+              ${b.editorial ? `<span>Editorial: ${esc(b.editorial)}</span>` : ''}
+              ${series}
+            </div>
+            <div class="meta">${genres}</div>
+
+            <div class="formats">${formatLinks}</div>
+
+            <div class="actions">
+              ${viewerButton}
+              ${descButton}
+            </div>
+
+            <iframe id="${viewerId}" class="viewer" loading="lazy"></iframe>
+          </div>
+        </div>
+      `;
+    }
+
+    // Modal de descripción
+    function openDescription(title, author, description) {
+      const backdrop = document.getElementById('modalBackdrop');
+      const titleEl = document.getElementById('modalTitle');
+      const bodyEl = document.getElementById('modalBody');
+
+      titleEl.textContent = author ? `${title} — ${author}` : title;
+      bodyEl.textContent = description || '(Sin descripción)';
+      backdrop.style.display = 'flex';
+      setTimeout(() => {
+        const closeBtn = backdrop.querySelector('.modal-close');
+        if (closeBtn) closeBtn.focus();
+      }, 0);
+    }
+
+    function closeModal() {
+      const backdrop = document.getElementById('modalBackdrop');
+      backdrop.style.display = 'none';
+    }
+
+    // Visor embebido
+    function buildPreviewUrl(viewUrl) {
+      const m = String(viewUrl || '').match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/i);
+      if (m && m[1]) {
+        const id = m[1];
+        return `https://drive.google.com/file/d/${id}/preview`;
+      }
+      return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(viewUrl || '')}`;
+    }
+
+    function toggleViewer(viewerId, formatUrl) {
+      const iframe = document.getElementById(viewerId);
+      if (!iframe) return;
+      
+      if (iframe.style.display === 'none' || !iframe.style.display) {
+        const previewUrl = buildPreviewUrl(formatUrl);
+        if (!previewUrl) {
+          iframe.style.display = 'none';
+          return;
+        }
+        iframe.style.display = 'block';
+        iframe.onerror = () => { iframe.style.display = 'none'; };
+        iframe.src = previewUrl;
+      } else {
+        iframe.style.display = 'none';
+        iframe.removeAttribute('src');
       }
     }
 
-    function renderTable() {
-      applyFilterSort();
-
-      // Paginación en cliente
-      const total = VIEW_ROWS.length;
-      const totalPages = Math.max(1, Math.ceil(total / pageSize));
-      if (page > totalPages) page = totalPages;
-
-      const start = (page - 1) * pageSize;
-      const rows = VIEW_ROWS.slice(start, start + pageSize);
-
-      const tbody = $("#grid tbody");
-      const cols = $$("#grid thead th").map(th => ({ key: th.dataset.key, type: th.dataset.type }));
-      tbody.innerHTML = rows.map(row => {
-        return `<tr>
-          <td>${escapeHTML(row.id)}</td>
-          <td>${escapeHTML(row.nombre)}</td>
-          <td>${escapeHTML(row.categoria)}</td>
-          <td class="right">${formatNumber(row.precio)}</td>
-          <td>${escapeHTML(row.fecha)}</td>
-        </tr>`;
-      }).join("");
-
-      $("#pageInfo").textContent = `Página ${page} de ${totalPages} · ${total} filas`;
-      setInfo(`Filas en memoria: ${ALL_ROWS.length}`);
+    // Thumbnail de portada (Drive)
+    function resolveCoverThumb(urlPortada) {
+      if (!urlPortada) return '';
+      const m = urlPortada.match(/\/d\/([^/]+)\//);
+      const id = m ? m[1] : null;
+      if (!id) return urlPortada;
+      return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
     }
 
-    // ===================== Interacciones =====================
-    function attachEvents() {
-      // Buscar
-      $("#q").addEventListener("input", () => { page = 1; renderTable(); });
-
-      // Ordenar al pulsar encabezados
-      $$("#grid thead th").forEach(th => {
-        const key = th.dataset.key;
-        if (!key) return;
-        th.addEventListener("click", () => {
-          if (sortKey === key) {
-            sortDir = -1 * sortDir; // alternar asc/desc
-          } else {
-            sortKey = key;
-            sortDir = 1;
-          }
-          renderTable();
-        });
-      });
-
-      // Paginación
-      $("#prev").addEventListener("click", () => { if (page > 1) { page--; renderTable(); } });
-      $("#next").addEventListener("click", () => { page++; renderTable(); });
-      $("#pageSize").addEventListener("change", (e) => {
-        pageSize = Number(e.target.value) || 10;
-        page = 1;
-        renderTable();
-      });
-
-      // Refresco manual (única vía para reconsultar servidor)
-      $("#refreshBtn").addEventListener("click", async () => {
-        // Si se desea no tocar caché, comentar la línea de removeItem
-        try { localStorage.removeItem(CACHE_KEY); } catch(e) {}
-        await loadAllOnce();
-        page = 1;
-        renderTable();
-      });
+    // Utils
+    function safeYear(dateStr) {
+      if (!dateStr || dateStr.startsWith('0101')) return '';
+      const d = new Date(dateStr);
+      const y = d.getFullYear();
+      return isNaN(y) ? '' : String(y);
     }
-
-    // ===================== Inicio =====================
-    (async function init() {
-      attachEvents();
-      await loadAllOnce(); // carga única de toda la tabla en memoria
-      renderTable();
-    })();
+    function stripHtml(s){ return String(s || '').replace(/<[^>]+>/g,''); }
+    function esc(s){
+      return String(s || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+    function escMultiline(s) {
+      return String(s || '').replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g,'\\$').replace(/\r?\n/g, '\\n');
+    }
+    function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i); h|=0;} return String(Math.abs(h)); }
   </script>
 </body>
 </html>
