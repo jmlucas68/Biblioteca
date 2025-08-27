@@ -1,249 +1,478 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <title>Listado de Libros</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi Biblioteca Personal</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; }
-    h1 { margin-bottom: 20px; }
-    .toolbar { display: flex; gap: 12px; margin-bottom: 12px; }
-    .toolbar input[type="search"], .toolbar select { padding: 7px 10px; }
-    .toolbar button { padding: 7px 16px; }
-    table { width: 100%; border-collapse: collapse; background: #fff; }
-    thead th { background: #f2f4f8; border-bottom: 1px solid #ccc; text-align: left; padding: 8px; }
-    tbody td { padding: 8px; border-top: 1px solid #eee; }
-    .right { text-align: right; }
-    .pager { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
-    .muted { color: #888; font-size: 14px; }
-    #loading { margin-left: 8px; font-size: 13px; }
-    .hidden { display: none; }
-    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #bbb; border-top-color: #333; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: text-bottom; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    /* Modal styles */
-    .modal-bg {
-      position: fixed; top: 0; left: 0; width:100vw; height:100vh;
-      background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;
-      z-index: 2000; 
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f5f7fb; margin:0; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 18px; }
+    header { background:#1f2937; color:#fff; padding:18px; border-radius:12px; }
+    header h1 { margin:0 0 6px 0; font-size:22px; }
+    .stats { display:flex; gap:24px; font-size:14px; opacity:.9; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; padding:12px 0; }
+    .controls input, .controls select { padding:10px 12px; border-radius:8px; border:1px solid #cfd8e3; background:#fff; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap:14px; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; display:flex; gap:12px; padding:12px; }
+    .cover-wrap { position: relative; flex:0 0 110px; }
+    .cover { width:110px; height:150px; border-radius:8px; background:#eef2f6; object-fit:cover; cursor:pointer; display:block; }
+    .content { flex:1; display:flex; flex-direction:column; gap:6px; }
+    .title { font-weight:700; color:#111827; line-height:1.2; }
+    .author { color:#6b7280; font-size:14px; }
+    .meta { display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:#374151; }
+    .badge { padding:2px 8px; border-radius:999px; font-weight:600; }
+    .badge.series { background:#eef2ff; color:#4338ca; }
+    .badge.genre { background:#ecfeff; color:#0369a1; }
+    .formats { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+    .format-link { 
+      font-size:12px; border:1px solid #d1d5db; border-radius:8px; padding:4px 8px; 
+      background:#f9fafb; text-decoration:none; color:#374151; cursor:pointer;
+      transition: all 0.2s ease;
     }
-    .modal-content {
-      background: #fff; border-radius: 8px; padding: 24px 28px; min-width: 320px; box-shadow: 0 2px 24px #4441;
-      position: relative;
+    .format-link:hover { 
+      background:#2563eb; color:#fff; border-color:#2563eb; 
+      text-decoration:none; transform: translateY(-1px);
     }
-    .modal-content h2 { margin-top: 0; margin-bottom: 16px; }
-    .modal-form label { display: block; margin: 12px 0 5px; font-weight: bold;}
-    .modal-form input, .modal-form textarea { width: 100%; padding: 7px; margin-bottom: 12px; }
-    .modal-form textarea { resize: vertical; }
-    .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+    .actions { display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap; }
+    .btn { padding:8px 12px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-weight:700; cursor:pointer; }
+    .btn.secondary { background:#6b7280; }
+    .btn.ghost { background:#eef2f7; color:#1f2937; }
+    .viewer { margin-top:10px; width:100%; height:360px; border:0; border-radius:8px; background:#f0f2f5; display:none; }
+    .no-results { text-align:center; color:#6b7280; padding:40px 0; }
+    .loading { text-align:center; padding:50px; font-size:18px; color:#6b7280; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+    }
+    .modal {
+      width: min(800px, 100%); background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.2);
+      max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-header { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-weight: 700; color: #111827; margin: 0; }
+    .modal-close { background: transparent; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: #6b7280; }
+    .modal-body { padding: 16px; overflow: auto; color: #111827; line-height: 1.6; }
+    .modal-footer { padding: 12px 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 8px; }
+    @media (max-width: 480px) {
+      .card { flex-direction:column; align-items:center; }
+      .cover-wrap { flex: 0 0 auto; }
+      .cover { width:160px; height:220px; }
+      .content { width:100%; }
+    }
   </style>
 </head>
 <body>
-  <h1>Listado de Libros</h1>
-  <div class="toolbar">
-    <input id="q" type="search" placeholder="Buscar..." autocomplete="off" />
-    <button id="refreshBtn" title="Recargar manualmente desde el servidor">Refrescar</button>
-    <select id="pageSize">
-      <option value="10">10 filas</option>
-      <option value="25">25 filas</option>
-      <option value="50">50 filas</option>
-      <option value="100">100 filas</option>
-    </select>
-    <span id="loading" class="hidden"><span class="spinner"></span> Cargando...</span>
-  </div>
-  <div style="overflow-x:auto; max-height: 65vh; border:1px solid #eee;">
-    <table id="grid">
-      <thead>
-        <tr>
-          <th data-key="id">ID</th>
-          <th data-key="titulo">Título</th>
-          <th data-key="autor">Autor</th>
-          <th data-key="categoria">Categoría</th>
-          <th data-key="fecha">Fecha</th>
-          <th data-key="drive">Enlace Drive</th>
-          <th>Editar</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <div class="pager">
-    <button id="prev">Anterior</button>
-    <span id="pageInfo" class="muted"></span>
-    <button id="next">Siguiente</button>
+  <div class="container">
+    <header>
+      <h1>📚 Mi Biblioteca Personal</h1>
+      <div class="stats">
+        <div>Total obras: <b id="statTotal">-</b></div>
+        <div>Autores: <b id="statAuthors">-</b></div>
+      </div>
+    </header>
+
+    <div class="controls">
+      <input id="q" type="search" placeholder="Buscar por título, autor o género..." />
+      <select id="author"><option value="">Todos los autores</option></select>
+      <select id="format"><option value="">Todos los formatos</option></select>
+      <select id="genre"><option value="">Todos los géneros</option></select>
+    </div>
+
+    <div id="loading" class="loading">
+      📄 Cargando biblioteca desde la base de datos...
+    </div>
+    
+    <div id="grid" class="grid" style="display:none;"></div>
+    <div id="noResults" class="no-results" style="display:none;">No se encontraron resultados</div>
   </div>
 
-  <!-- Modal para editar -->
-  <div id="modalEdit" class="modal-bg hidden">
-    <div class="modal-content">
-      <h2>Editar libro</h2>
-      <form class="modal-form">
-        <label>ID</label>
-        <input type="text" id="modalId" disabled />
-        <label>Título</label>
-        <input type="text" id="modalTitulo" required />
-
-        <label>Autor</label>
-        <input type="text" id="modalAutor" required />
-
-        <label>Categoría</label>
-        <input type="text" id="modalCategoria" required />
-
-        <label>Fecha</label>
-        <input type="date" id="modalFecha" required />
-
-        <!-- El enlace de Drive se muestra pero no se puede editar -->
-        <label>Enlace Drive</label>
-        <input type="text" id="modalDrive" disabled />
-
-        <div class="modal-actions">
-          <button type="button" id="saveEdit">Guardar</button>
-          <button type="button" id="cancelEdit">Cancelar</button>
-        </div>
-      </form>
+  <!-- Modal reutilizable -->
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle" class="modal-title">Descripción</h2>
+        <button class="modal-close" aria-label="Cerrar" onclick="closeModal()">×</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">Cerrar</button>
+      </div>
     </div>
   </div>
 
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <script>
-    let ALL_ROWS = [];
-    let VIEW_ROWS = [];
-    let sortKey = null;
-    let sortDir = 1;
-    let page = 1;
-    let pageSize = 10;
-    let editRowIndex = null; // índice de edición en ALL_ROWS
+    // ⚠️ CONFIGURAR CON TUS CREDENCIALES DE SUPABASE
+const SUPABASE_URL = 'https://fanyuclarbgwraiwbcmr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Variables globales para datos en memoria
+    let allBooks = [];
+    let allFormats = [];
+    let books = []; // Array combinado final
+    let filtered = [];
+    
+    // Cache de opciones para filtros
+    let cachedAuthors = new Set();
+    let cachedFormats = new Set();
+    let cachedGenres = new Set();
 
-    function escapeHTML(v) {
-      return String(v ?? "").replace(/[&<>"']/g, s => ({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-      }[s]));
-    }
-    function showLoading(on) {
-      document.getElementById("loading").classList.toggle("hidden", !on);
-    }
-    async function fetchAllRows() {
-      showLoading(true);
-      try {
-        const res = await fetch('/api/tabla-completa');
-        if (!res.ok) throw new Error("Error " + res.status);
-        return await res.json();
-      } finally {
-        showLoading(false);
-      }
-    }
-    function applyFilterSort() {
-      const q = document.getElementById('q').value.trim().toLowerCase();
-      VIEW_ROWS = ALL_ROWS.filter(row => {
-        if (!q) return true;
-        return Object.values(row).some(val => String(val ?? "").toLowerCase().includes(q));
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadAllDataToMemory();
+      initFilters();
+      applyFilters();
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
       });
-      if (sortKey) {
-        VIEW_ROWS.sort((a, b) => {
-          let av = a[sortKey], bv = b[sortKey];
-          if (!isNaN(av) && !isNaN(bv)) {
-            return (Number(av) - Number(bv)) * sortDir;
-          } else {
-            av = String(av ?? "").toLowerCase();
-            bv = String(bv ?? "").toLowerCase();
-            return av.localeCompare(bv) * sortDir;
+      document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'modalBackdrop') closeModal();
+      });
+    });
+
+    async function loadAllDataToMemory() {
+      try {
+        console.log('🚀 Iniciando carga completa de datos...');
+        document.getElementById('loading').innerHTML = '📄 Cargando libros...';
+        
+        // Consulta 1: Obtener TODOS los libros
+        console.log('📚 Consultando tabla books...');
+        const { data: booksData, error: booksError } = await supabase
+          .from('books')
+          .select('*')
+          .order('titulo');
+        
+        if (booksError) {
+          console.error('Error en consulta books:', booksError);
+          throw new Error(`Error cargando libros: ${booksError.message}`);
+        }
+        
+        if (!booksData) {
+          throw new Error('No se recibieron datos de libros');
+        }
+        
+        allBooks = [...booksData]; // Crear copia para evitar referencias
+        console.log(`📚 ${allBooks.length} libros cargados en memoria`);
+        
+        document.getElementById('loading').innerHTML = '💿 Cargando formatos...';
+        
+        // Consulta 2: Obtener TODOS los formatos
+        console.log('💿 Consultando tabla book_formats...');
+        const { data: formatsData, error: formatsError } = await supabase
+          .from('book_formats')
+          .select('*');
+        
+        if (formatsError) {
+          console.error('Error en consulta formats:', formatsError);
+          throw new Error(`Error cargando formatos: ${formatsError.message}`);
+        }
+        
+        allFormats = formatsData ? [...formatsData] : []; // Crear copia y manejar null
+        console.log(`💿 ${allFormats.length} formatos cargados en memoria`);
+        
+        document.getElementById('loading').innerHTML = '🔄 Procesando datos...';
+        
+        // Crear índices para búsquedas rápidas
+        const formatsByBookId = new Map();
+        allFormats.forEach(format => {
+          if (format && format.book_id) { // Validar datos
+            if (!formatsByBookId.has(format.book_id)) {
+              formatsByBookId.set(format.book_id, []);
+            }
+            formatsByBookId.get(format.book_id).push({...format}); // Copia del objeto
           }
         });
+        
+        // Combinar datos y crear cachés
+        books = allBooks.map(book => {
+          try {
+            const bookFormats = formatsByBookId.get(book.id) || [];
+            const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
+            
+            // Actualizar cachés (validar antes de agregar)
+            if (book.autor) cachedAuthors.add(book.autor);
+            genres.forEach(g => { if (g) cachedGenres.add(g); });
+            bookFormats.forEach(f => { if (f.formato) cachedFormats.add(f.formato); });
+            
+            return {
+              id: book.id,
+              titulo: book.titulo || '',
+              autor: book.autor || '',
+              genero: book.genero || '',
+              serie: book.serie || '',
+              numero_serie: book.numero_serie || '',
+              editorial: book.editorial || '',
+              fecha_publicacion: book.fecha_publicacion || '',
+              descripcion: book.descripcion || '',
+              url_portada: book.url_portada || '',
+              carpeta_obra: book.carpeta_obra || '',
+              formatos: bookFormats,
+              _genres: genres,
+              // Pre-procesar campos para búsqueda más rápida
+              _searchText: [
+                book.titulo,
+                book.autor,
+                book.genero,
+                book.serie,
+                book.editorial
+              ].filter(Boolean).join(' ').toLowerCase()
+            };
+          } catch (bookError) {
+            console.warn('Error procesando libro:', book.id, bookError);
+            return null;
+          }
+        }).filter(Boolean); // Eliminar libros con errores
+        
+        console.log('✅ Datos combinados y optimizados en memoria');
+        console.log(`📊 Estadísticas: ${books.length} libros, ${cachedAuthors.size} autores, ${cachedFormats.size} formatos, ${cachedGenres.size} géneros`);
+        
+        // Actualizar estadísticas UI
+        document.getElementById('statTotal').textContent = books.length;
+        document.getElementById('statAuthors').textContent = cachedAuthors.size;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('grid').style.display = 'grid';
+        
+      } catch (error) {
+        console.error('❌ Error cargando datos:', error);
+        console.error('Stack trace:', error.stack);
+        
+        // Mostrar error más detallado
+        let errorMessage = error.message;
+        if (error.name === 'DataCloneError') {
+          errorMessage = 'Error de clonación de datos. Reintentando...';
+          // Intentar recargar la página después de un breve delay
+          setTimeout(() => {
+            console.log('🔄 Recargando página...');
+            window.location.reload();
+          }, 2000);
+        }
+        
+        document.getElementById('loading').innerHTML = 
+          `❌ Error: ${errorMessage}<br><small>Revisa consola para más detalles. ${error.name === 'DataCloneError' ? 'Recargando...' : ''}</small>`;
       }
     }
-    function renderTable() {
-      applyFilterSort();
-      const total = VIEW_ROWS.length;
-      const totalPages = Math.max(1, Math.ceil(total / pageSize));
-      if (page > totalPages) page = totalPages;
-      const start = (page - 1) * pageSize;
-      const items = VIEW_ROWS.slice(start, start + pageSize);
-      const tbody = document.querySelector("#grid tbody");
-      tbody.innerHTML = items.map(row => `
-        <tr>
-          <td>${escapeHTML(row.id)}</td>
-          <td>${escapeHTML(row.titulo)}</td>
-          <td>${escapeHTML(row.autor)}</td>
-          <td>${escapeHTML(row.categoria)}</td>
-          <td>${escapeHTML(row.fecha)}</td>
-          <td>${row.drive ? `<a href="${escapeHTML(row.drive)}" target="_blank">Ver</a>` : ""}</td>
-          <td><button class="editBtn" data-id="${row.id}">Editar</button></td>
-        </tr>
-      `).join("");
-      document.getElementById("pageInfo").textContent = `Página ${page} de ${totalPages} · ${total} filas`;
-      // Eventos para botones de editar
-      document.querySelectorAll(".editBtn").forEach(btn => {
-        btn.onclick = () => openEditDialog(btn.getAttribute('data-id'));
+
+    function initFilters() {
+      // Llenar filtros usando los cachés
+      fillSelect('author', [...cachedAuthors].sort());
+      fillSelect('format', [...cachedFormats].sort());
+      fillSelect('genre', [...cachedGenres].sort());
+
+      // Event listeners para filtros
+      document.getElementById('q').addEventListener('input', applyFilters);
+      document.getElementById('author').addEventListener('change', applyFilters);
+      document.getElementById('format').addEventListener('change', applyFilters);
+      document.getElementById('genre').addEventListener('change', applyFilters);
+    }
+
+    function fillSelect(id, values) {
+      const sel = document.getElementById(id);
+      values.forEach(v => {
+        if (v) { // Solo agregar valores no vacíos
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          sel.appendChild(opt);
+        }
       });
     }
-    function attachEvents() {
-      document.getElementById("q").addEventListener("input", () => { page = 1; renderTable(); });
-      document.getElementById("prev").addEventListener("click", () => { if (page > 1) page--; renderTable(); });
-      document.getElementById("next").addEventListener("click", () => { page++; renderTable(); });
-      document.getElementById("pageSize").addEventListener("change", function (e) {
-        pageSize = Number(e.target.value) || 10;
-        page = 1;
-        renderTable();
+
+    function applyFilters() {
+      const startTime = performance.now();
+      
+      const q = document.getElementById('q').value.toLowerCase().trim();
+      const a = document.getElementById('author').value;
+      const f = document.getElementById('format').value;
+      const g = document.getElementById('genre').value;
+
+      // Filtrado optimizado usando el texto pre-procesado
+      filtered = books.filter(book => {
+        // Búsqueda por texto (más rápida usando _searchText)
+        if (q && !book._searchText.includes(q)) {
+          return false;
+        }
+        
+        // Filtro por autor
+        if (a && book.autor !== a) {
+          return false;
+        }
+        
+        // Filtro por formato (usando some para eficiencia)
+        if (f && !book.formatos.some(format => format.formato === f)) {
+          return false;
+        }
+        
+        // Filtro por género
+        if (g && !book._genres.includes(g)) {
+          return false;
+        }
+        
+        return true;
       });
-      document.querySelectorAll("#grid thead th").forEach(th => {
-        const key = th.dataset.key;
-        if (!key) return;
-        th.addEventListener("click", () => {
-          if (sortKey === key) sortDir = -1 * sortDir;
-          else { sortKey = key; sortDir = 1; }
-          renderTable();
-        });
-      });
-      document.getElementById("refreshBtn").addEventListener("click", async () => {
-        ALL_ROWS = await fetchAllRows();
-        page = 1;
-        renderTable();
-      });
-      document.getElementById("cancelEdit").onclick = closeEditDialog;
-      document.getElementById("saveEdit").onclick = saveEditDialog;
-      // Cierrra modal con escape
-      document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape") closeEditDialog();
-      });
-      document.getElementById("modalEdit").onclick = function(e) {
-        if (e.target === this) closeEditDialog();
+
+      const endTime = performance.now();
+      console.log(`🔍 Filtrado completado en ${(endTime - startTime).toFixed(2)}ms - ${filtered.length} resultados`);
+
+      render();
+    }
+
+    function render() {
+      const grid = document.getElementById('grid');
+      const empty = document.getElementById('noResults');
+      
+      if (!filtered.length) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      
+      empty.style.display = 'none';
+      
+      const startTime = performance.now();
+      grid.innerHTML = filtered.map(renderCard).join('');
+      const endTime = performance.now();
+      
+      console.log(`🎨 Renderizado completado en ${(endTime - startTime).toFixed(2)}ms`);
+    }
+
+    function renderCard(b) {
+      const viewerId = 'viewer_' + hash(b.titulo + '|' + b.autor + '|' + (b.carpeta_obra || ''));
+      const portadaSrc = resolveCoverThumb(b.url_portada);
+      const coverHref = b.url_portada || '#';
+      const series = b.serie ? `<span class="badge series">${esc(b.serie)}${b.numero_serie ? ' #' + esc(b.numero_serie) : ''}</span>` : '';
+      const genres = b._genres.slice(0, 3).map(g => `<span class="badge genre">${esc(g)}</span>`).join(' ');
+      const year = safeYear(b.fecha_publicacion);
+
+      // Enlaces directos por formato
+      const formatLinks = (b.formatos || []).map(f => {
+        const text = f.tamanio ? `${f.formato} · ${f.tamanio}` : f.formato;
+        return `<a href="${esc(f.url)}" target="_blank" rel="noopener" class="format-link" title="Abrir ${f.formato}">${esc(text)}</a>`;
+      }).join('');
+
+      // Botón de descripción solo si hay descripción
+      const hasDesc = !!stripHtml(b.descripcion || '').trim();
+      const descButton = hasDesc
+        ? `<button class="btn ghost" onclick="openDescription('${esc(b.titulo)}','${esc(b.autor || '')}', \`${escMultiline(stripHtml(b.descripcion))}\`)">📄 Descripción</button>`
+        : '';
+
+      // Botón de visor (usa el primer formato disponible)
+      const firstFormat = (b.formatos || [])[0];
+      const viewerButton = firstFormat
+        ? `<button class="btn secondary" onclick="toggleViewer('${viewerId}', '${esc(firstFormat.url)}')">👁️ Visor</button>`
+        : '';
+
+      return `
+        <div class="card">
+          <div class="cover-wrap">
+            <a href="${esc(coverHref)}" target="_blank" rel="noopener">
+              <img class="cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(b.titulo)}"
+                onerror="this.style.display='none';"/>
+            </a>
+          </div>
+          <div class="content">
+            <div class="title">${esc(b.titulo)}</div>
+            <div class="author">por ${esc(b.autor || 'Autor desconocido')}</div>
+            <div class="meta">
+              ${year ? `<span>Año: ${year}</span>` : ''}
+              ${b.editorial ? `<span>Editorial: ${esc(b.editorial)}</span>` : ''}
+              ${series}
+            </div>
+            <div class="meta">${genres}</div>
+
+            <div class="formats">${formatLinks}</div>
+
+            <div class="actions">
+              ${viewerButton}
+              ${descButton}
+            </div>
+
+            <iframe id="${viewerId}" class="viewer" loading="lazy"></iframe>
+          </div>
+        </div>
+      `;
+    }
+
+    // Modal de descripción
+    function openDescription(title, author, description) {
+      const backdrop = document.getElementById('modalBackdrop');
+      const titleEl = document.getElementById('modalTitle');
+      const bodyEl = document.getElementById('modalBody');
+
+      titleEl.textContent = author ? `${title} — ${author}` : title;
+      bodyEl.textContent = description || '(Sin descripción)';
+      backdrop.style.display = 'flex';
+      setTimeout(() => {
+        const closeBtn = backdrop.querySelector('.modal-close');
+        if (closeBtn) closeBtn.focus();
+      }, 0);
+    }
+
+    function closeModal() {
+      const backdrop = document.getElementById('modalBackdrop');
+      backdrop.style.display = 'none';
+    }
+
+    // Visor embebido
+    function buildPreviewUrl(viewUrl) {
+      const m = String(viewUrl || '').match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/i);
+      if (m && m[1]) {
+        const id = m[1];
+        return `https://drive.google.com/file/d/${id}/preview`;
+      }
+      return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(viewUrl || '')}`;
+    }
+
+    function toggleViewer(viewerId, formatUrl) {
+      const iframe = document.getElementById(viewerId);
+      if (!iframe) return;
+      
+      if (iframe.style.display === 'none' || !iframe.style.display) {
+        const previewUrl = buildPreviewUrl(formatUrl);
+        if (!previewUrl) {
+          iframe.style.display = 'none';
+          return;
+        }
+        iframe.style.display = 'block';
+        iframe.onerror = () => { iframe.style.display = 'none'; };
+        iframe.src = previewUrl;
+      } else {
+        iframe.style.display = 'none';
+        iframe.removeAttribute('src');
       }
     }
-    function openEditDialog(id) {
-      editRowIndex = ALL_ROWS.findIndex(r => String(r.id) === String(id));
-      if (editRowIndex === -1) return;
-      const row = ALL_ROWS[editRowIndex];
-      document.getElementById("modalId").value = row.id ?? '';
-      document.getElementById("modalTitulo").value = row.titulo ?? '';
-      document.getElementById("modalAutor").value = row.autor ?? '';
-      document.getElementById("modalCategoria").value = row.categoria ?? '';
-      document.getElementById("modalFecha").value = row.fecha ?? '';
-      document.getElementById("modalDrive").value = row.drive ?? '';
-      document.getElementById("modalEdit").classList.remove("hidden");
+
+    // Thumbnail de portada (Drive)
+    function resolveCoverThumb(urlPortada) {
+      if (!urlPortada) return '';
+      const m = urlPortada.match(/\/d\/([^/]+)\//);
+      const id = m ? m[1] : null;
+      if (!id) return urlPortada;
+      return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
     }
-    function closeEditDialog() {
-      document.getElementById("modalEdit").classList.add("hidden");
+
+    // Utils
+    function safeYear(dateStr) {
+      if (!dateStr || dateStr.startsWith('0101')) return '';
+      const d = new Date(dateStr);
+      const y = d.getFullYear();
+      return isNaN(y) ? '' : String(y);
     }
-    function saveEditDialog() {
-      if (editRowIndex === null || editRowIndex < 0) return;
-      // Valida
-      const newRow = {
-        ...ALL_ROWS[editRowIndex],
-        titulo: document.getElementById("modalTitulo").value.trim(),
-        autor: document.getElementById("modalAutor").value.trim(),
-        categoria: document.getElementById("modalCategoria").value.trim(),
-        fecha: document.getElementById("modalFecha").value.trim(),
-        // drive no se cambia
-      };
-      // Actualiza en memoria
-      ALL_ROWS[editRowIndex] = newRow;
-      closeEditDialog();
-      renderTable();
-      // Si quieres guardar en backend, envía una petición fetch aquí.
+    function stripHtml(s){ return String(s || '').replace(/<[^>]+>/g,''); }
+    function esc(s){
+      return String(s || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
     }
-    (async function init() {
-      attachEvents();
-      ALL_ROWS = await fetchAllRows();
-      renderTable();
-    })();
+    function escMultiline(s) {
+      return String(s || '').replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g,'\\$').replace(/\r?\n/g, '\\n');
+    }
+    function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i); h|=0;} return String(Math.abs(h)); }
   </script>
 </body>
 </html>
