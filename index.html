@@ -34,9 +34,11 @@
       text-decoration:none; transform: translateY(-1px);
     }
     .actions { display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap; }
-    .btn { padding:8px 12px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-weight:700; cursor:pointer; }
+    .btn { padding:8px 12px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-weight:700; cursor:pointer; font-size:12px; }
     .btn.secondary { background:#6b7280; }
     .btn.ghost { background:#eef2f7; color:#1f2937; }
+    .btn.edit { background:#059669; }
+    .btn.edit:hover { background:#047857; }
     .viewer { margin-top:10px; width:100%; height:360px; border:0; border-radius:8px; background:#f0f2f5; display:none; }
     .no-results { text-align:center; color:#6b7280; padding:40px 0; }
     .loading { text-align:center; padding:50px; font-size:18px; color:#6b7280; }
@@ -55,6 +57,22 @@
     .modal-close { background: transparent; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: #6b7280; }
     .modal-body { padding: 16px; overflow: auto; color: #111827; line-height: 1.6; }
     .modal-footer { padding: 12px 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* Edit Modal Styles */
+    .form-group { margin-bottom: 12px; }
+    .form-label { display: block; margin-bottom: 4px; font-weight: 600; color: #374151; }
+    .form-control { 
+      width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; 
+      background: #fff; font-size: 14px; box-sizing: border-box;
+    }
+    .form-control:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    .form-control[readonly] { background: #f9fafb; color: #6b7280; }
+    textarea.form-control { min-height: 80px; resize: vertical; }
+    .btn-save { background: #059669; }
+    .btn-save:hover { background: #047857; }
+    .btn-cancel { background: #6b7280; }
+    .btn-cancel:hover { background: #4b5563; }
+
     @media (max-width: 480px) {
       .card { flex-direction:column; align-items:center; }
       .cover-wrap { flex: 0 0 auto; }
@@ -88,7 +106,7 @@
     <div id="noResults" class="no-results" style="display:none;">No se encontraron resultados</div>
   </div>
 
-  <!-- Modal reutilizable -->
+  <!-- Modal de descripción -->
   <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal">
       <div class="modal-header">
@@ -98,6 +116,73 @@
       <div id="modalBody" class="modal-body"></div>
       <div class="modal-footer">
         <button class="btn" onclick="closeModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de edición -->
+  <div id="editModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="editModalTitle" class="modal-title">✏️ Editar libro</h2>
+        <button class="modal-close" aria-label="Cerrar" onclick="closeEditModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="editForm">
+          <div class="form-group">
+            <label class="form-label" for="editTitulo">Título *</label>
+            <input type="text" id="editTitulo" name="titulo" class="form-control" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editAutor">Autor</label>
+            <input type="text" id="editAutor" name="autor" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editGenero">Género</label>
+            <input type="text" id="editGenero" name="genero" class="form-control" placeholder="Separar múltiples géneros con comas">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editSerie">Serie</label>
+            <input type="text" id="editSerie" name="serie" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editNumeroSerie">Número de serie</label>
+            <input type="text" id="editNumeroSerie" name="numero_serie" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editEditorial">Editorial</label>
+            <input type="text" id="editEditorial" name="editorial" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editFechaPublicacion">Fecha de publicación</label>
+            <input type="date" id="editFechaPublicacion" name="fecha_publicacion" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editDescripcion">Descripción</label>
+            <textarea id="editDescripcion" name="descripcion" class="form-control" rows="4"></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editUrlPortada">URL de portada</label>
+            <input type="url" id="editUrlPortada" name="url_portada" class="form-control" placeholder="https://...">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editCarpetaObra">Carpeta de obra</label>
+            <input type="text" id="editCarpetaObra" name="carpeta_obra" class="form-control">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-cancel" onclick="closeEditModal()">Cancelar</button>
+        <button type="button" class="btn btn-save" onclick="saveBookChanges()">Guardar cambios</button>
       </div>
     </div>
   </div>
@@ -117,6 +202,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     let allFormats = [];
     let books = []; // Array combinado final
     let filtered = [];
+    let currentEditingBook = null;
     
     // Cache de opciones para filtros
     let cachedAuthors = new Set();
@@ -129,10 +215,16 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       applyFilters();
 
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeModal();
+        if (e.key === 'Escape') {
+          closeModal();
+          closeEditModal();
+        }
       });
       document.getElementById('modalBackdrop').addEventListener('click', (e) => {
         if (e.target.id === 'modalBackdrop') closeModal();
+      });
+      document.getElementById('editModalBackdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'editModalBackdrop') closeEditModal();
       });
     });
 
@@ -367,6 +459,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
         ? `<button class="btn secondary" onclick="toggleViewer('${viewerId}', '${esc(firstFormat.url)}')">👁️ Visor</button>`
         : '';
 
+      // Botón de editar (NUEVO)
+      const editButton = `<button class="btn edit" onclick="openEditModal(${b.id})">✏️ Editar</button>`;
+
       return `
         <div class="card">
           <div class="cover-wrap">
@@ -390,6 +485,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
             <div class="actions">
               ${viewerButton}
               ${descButton}
+              ${editButton}
             </div>
 
             <iframe id="${viewerId}" class="viewer" loading="lazy"></iframe>
@@ -398,7 +494,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       `;
     }
 
-    // Modal de descripción
+    // Modal de descripción (existente)
     function openDescription(title, author, description) {
       const backdrop = document.getElementById('modalBackdrop');
       const titleEl = document.getElementById('modalTitle');
@@ -416,6 +512,149 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     function closeModal() {
       const backdrop = document.getElementById('modalBackdrop');
       backdrop.style.display = 'none';
+    }
+
+    // Modal de edición (NUEVO)
+    function openEditModal(bookId) {
+      const book = books.find(b => b.id === bookId);
+      if (!book) {
+        alert('Error: Libro no encontrado');
+        return;
+      }
+
+      currentEditingBook = book;
+      const backdrop = document.getElementById('editModalBackdrop');
+      
+      // Llenar el formulario con los datos actuales
+      document.getElementById('editTitulo').value = book.titulo || '';
+      document.getElementById('editAutor').value = book.autor || '';
+      document.getElementById('editGenero').value = book.genero || '';
+      document.getElementById('editSerie').value = book.serie || '';
+      document.getElementById('editNumeroSerie').value = book.numero_serie || '';
+      document.getElementById('editEditorial').value = book.editorial || '';
+      document.getElementById('editFechaPublicacion').value = book.fecha_publicacion || '';
+      document.getElementById('editDescripcion').value = stripHtml(book.descripcion || '');
+      document.getElementById('editUrlPortada').value = book.url_portada || '';
+      document.getElementById('editCarpetaObra').value = book.carpeta_obra || '';
+
+      backdrop.style.display = 'flex';
+      setTimeout(() => {
+        document.getElementById('editTitulo').focus();
+      }, 0);
+    }
+
+    function closeEditModal() {
+      const backdrop = document.getElementById('editModalBackdrop');
+      backdrop.style.display = 'none';
+      currentEditingBook = null;
+    }
+
+    async function saveBookChanges() {
+      if (!currentEditingBook) {
+        alert('Error: No hay libro seleccionado para editar');
+        return;
+      }
+
+      // Validar campos requeridos
+      const titulo = document.getElementById('editTitulo').value.trim();
+      if (!titulo) {
+        alert('El título es requerido');
+        document.getElementById('editTitulo').focus();
+        return;
+      }
+
+      // Validar URL de portada si se proporciona
+      const urlPortada = document.getElementById('editUrlPortada').value.trim();
+      if (urlPortada && !isValidUrl(urlPortada)) {
+        alert('Por favor, ingresa una URL de portada válida');
+        document.getElementById('editUrlPortada').focus();
+        return;
+      }
+
+      // Recopilar todos los datos del formulario
+      const updatedData = {
+        titulo: titulo,
+        autor: document.getElementById('editAutor').value.trim(),
+        genero: document.getElementById('editGenero').value.trim(),
+        serie: document.getElementById('editSerie').value.trim() || null,
+        numero_serie: document.getElementById('editNumeroSerie').value.trim() || null,
+        editorial: document.getElementById('editEditorial').value.trim(),
+        fecha_publicacion: document.getElementById('editFechaPublicacion').value || null,
+        descripcion: document.getElementById('editDescripcion').value.trim(),
+        url_portada: urlPortada,
+        carpeta_obra: document.getElementById('editCarpetaObra').value.trim()
+      };
+
+      try {
+        console.log('💾 Guardando cambios del libro...', updatedData);
+        
+        // Actualizar en Supabase
+        const { data, error } = await supabase
+          .from('books')
+          .update(updatedData)
+          .eq('id', currentEditingBook.id)
+          .select();
+
+        if (error) {
+          console.error('Error actualizando libro:', error);
+          alert(`Error al guardar los cambios: ${error.message}`);
+          return;
+        }
+
+        console.log('✅ Libro actualizado exitosamente:', data);
+        
+        // Actualizar los datos en memoria
+        const bookIndex = books.findIndex(b => b.id === currentEditingBook.id);
+        if (bookIndex !== -1) {
+          // Actualizar el libro en memoria preservando los formatos
+          books[bookIndex] = {
+            ...books[bookIndex],
+            ...updatedData,
+            _genres: (updatedData.genero || '').split(',').map(g => g.trim()).filter(Boolean),
+            _searchText: [
+              updatedData.titulo,
+              updatedData.autor,
+              updatedData.genero,
+              updatedData.serie,
+              updatedData.editorial
+            ].filter(Boolean).join(' ').toLowerCase()
+          };
+        }
+
+        // Actualizar también en allBooks
+        const allBookIndex = allBooks.findIndex(b => b.id === currentEditingBook.id);
+        if (allBookIndex !== -1) {
+          allBooks[allBookIndex] = { ...allBooks[allBookIndex], ...updatedData };
+        }
+
+        // Actualizar cachés si es necesario
+        if (updatedData.autor) cachedAuthors.add(updatedData.autor);
+        const newGenres = (updatedData.genero || '').split(',').map(g => g.trim()).filter(Boolean);
+        newGenres.forEach(g => { if (g) cachedGenres.add(g); });
+
+        // Cerrar modal
+        closeEditModal();
+        
+        // Re-renderizar la vista
+        applyFilters();
+        
+        // Mostrar mensaje de éxito
+        alert('✅ Los cambios se han guardado exitosamente');
+
+      } catch (error) {
+        console.error('Error inesperado:', error);
+        alert(`Error inesperado al guardar: ${error.message}`);
+      }
+    }
+
+    // Función auxiliar para validar URLs
+    function isValidUrl(string) {
+      try {
+        const url = new URL(string);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+      } catch (_) {
+        return false;
+      }
     }
 
     // Visor embebido
