@@ -81,7 +81,7 @@
     </div>
 
     <div id="loading" class="loading">
-      🔄 Cargando biblioteca desde la base de datos...
+      📄 Cargando biblioteca desde la base de datos...
     </div>
     
     <div id="grid" class="grid" style="display:none;"></div>
@@ -112,11 +112,19 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    let books = [];
+    // Variables globales para datos en memoria
+    let allBooks = [];
+    let allFormats = [];
+    let books = []; // Array combinado final
     let filtered = [];
+    
+    // Cache de opciones para filtros
+    let cachedAuthors = new Set();
+    let cachedFormats = new Set();
+    let cachedGenres = new Set();
 
     document.addEventListener('DOMContentLoaded', async () => {
-      await loadBooksFromSupabase();
+      await loadAllDataToMemory();
       initFilters();
       applyFilters();
 
@@ -128,65 +136,135 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       });
     });
 
-async function loadBooksFromSupabase() {
-  try {
-    console.log('🔄 Cargando con método alternativo...');
-    
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // Consulta 1: Obtener libros
-    const { data: booksData, error: booksError } = await supabase
-      .from('books')
-      .select('*')
-      .order('titulo');
-    
-    if (booksError) {
-      throw new Error(`Error libros: ${booksError.message}`);
+    async function loadAllDataToMemory() {
+      try {
+        console.log('🚀 Iniciando carga completa de datos...');
+        document.getElementById('loading').innerHTML = '📄 Cargando libros...';
+        
+        // Consulta 1: Obtener TODOS los libros
+        console.log('📚 Consultando tabla books...');
+        const { data: booksData, error: booksError } = await supabase
+          .from('books')
+          .select('*')
+          .order('titulo');
+        
+        if (booksError) {
+          console.error('Error en consulta books:', booksError);
+          throw new Error(`Error cargando libros: ${booksError.message}`);
+        }
+        
+        if (!booksData) {
+          throw new Error('No se recibieron datos de libros');
+        }
+        
+        allBooks = [...booksData]; // Crear copia para evitar referencias
+        console.log(`📚 ${allBooks.length} libros cargados en memoria`);
+        
+        document.getElementById('loading').innerHTML = '💿 Cargando formatos...';
+        
+        // Consulta 2: Obtener TODOS los formatos
+        console.log('💿 Consultando tabla book_formats...');
+        const { data: formatsData, error: formatsError } = await supabase
+          .from('book_formats')
+          .select('*');
+        
+        if (formatsError) {
+          console.error('Error en consulta formats:', formatsError);
+          throw new Error(`Error cargando formatos: ${formatsError.message}`);
+        }
+        
+        allFormats = formatsData ? [...formatsData] : []; // Crear copia y manejar null
+        console.log(`💿 ${allFormats.length} formatos cargados en memoria`);
+        
+        document.getElementById('loading').innerHTML = '🔄 Procesando datos...';
+        
+        // Crear índices para búsquedas rápidas
+        const formatsByBookId = new Map();
+        allFormats.forEach(format => {
+          if (format && format.book_id) { // Validar datos
+            if (!formatsByBookId.has(format.book_id)) {
+              formatsByBookId.set(format.book_id, []);
+            }
+            formatsByBookId.get(format.book_id).push({...format}); // Copia del objeto
+          }
+        });
+        
+        // Combinar datos y crear cachés
+        books = allBooks.map(book => {
+          try {
+            const bookFormats = formatsByBookId.get(book.id) || [];
+            const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
+            
+            // Actualizar cachés (validar antes de agregar)
+            if (book.autor) cachedAuthors.add(book.autor);
+            genres.forEach(g => { if (g) cachedGenres.add(g); });
+            bookFormats.forEach(f => { if (f.formato) cachedFormats.add(f.formato); });
+            
+            return {
+              id: book.id,
+              titulo: book.titulo || '',
+              autor: book.autor || '',
+              genero: book.genero || '',
+              serie: book.serie || '',
+              numero_serie: book.numero_serie || '',
+              editorial: book.editorial || '',
+              fecha_publicacion: book.fecha_publicacion || '',
+              descripcion: book.descripcion || '',
+              url_portada: book.url_portada || '',
+              carpeta_obra: book.carpeta_obra || '',
+              formatos: bookFormats,
+              _genres: genres,
+              // Pre-procesar campos para búsqueda más rápida
+              _searchText: [
+                book.titulo,
+                book.autor,
+                book.genero,
+                book.serie,
+                book.editorial
+              ].filter(Boolean).join(' ').toLowerCase()
+            };
+          } catch (bookError) {
+            console.warn('Error procesando libro:', book.id, bookError);
+            return null;
+          }
+        }).filter(Boolean); // Eliminar libros con errores
+        
+        console.log('✅ Datos combinados y optimizados en memoria');
+        console.log(`📊 Estadísticas: ${books.length} libros, ${cachedAuthors.size} autores, ${cachedFormats.size} formatos, ${cachedGenres.size} géneros`);
+        
+        // Actualizar estadísticas UI
+        document.getElementById('statTotal').textContent = books.length;
+        document.getElementById('statAuthors').textContent = cachedAuthors.size;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('grid').style.display = 'grid';
+        
+      } catch (error) {
+        console.error('❌ Error cargando datos:', error);
+        console.error('Stack trace:', error.stack);
+        
+        // Mostrar error más detallado
+        let errorMessage = error.message;
+        if (error.name === 'DataCloneError') {
+          errorMessage = 'Error de clonación de datos. Reintentando...';
+          // Intentar recargar la página después de un breve delay
+          setTimeout(() => {
+            console.log('🔄 Recargando página...');
+            window.location.reload();
+          }, 2000);
+        }
+        
+        document.getElementById('loading').innerHTML = 
+          `❌ Error: ${errorMessage}<br><small>Revisa consola para más detalles. ${error.name === 'DataCloneError' ? 'Recargando...' : ''}</small>`;
+      }
     }
-    
-    console.log(`📚 ${booksData.length} libros obtenidos`);
-    
-    // Consulta 2: Obtener formatos
-    const { data: formatsData, error: formatsError } = await supabase
-      .from('book_formats')
-      .select('*');
-    
-    if (formatsError) {
-      throw new Error(`Error formatos: ${formatsError.message}`);
-    }
-    
-    console.log(`💿 ${formatsData.length} formatos obtenidos`);
-    
-    // Combinar datos
-    books = booksData.map(book => ({
-      ...book,
-      formatos: formatsData.filter(format => format.book_id === book.id),
-      _genres: (book.genero || '').split(',').map(g => g.trim()).filter(Boolean)
-    }));
-    
-    console.log('✅ Datos combinados exitosamente');
-    
-    document.getElementById('statTotal').textContent = books.length;
-    document.getElementById('statAuthors').textContent = new Set(books.map(b => b.autor)).size;
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('grid').style.display = 'grid';
-    
-  } catch (error) {
-    console.error('❌ Error:', error);
-    document.getElementById('loading').innerHTML = 
-      `❌ Error: ${error.message}<br><small>Revisa credenciales y estado del proyecto</small>`;
-  }
-}
 
     function initFilters() {
-      fillSelect('author', [...new Set(books.map(b => b.autor))].sort());
-      const allFormats = new Set();
-      books.forEach(b => (b.formatos || []).forEach(f => allFormats.add(f.formato)));
-      fillSelect('format', [...allFormats].sort());
-      const allGenres = new Set();
-      books.forEach(b => b._genres.forEach(g => allGenres.add(g)));
-      fillSelect('genre', [...allGenres].sort());
+      // Llenar filtros usando los cachés
+      fillSelect('author', [...cachedAuthors].sort());
+      fillSelect('format', [...cachedFormats].sort());
+      fillSelect('genre', [...cachedGenres].sort());
 
+      // Event listeners para filtros
       document.getElementById('q').addEventListener('input', applyFilters);
       document.getElementById('author').addEventListener('change', applyFilters);
       document.getElementById('format').addEventListener('change', applyFilters);
@@ -196,29 +274,50 @@ async function loadBooksFromSupabase() {
     function fillSelect(id, values) {
       const sel = document.getElementById(id);
       values.forEach(v => {
-        const opt = document.createElement('option');
-        opt.value = v;
-        opt.textContent = v;
-        sel.appendChild(opt);
+        if (v) { // Solo agregar valores no vacíos
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          sel.appendChild(opt);
+        }
       });
     }
 
     function applyFilters() {
-      const q = document.getElementById('q').value.toLowerCase();
+      const startTime = performance.now();
+      
+      const q = document.getElementById('q').value.toLowerCase().trim();
       const a = document.getElementById('author').value;
       const f = document.getElementById('format').value;
       const g = document.getElementById('genre').value;
 
-      filtered = books.filter(b => {
-        const matchesQ = !q ||
-          (b.titulo && b.titulo.toLowerCase().includes(q)) ||
-          (b.autor && b.autor.toLowerCase().includes(q)) ||
-          (b.genero && b.genero.toLowerCase().includes(q));
-        const matchesA = !a || b.autor === a;
-        const matchesF = !f || (b.formatos || []).some(x => x.formato === f);
-        const matchesG = !g || b._genres.includes(g);
-        return matchesQ && matchesA && matchesF && matchesG;
+      // Filtrado optimizado usando el texto pre-procesado
+      filtered = books.filter(book => {
+        // Búsqueda por texto (más rápida usando _searchText)
+        if (q && !book._searchText.includes(q)) {
+          return false;
+        }
+        
+        // Filtro por autor
+        if (a && book.autor !== a) {
+          return false;
+        }
+        
+        // Filtro por formato (usando some para eficiencia)
+        if (f && !book.formatos.some(format => format.formato === f)) {
+          return false;
+        }
+        
+        // Filtro por género
+        if (g && !book._genres.includes(g)) {
+          return false;
+        }
+        
+        return true;
       });
+
+      const endTime = performance.now();
+      console.log(`🔍 Filtrado completado en ${(endTime - startTime).toFixed(2)}ms - ${filtered.length} resultados`);
 
       render();
     }
@@ -226,13 +325,20 @@ async function loadBooksFromSupabase() {
     function render() {
       const grid = document.getElementById('grid');
       const empty = document.getElementById('noResults');
+      
       if (!filtered.length) {
         grid.innerHTML = '';
         empty.style.display = 'block';
         return;
       }
+      
       empty.style.display = 'none';
+      
+      const startTime = performance.now();
       grid.innerHTML = filtered.map(renderCard).join('');
+      const endTime = performance.now();
+      
+      console.log(`🎨 Renderizado completado en ${(endTime - startTime).toFixed(2)}ms`);
     }
 
     function renderCard(b) {
