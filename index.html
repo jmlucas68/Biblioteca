@@ -1,565 +1,165 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Biblioteca Personal Clasificada</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi Biblioteca Personal</title>
   <style>
-:root {
-  --color-white: #fff;
-  --color-black: #000;
-  --color-gray-200: #f5f5f5;
-  --color-gray-300: #a7a9a9;
-  --color-gray-400: #777c7c;
-  --color-slate-500: #626c71;
-  --color-slate-900: #13343b;
-  --color-teal-500: #21808d;
-  --color-red-500: #c0152f;
-  --color-bg-1: rgba(59,130,246,0.08);
-  --color-bg-2: rgba(245,158,11,0.08);
-  --color-bg-3: rgba(34,197,94,0.08);
-  --color-bg-4: rgba(239,68,68,0.08);
-  --color-background: #fcfcf9;
-  --color-surface: #fff;
-  --color-text: #13343b;
-}
-body {
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  background: var(--color-background);
-  margin: 0;
-  color: var(--color-text);
-}
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 18px;
-}
-.header {
-  background: var(--color-slate-900);
-  color: var(--color-white);
-  border-radius: 12px;
-  padding: 18px;
-}
-.header__title {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-}
-.search-input {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--color-gray-300);
-  font-size: 1em;
-  width: 99%;
-  margin: 16px auto 0 auto;
-  display: block;
-}
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 16px 0;
-  font-size: 15px;
-  flex-wrap: wrap;
-}
-.breadcrumb__item {
-  color: var(--color-slate-500);
-  cursor: pointer;
-  background: var(--color-bg-1);
-  border-radius: 6px;
-  padding: 2px 8px;
-  transition: background 0.15s;
-}
-.breadcrumb__item--active {
-  color: var(--color-teal-500);
-  font-weight: bold;
-  background: var(--color-bg-3);
-}
-.stats-bar {
-  display: flex;
-  gap: 24px;
-  font-size: 14px;
-  opacity: .9;
-  margin-bottom: 16px;
-}
-.stats-item {
-  background: var(--color-bg-2);
-  padding: 6px 16px;
-  border-radius: 8px;
-}
-.sections-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
-  gap: 16px;
-  margin-top:24px;
-}
-.section-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-gray-200);
-  border-radius: 10px;
-  padding: 24px 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content:center;
-  cursor: pointer;
-  box-shadow: 0 2px 6px #eee;
-  transition: box-shadow .16s, transform .16s;
-  min-height:140px;
-  color: var(--color-slate-900);
-}
-.section-card:hover {
-  box-shadow: 0 8px 32px #eee;
-  transform: translateY(-2px) scale(1.03);
-  background: var(--color-bg-1);
-}
-.section-card__icon {
-  font-size:2.5em;
-}
-.section-card__title {
-  font-size:1.14em;
-  margin: 10px 0 6px 0;
-  font-weight: bold;
-  text-align:center;
-}
-.section-card__meta {
-  font-size:.93em;
-  opacity:.7;
-  margin-bottom:6px;
-}
-.subsections-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
-  gap: 15px;
-  margin-top:24px;
-}
-.subsection-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-gray-200);
-  border-radius: 10px;
-  padding:18px 15px;
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  cursor: pointer;
-  transition: box-shadow .18s, transform .18s;
-  min-height:110px;
-  color: var(--color-slate-900);
-  box-shadow: 0 2px 6px #eee;
-}
-.subsection-card:hover {
-  box-shadow: 0 8px 32px #eee;
-  transform: translateY(-2px) scale(1.03);
-  background: var(--color-bg-3);
-}
-.subsection-card__title {
-  font-weight:bold;
-  margin-bottom: 4px;
-  font-size:1.08em;
-}
-.subsection-card__meta {
-  font-size:.92em;
-  opacity:.7;
-  margin-top:5px;
-}
-.books-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
-  gap: 14px;
-  margin-top:20px;
-}
-.book-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-gray-200);
-  border-radius: 11px;
-  min-height:90px;
-  padding:12px 16px;
-  display:flex;
-  gap:16px;
-  transition: box-shadow .14s;
-  align-items: flex-start;
-}
-.book-card:hover {
-  box-shadow: 0 8px 32px #eee;
-  transform: translateY(-1px) scale(1.01);
-}
-.book-cover {
-  width:65px;
-  height:95px;
-  border-radius: 6px;
-  background: var(--color-bg-4);
-  object-fit:cover;
-  font-size:1.7em;
-  text-align:center;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.book-content {
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-}
-.book-title {
-  font-weight:700;
-  color:var(--color-slate-900);
-  line-height:1.17;
-  font-size:1.03em;
-}
-.book-author {
-  color:var(--color-slate-500);
-  font-size:.97em;
-}
-.book-year {
-  color:var(--color-gray-400);
-  font-size:.94em;
-}
-.book-tags {
-  display:flex;
-  flex-wrap:wrap;
-  gap:7px;
-  margin-top:4px;
-}
-.book-tag {
-  padding:1px 7px;
-  border-radius:8px;
-  font-size:12px;
-  background: var(--color-bg-2);
-  color:var(--color-red-500);
-  font-weight:500;
-  margin-top:2px;
-  margin-bottom:2px;
-}
-.subsection-badge {
-  background:var(--color-bg-1);
-  color:var(--color-teal-500);
-  border-radius:8px;
-  padding:1px 8px;
-  font-size:13px;
-  font-weight:560;
-  margin: 2px 3px 2px 0;
-  display:inline-block;
-}
-@media (max-width:800px){
-  .sections-grid, .subsections-grid,.books-grid { grid-template-columns: 1fr; }
-}
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f5f7fb; margin:0; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 18px; }
+    header { background:#1f2937; color:#fff; padding:18px; border-radius:12px; }
+    header h1 { margin:0 0 6px 0; font-size:22px; }
+    .stats { display:flex; gap:24px; font-size:14px; opacity:.9; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; padding:12px; cursor:pointer; transition:all 0.2s; }
+    .card:hover { box-shadow:0 4px 12px rgba(0,0,0,.1); transform:translateY(-2px); }
+    .card h3 { margin:0; font-size:16px; color:#111827; }
+    .card p { margin:4px 0 0 0; font-size:14px; color:#6b7280; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; padding:12px 0; }
+    .controls input, .controls select { padding:10px 12px; border-radius:8px; border:1px solid #cfd8e3; background:#fff; }
+    .breadcrumb { display:flex; gap:6px; margin:12px 0; font-size:14px; color:#6b7280; }
+    .breadcrumb span, .breadcrumb a { cursor:pointer; }
+    .book-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; padding:12px; }
+    .book-card h4 { margin:0 0 4px; font-size:15px; color:#111827; }
+    .book-card .author { font-size:13px; color:#6b7280; }
+    .tags { margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; font-size:12px; }
+    .tag { background:#eef2ff; padding:2px 6px; border-radius:8px; color:#4338ca; }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Header -->
-    <header class="header">
-      <h1 class="header__title">📚 Biblioteca Personal Clasificada</h1>
-      <input type="text" id="searchInput" class="search-input" placeholder="Buscar libros, autores o tags..." />
+    <header>
+      <h1>📚 Mi Biblioteca Personal</h1>
+      <div class="stats">
+        <div>Total obras: <b id="statTotal">-</b></div>
+        <div>Autores: <b id="statAuthors">-</b></div>
+        <div>Secciones: <b id="statSections">-</b></div>
+      </div>
     </header>
 
-    <!-- Breadcrumb -->
-    <nav>
-      <div class="breadcrumb" id="breadcrumb">
-        <span class="breadcrumb__item breadcrumb__item--active">Inicio</span>
-      </div>
-    </nav>
+    <div id="breadcrumb" class="breadcrumb"></div>
 
-    <!-- Estadísticas -->
-    <div class="stats-bar">
-      <div class="stats-item">
-        <span class="stats-item__label">Total de libros:</span>
-        <span class="stats-item__value" id="totalBooks">0</span>
+    <!-- Vistas dinámicas -->
+    <div id="sectionsView" class="grid"></div>
+    <div id="subsectionsView" class="grid" style="display:none;"></div>
+    <div id="booksView" style="display:none;">
+      <div class="controls">
+        <input id="q" type="search" placeholder="Buscar por título, autor..." />
+        <select id="author"><option value="">Todos los autores</option></select>
       </div>
-      <div class="stats-item">
-        <span class="stats-item__label">Resultados:</span>
-        <span class="stats-item__value" id="resultsCount">0</span>
-      </div>
+      <div id="booksGrid" class="grid"></div>
     </div>
-
-    <!-- Contenido principal -->
-    <div id="contentArea"></div>
   </div>
 
-<script>
-// === DATOS CLASIFICACION Y LIBROS-Inicial ===
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://fanyuclarbgwraiwbcmr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const classification = {
-"sections": {
-"RELIGION_Y_ESPIRITUALIDAD": {
-"name": "Religión y Espiritualidad","icon": "🙏",
-"subsections": {
-"TEOLOGIA": {"name": "Teología","tags": ["Religion","teología","Tomismo","magisterio","Filosofía","Espiritualidad","benedictoxvi","Papa Francisco","religión","cristiana","catolica","cristiano","catolico","documento","Religion & Spirituality"]},
-"TEXTOS_SAGRADOS": {"name": "Textos Sagrados y Estudios Bíblicos","tags": ["Bíblia","Religion","Consulta","teología","Camino Neocatecumenal"]},
-"VIDA_ESPIRITUAL": {"name": "Vida Espiritual","tags": ["Espiritualidad","oración","Religion","Padre Pío","catalina de siena","María","Fátima","san ignacio"]},
-"HISTORIA_RELIGIOSA": {"name": "Historia Religiosa","tags": ["Iglesia","Historia","Inquisición","Religion"]}
-}
-},
-"FILOSOFIA": {
-"name": "Filosofía","icon": "🤔",
-"subsections": {
-"FILOSOFIA_GENERAL": {"name": "Filosofía General","tags": ["Filosofía","Philosophy","Consulta","Philosophy & Religion","General","History & Surveys","Criticism"]},
-"METAFISICA_ONTOLOGIA": {"name": "Metafísica y Ontología","tags": ["Metafísica","ontología","Filosofía"]},
-"HISTORIA_FILOSOFIA": {"name": "Historia de la Filosofía","tags": ["Historia","Filosofía","posmodernismo","Consulta"]},
-"CORRIENTES_FILOSOFICAS": {"name": "Corrientes Filosóficas","tags": ["existencialismo","marxismo","estructuralismo","posmodernismo","Filosofía"]}
-}
-},
-"CIENCIAS": {
-"name": "Ciencias","icon": "🔬",
-"subsections": {
-"CIENCIAS_EXACTAS": {"name": "Ciencias Exactas","tags": ["Ciencias exactas","Ciencia","Divulgación","Science","Life Sciences"]},
-"MEDICINA_SALUD": {"name": "Medicina y Salud","tags": ["Salud","Educación","Salud y bienestar","BOOKSMEDICOS.ORG","Ciencia","neurociencia","anatomía"]},
-"PSICOLOGIA": {"name": "Psicología","tags": ["Psicología","Psychology","General","Emotions","Clinical Psychology","Applied Psychology","Movements","Industrial & Organizational Psychology"]}
-}
-},
-"TECNOLOGIA_INFORMATICA": {
-"name": "Tecnología e Informática","icon": "💾",
-"subsections": {
-"PROGRAMACION": {"name": "Programación","tags": ["Tecnología","Programming","Python","java","poo","Software Development & Engineering","Computers"]},
-"SISTEMAS_REDES": {"name": "Sistemas y Redes","tags": ["Networking","General","git","blockchain","bitcoin","AWS"]},
-"METODOLOGIAS": {"name": "Metodologías","tags": ["agile","scrum master","scrum","BPM","design thinking"]}
-}
-},
-"DESARROLLO_PERSONAL": {
-"name": "Desarrollo Personal","icon": "📈",
-"subsections": {
-"AUTOAYUDA": {"name": "Autoayuda","tags": ["Autoayuda","Self-Help","Desarrollo","Personal Growth","Self-Esteem","Self-Management","Happiness","Success"]},
-"LIDERAZGO": {"name": "Liderazgo","tags": ["liderazgo","Leadership","Management"]},
-"PRODUCTIVIDAD": {"name": "Productividad","tags": ["Productividad","tecnicas estudio","memoria","Stress Management"]},
-"INTELIGENCIA_EMOCIONAL": {"name": "Inteligencia Emocional","tags": ["inteligencia emocional","emociones","Psychology","Emotions"]}
-}
-},
-"ECONOMIA_NEGOCIOS": {
-"name": "Economía y Negocios","icon": "💵",
-"subsections": {
-"ECONOMIA": {"name": "Economía","tags": ["Economía","Business & Economics","Economic Policy","liberalismo"]},
-"NEGOCIOS": {"name": "Negocios","tags": ["Negocios y Economía","Innovación","Strategic Planning","General"]},
-"MARCA_PERSONAL": {"name": "Marca Personal","tags": ["Marca Personal","Comunicación","Profesional"]}
-}
-},
-"POLITICA_SOCIEDAD": {
-"name": "Política y Sociedad","icon": "🏛️",
-"subsections": {
-"POLITICA": {"name": "Política","tags": ["Política","Political Science","Political Ideologies","Conservatism & Liberalism","Public Policy","Fascism & Totalitarianism"]},
-"SOCIOLOGIA": {"name": "Sociología","tags": ["Ciencias Sociales","Social Science","Sociology","General","Anthropology","Cultural & Social"]},
-"HISTORIA": {"name": "Historia","tags": ["Historia","History","cultura","Europe","Italy"]}
-}
-},
-"LITERATURA_ARTES": {
-"name": "Literatura y Artes","icon": "🎨",
-"subsections": {
-"LITERATURA": {"name": "Literatura","tags": ["Novela","Literary Collections","Ancient & Classical","Fiction","General"]},
-"FANTASIA_FICCION": {"name": "Fantasía y Ficción","tags": ["Fantasía épica","Fantástico","Fantasy","Young Adult Fiction"]},
-"MITOLOGIA": {"name": "Mitología","tags": ["mitología griega","Divulgación","cultura"]}
-}
-},
-"ENTRETENIMIENTO": {
-"name": "Entretenimiento","icon": "🎬",
-"subsections": {
-"COMICS_TEBEOS": {"name": "Comics y Tebeos","tags": ["Comic","Tebeo","Mortadelo_y_Filemón"]},
-"FOTOGRAFIA": {"name": "Fotografía","tags": ["aficiones","Fotografía"]},
-"COCINA": {"name": "Cocina","tags": ["cocina"]}
-}
-},
-"EDUCACION": {
-"name": "Educación","icon": "🎓",
-"subsections": {
-"EDUCACION_GENERAL": {"name": "Educación General","tags": ["Educación","Education","Estudios","Práctico"]},
-"IDIOMAS": {"name": "Idiomas","tags": ["inglés","Spanish"]},
-"METODOLOGIA_ESTUDIO": {"name": "Metodología de Estudio","tags": ["tecnicas estudio","memoria","lectura rápida"]}
-}
-},
-"VARIOS": {
-"name": "Varios","icon": "🗂️",
-"subsections": {
-"CATALOGOS_CONSULTA": {"name": "Catálogos y Consulta","tags": ["Consulta","Catálogo","revista","artículo"]},
-"SIN_CLASIFICAR": {"name": "Sin Clasificar","tags": ["sin_revisar_metadatos","Downloaded from Z-Library","Image To PDF Conversion","ePubLibre"]},
-"ESPECIALIZADOS": {"name": "Especializados","tags": ["eneagrama","Exercise","Family & Relationships","Death; Grief; Bereavement"]}
-}
-}
-}
-};
+    let allBooks = [];
+    let classification = {};
+    let currentSection = null;
+    let currentSubsection = null;
 
-const sampleBooks = [
-  { id: 1, title: "Suma Teológica", author: "Santo Tomás de Aquino", genre: ["Religion","teología","Tomismo"], tags: ["Religion","teología","Tomismo","Filosofía"], year:"1265", description: "Obra cumbre de la teología escolástica medieval"},
-  { id: 2, title: "Introducción a la Filosofía", author: "Julián Marías", genre: ["Filosofía","Philosophy"], tags: ["Filosofía", "Philosophy", "General"], year:"1947", description:"Introducción sistemática a los problemas filosóficos fundamentales"},
-  { id: 3, title: "El Origen de las Especies", author: "Charles Darwin", genre: ["Ciencia","Science"], tags: ["Ciencia","Science","Life Sciences"], year:"1859", description:"Teoría de la evolución por selección natural"},
-  { id: 4, title: "Clean Code", author: "Robert C. Martin", genre: ["Programming","Tecnología"], tags: ["Programming","Software Development & Engineering","Tecnología"], year:"2008", description:"Principios para escribir código limpio y mantenible"},
-  { id: 5, title: "Cómo Ganar Amigos e Influir Sobre las Personas", author: "Dale Carnegie", genre: ["Self-Help","Autoayuda"], tags: ["Autoayuda","Self-Help","Personal Growth","Success"], year:"1936", description:"Técnicas para mejorar las relaciones interpersonales"}
-];
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Cargar libros de Supabase
+      const { data: booksData } = await supabase.from('books').select('*');
+      allBooks = booksData.map(b => ({...b, _searchText:(b.titulo+" "+b.autor+" "+b.genero).toLowerCase()}));
+      document.getElementById('statTotal').textContent = allBooks.length;
 
-// === FUNCIONES DE ESTADO Y NAVEGACIÓN ===
+      // Cargar clasificación desde el JSON
+      const res = await fetch('clasificacion.json');
+      classification = (await res.json()).sections;
+      document.getElementById('statSections').textContent = Object.keys(classification).length;
 
-let appState = {
-  currentView: 'sections',
-  currentSection: null,
-  currentSubsection: null,
-  books: sampleBooks,
-  filteredBooks: [],
-  searchQuery: ""
-};
+      showSections();
 
-function resetView() {
-  appState.currentView = 'sections';
-  appState.currentSection = null;
-  appState.currentSubsection = null;
-  appState.filteredBooks = [];
-  appState.searchQuery = "";
-  updateUI();
-}
-
-function showSections() {
-  appState.currentView = 'sections';
-  appState.currentSection = null;
-  appState.currentSubsection = null;
-  updateUI();
-}
-
-function showSubsections(sectionKey) {
-  appState.currentView = 'subsections';
-  appState.currentSection = sectionKey;
-  appState.currentSubsection = null;
-  updateUI();
-}
-
-function showBooks(sectionKey, subsectionKey) {
-  appState.currentView = 'books';
-  appState.currentSection = sectionKey;
-  appState.currentSubsection = subsectionKey;
-  updateUI();
-}
-
-// === FUNCIONES DE CLASIFICACION DE LIBROS ===
-
-function classifyBooksBySubsection(sectionKey, subsectionKey) {
-  // Devuelve libros de la subsección por coincidencia de tags
-  const subsectionTagsArr = classification.sections[sectionKey]?.subsections[subsectionKey]?.tags || [];
-  // Coincidencias case-insensitive
-  return appState.books.filter(book =>
-    book.tags.some(tag => subsectionTagsArr.some(subTag => tag.trim().toLowerCase() === subTag.trim().toLowerCase()))
-  );
-}
-
-function getSubsectionBookCount(sectionKey, subsectionKey) {
-  return classifyBooksBySubsection(sectionKey, subsectionKey).length;
-}
-
-// === RENDER DE UI ===
-
-function updateUI() {
-  // Estadísticas
-  document.getElementById("totalBooks").innerText = appState.books.length;
-  let resultsCount = 0;
-
-  let contentHtml = "";
-
-  if (appState.currentView === 'sections') {
-    document.getElementById("breadcrumb").innerHTML = `<span class="breadcrumb__item breadcrumb__item--active">Inicio</span>`;
-    contentHtml += `<div class="sections-grid">`;
-    Object.entries(classification.sections).forEach(([key, sec]) => {
-      contentHtml += `
-        <div class="section-card" onclick="showSubsections('${key}')">
-          <div class="section-card__icon">${sec.icon||""}</div>
-          <div class="section-card__title">${sec.name}</div>
-          <div class="section-card__meta">${Object.keys(sec.subsections).length} subsecciones</div>
-        </div>
-      `;
+      document.getElementById('q').addEventListener('input', renderBooks);
+      document.getElementById('author').addEventListener('change', renderBooks);
     });
-    contentHtml += `</div>`;
-    resultsCount = appState.books.length;
-  }
-  else if (appState.currentView === 'subsections' && appState.currentSection) {
-    // Navegación
-    let secObj = classification.sections[appState.currentSection];
-    document.getElementById("breadcrumb").innerHTML = `
-      <span class="breadcrumb__item" onclick="showSections()">Inicio</span>
-      <span>›</span>
-      <span class="breadcrumb__item breadcrumb__item--active">${secObj.name}</span>
-    `;
-    contentHtml += `<div class="subsections-grid">`;
-    Object.entries(secObj.subsections).forEach(([subKey, subSec]) => {
-      let bookCount = getSubsectionBookCount(appState.currentSection, subKey);
-      contentHtml += `
-        <div class="subsection-card" onclick="showBooks('${appState.currentSection}','${subKey}')">
-          <div class="subsection-card__title">${subSec.name}</div>
-          <div class="subsection-card__meta">${bookCount} libro${bookCount===1?"":"s"}</div>
-        </div>
-      `;
-    });
-    contentHtml += `</div>`;
-    resultsCount = Object.values(secObj.subsections).reduce((acc,_,i)=>{
-      return acc + getSubsectionBookCount(appState.currentSection,Object.keys(secObj.subsections)[i]);
-    },0);
-  }
-  else if (appState.currentView === 'books' && appState.currentSection && appState.currentSubsection) {
-    let secObj = classification.sections[appState.currentSection];
-    let subObj = secObj.subsections[appState.currentSubsection];
-    document.getElementById("breadcrumb").innerHTML = `
-      <span class="breadcrumb__item" onclick="showSections()">Inicio</span>
-      <span>›</span>
-      <span class="breadcrumb__item" onclick="showSubsections('${appState.currentSection}')">${secObj.name}</span>
-      <span>›</span>
-      <span class="breadcrumb__item breadcrumb__item--active">${subObj.name}</span>
-    `;
-    let booksArr = classifyBooksBySubsection(appState.currentSection, appState.currentSubsection);
 
-    // Aplicar búsqueda si existe
-    if(appState.searchQuery.trim()){
-      const q = appState.searchQuery.trim().toLowerCase();
-      booksArr = booksArr.filter(book => (
-        book.title.toLowerCase().includes(q) ||
-        book.author.toLowerCase().includes(q) ||
-        book.tags.join(' ').toLowerCase().includes(q)
-      ));
+    function setBreadcrumb() {
+      const bc = document.getElementById('breadcrumb');
+      bc.innerHTML = '';
+      if (!currentSection) return;
+      const sec = document.createElement('a');
+      sec.textContent = classification[currentSection].name;
+      sec.onclick = () => { currentSubsection=null; showSubsections(currentSection); };
+      bc.appendChild(sec);
+      if (currentSubsection) {
+        bc.innerHTML += ' › ';
+        const sub = document.createElement('span');
+        sub.textContent = classification[currentSection].subsections[currentSubsection].name;
+        bc.appendChild(sub);
+      }
     }
-    resultsCount = booksArr.length;
 
-    contentHtml += `<div class="books-grid">`;
-    if(booksArr.length===0){
-      contentHtml += `<div>No hay libros en esta subsección.</div>`;
+    function showSections() {
+      currentSection = null;
+      currentSubsection = null;
+      document.getElementById('sectionsView').style.display='grid';
+      document.getElementById('subsectionsView').style.display='none';
+      document.getElementById('booksView').style.display='none';
+      document.getElementById('breadcrumb').innerHTML='';
+      const grid = document.getElementById('sectionsView');
+      grid.innerHTML = Object.entries(classification).map(([key, sec])=>`
+        <div class="card" onclick="showSubsections('${key}')">
+          <h3>${sec.name}</h3>
+          <p>${Object.keys(sec.subsections).length} subsecciones</p>
+        </div>`).join('');
     }
-    booksArr.forEach(book => {
-      // Subsection badge: Todas las subsecciones donde aparece el libro
-      let badges = [];
-      Object.entries(secObj.subsections).forEach(([subKey,subSec])=>{
-        if(book.tags.some(tag=>subSec.tags.map(t=>t.toLowerCase()).includes(tag.toLowerCase()))){
-          badges.push(subSec.name);
-        }
+
+    function showSubsections(sectionKey) {
+      currentSection = sectionKey;
+      currentSubsection = null;
+      document.getElementById('sectionsView').style.display='none';
+      document.getElementById('subsectionsView').style.display='grid';
+      document.getElementById('booksView').style.display='none';
+      setBreadcrumb();
+      const grid = document.getElementById('subsectionsView');
+      const subs = classification[sectionKey].subsections;
+      grid.innerHTML = Object.entries(subs).map(([key,sub])=>`
+        <div class="card" onclick="showBooks('${key}')">
+          <h3>${sub.name}</h3>
+          <p>${sub.tags.length} etiquetas</p>
+        </div>`).join('');
+    }
+
+    function showBooks(subKey) {
+      currentSubsection = subKey;
+      document.getElementById('sectionsView').style.display='none';
+      document.getElementById('subsectionsView').style.display='none';
+      document.getElementById('booksView').style.display='block';
+      setBreadcrumb();
+      renderBooks();
+    }
+
+    function renderBooks() {
+      const q = document.getElementById('q').value.toLowerCase();
+      const author = document.getElementById('author').value;
+      const tags = classification[currentSection].subsections[currentSubsection].tags.map(t=>t.toLowerCase());
+
+      const filtered = allBooks.filter(b=>{
+        if (!tags.some(t=>b._searchText.includes(t))) return false;
+        if (q && !b._searchText.includes(q)) return false;
+        if (author && b.autor !== author) return false;
+        return true;
       });
 
-      contentHtml += `
+      // Autores en selector
+      const sel = document.getElementById('author');
+      while (sel.children.length>1) sel.removeChild(sel.lastChild);
+      [...new Set(filtered.map(b=>b.autor))].sort().forEach(a=>{
+        if(a){ let opt=document.createElement('option'); opt.value=a; opt.textContent=a; sel.appendChild(opt);} });
+
+      document.getElementById('booksGrid').innerHTML = filtered.map(b=>`
         <div class="book-card">
-          <div class="book-cover">${book.title[0]}</div>
-          <div class="book-content">
-            <div class="book-title">${book.title}</div>
-            <div class="book-author">${book.author} <span class="book-year">${book.year||""}</span></div>
-            <div class="book-tags">
-              ${book.tags.map(t=>`<span class="book-tag">${t}</span>`).join(' ')}
-            </div>
-            <div>${badges.map(sub=>`<span class="subsection-badge">${sub}</span>`).join('')}</div>
-          </div>
-        </div>
-      `;
-    });
-    contentHtml += `</div>`;
-  }
-  document.getElementById("resultsCount").innerText = resultsCount;
-  document.getElementById("contentArea").innerHTML = contentHtml;
-}
-
-// === BUSQUEDA GLOBAL ===
-document.getElementById("searchInput").addEventListener("input",(e)=>{
-  appState.searchQuery = e.target.value;
-  // Si estoy en nivel libros, filtra en vivo
-  if(appState.currentView==='books' && appState.currentSection && appState.currentSubsection){
-    updateUI();
-  }
-});
-
-// === INICIO ===
-window.showSections = showSections;
-window.showSubsections = showSubsections;
-window.showBooks = showBooks;
-
-// Inicializa
-document.addEventListener("DOMContentLoaded", ()=>{
-  showSections();
-});
-</script>
+          <h4>${b.titulo}</h4>
+          <div class="author">${b.autor||'Autor desconocido'}</div>
+          <div class="tags">${tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        </div>`).join('');
+    }
+  </script>
 </body>
 </html>
