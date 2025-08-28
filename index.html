@@ -60,7 +60,6 @@
     .section-card {
       background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
       cursor: pointer; transition: all 0.2s ease; position: relative;
-      padding: 20px;
     }
     .section-card:hover {
       transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #2563eb;
@@ -72,10 +71,19 @@
       padding: 16px;
     }
     .section-title {
-      font-weight: 700; color: #111827; font-size: 18px; margin-bottom: 8px;
+      font-weight: 700; color: #111827; font-size: 18px; margin-bottom: 12px;
     }
-    .section-count {
-      color: #6b7280; font-size: 14px;
+    .section-buttons {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .subsection-btn {
+      padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;
+      background: #f9fafb; color: #374151; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s ease; text-align: left;
+    }
+    .subsection-btn:hover {
+      background: #2563eb; color: #fff; border-color: #2563eb;
+      transform: translateX(4px);
     }
     .section-overlay {
       position: absolute; bottom: 0; left: 0; right: 0;
@@ -85,17 +93,24 @@
 
     /* Subsections styles */
     .subsection-card {
-      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
-      cursor: pointer; transition: all 0.2s ease; padding: 20px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
+      cursor: pointer; transition: all 0.2s ease; position: relative;
     }
     .subsection-card:hover {
       transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #2563eb;
+    }
+    .subsection-cover {
+      width: 100%; height: 160px; object-fit: cover; background: #eef2f6;
+    }
+    .subsection-content {
+      padding: 16px;
     }
     .subsection-title {
       font-weight: 700; color: #111827; font-size: 16px; margin-bottom: 8px;
     }
     .subsection-tags {
       color: #6b7280; font-size: 12px; margin-bottom: 8px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .subsection-count {
       color: #059669; font-size: 14px; font-weight: 600;
@@ -136,7 +151,9 @@
       .cover-wrap { flex: 0 0 auto; }
       .cover { width:160px; height:220px; }
       .content { width:100%; }
-      .section-cover { height: 150px; }
+      .section-cover, .subsection-cover { height: 150px; }
+      .section-buttons { margin-top: 8px; }
+      .subsection-btn { font-size: 12px; padding: 6px 10px; }
     }
   </style>
 </head>
@@ -646,12 +663,23 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       const sectionsGrid = document.getElementById('sectionsGrid');
       sectionsGrid.innerHTML = Object.keys(classificationSystem).map(sectionKey => {
         const section = classificationSystem[sectionKey];
-        const subsectionCount = Object.keys(section.subsections).length;
+
+        // Crear botones para cada subsección
+        const subsectionButtons = Object.keys(section.subsections).map(subsectionKey => {
+          const subsection = section.subsections[subsectionKey];
+          return `<button class="subsection-btn" onclick="showBooksInSubsection('${sectionKey}', '${subsectionKey}')">${esc(subsection.name)}</button>`;
+        }).join('');
 
         return `
-          <div class="section-card" onclick="showSubsections('${sectionKey}')">
-            <div class="section-title">${esc(section.name)}</div>
-            <div class="section-count">${subsectionCount} subsección${subsectionCount !== 1 ? 'es' : ''}</div>
+          <div class="section-card">
+            <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}" 
+                 onerror="this.style.background='#eef2f6'; this.alt='📚';">
+            <div class="section-content">
+              <div class="section-title">${esc(section.name)}</div>
+              <div class="section-buttons">
+                ${subsectionButtons}
+              </div>
+            </div>
           </div>
         `;
       }).join('');
@@ -691,14 +719,18 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
           )
         );
 
-        const tagsList = subsection.tags.slice(0, 5).join(', ') + 
-                        (subsection.tags.length > 5 ? '...' : '');
+        const tagsList = subsection.tags.slice(0, 8).join(', ') + 
+                        (subsection.tags.length > 8 ? '...' : '');
 
         return `
           <div class="subsection-card" onclick="showBooksInSubsection('${sectionKey}', '${subsectionKey}')">
-            <div class="subsection-title">${esc(subsection.name)}</div>
-            <div class="subsection-tags">Tags: ${esc(tagsList)}</div>
-            <div class="subsection-count">${matchingBooks.length} libro${matchingBooks.length !== 1 ? 's' : ''}</div>
+            <img class="subsection-cover" src="biblioteca.jpg" alt="Subsección ${esc(subsection.name)}" 
+                 onerror="this.style.background='#eef2f6'; this.alt='📖';">
+            <div class="subsection-content">
+              <div class="subsection-title">${esc(subsection.name)}</div>
+              <div class="subsection-tags">Tags: ${esc(tagsList)}</div>
+              <div class="subsection-count">${matchingBooks.length} libro${matchingBooks.length !== 1 ? 's' : ''}</div>
+            </div>
           </div>
         `;
       }).join('');
