@@ -823,7 +823,7 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
         const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-        // Utility functions - CRÍTICAS PARA LAS IMÁGENES
+        // Utility functions - CRÍTICAS PARA LAS IMÁGENES Y DESCARGAS
         function esc(s) {
             return String(s || '')
                 .replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -836,6 +836,36 @@
             const id = m ? m[1] : null;
             if (!id) return urlPortada;
             return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
+        }
+
+        // NUEVA FUNCIÓN: Convertir URL de Drive a enlace de descarga directa
+        function resolveDownloadUrl(driveUrl) {
+            if (!driveUrl) return '#';
+            
+            // Extraer ID del archivo de diferentes formatos de URLs de Google Drive
+            let fileId = null;
+            
+            // Patrón 1: https://drive.google.com/file/d/ID/view
+            let match = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (match) {
+                fileId = match[1];
+            }
+            
+            // Patrón 2: https://drive.google.com/open?id=ID
+            if (!fileId) {
+                match = driveUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                if (match) {
+                    fileId = match[1];
+                }
+            }
+            
+            // Si encontramos el ID, construir URL de descarga directa
+            if (fileId) {
+                return `https://drive.google.com/uc?id=${fileId}&export=download`;
+            }
+            
+            // Si no es URL de Drive, devolver la URL original
+            return driveUrl;
         }
 
         // Open Classification Editor
@@ -1223,7 +1253,7 @@
             renderBooks();
         }
 
-        // CORREGIDA - Filter books by tags (EXACTO MATCH)
+        // Filter books by tags (EXACTO MATCH)
         function filterBooksByTags(tags) {
             // Normalizar los tags de la subsección para comparación exacta
             const normalizedTags = tags.map(tag => normalizeString(tag));
@@ -1241,7 +1271,7 @@
             });
         }
 
-        // Normalize string for comparison (mantenemos la misma función)
+        // Normalize string for comparison
         function normalizeString(str) {
             return str.toLowerCase()
                 .replace(/[áàäâ]/g, 'a')
@@ -1353,7 +1383,7 @@
             return allFormats.filter(format => format.book_id === bookId);
         }
 
-        // Show book details
+        // Show book details - CON DESCARGA CORREGIDA
         function showBookDetails(bookId) {
             const book = allBooks.find(b => b.id === bookId);
             if (!book) return;
@@ -1388,12 +1418,15 @@
                 ` : ''}
                 ${formats.length > 0 ? `
                     <div class="modal-formats">
-                        ${formats.map(format => `
-                            <a href="${esc(format.ruta_archivo || '#')}" class="format-link" ${format.ruta_archivo ? 'target="_blank"' : ''}>
-                                📄 ${esc(format.formato)}
-                                ${format.tamano_mb ? `(${format.tamano_mb} MB)` : ''}
-                            </a>
-                        `).join('')}
+                        ${formats.map(format => {
+                            const downloadUrl = resolveDownloadUrl(format.ruta_archivo);
+                            return `
+                                <a href="${esc(downloadUrl)}" class="format-link" target="_blank" rel="noopener" ${!format.ruta_archivo ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                                    📄 ${esc(format.formato)}
+                                    ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
+                                </a>
+                            `;
+                        }).join('')}
                     </div>
                 ` : ''}
             `;
