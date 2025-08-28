@@ -45,6 +45,7 @@
 
     /* Estilos para vista de secciones */
     .sections-view { display: none; }
+    .subsections-view { display: none; }
     .books-view { display: none; }
     .breadcrumb { 
       display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; color: #6b7280;
@@ -59,6 +60,7 @@
     .section-card {
       background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
       cursor: pointer; transition: all 0.2s ease; position: relative;
+      padding: 20px;
     }
     .section-card:hover {
       transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #2563eb;
@@ -79,6 +81,24 @@
       position: absolute; bottom: 0; left: 0; right: 0;
       background: linear-gradient(transparent, rgba(0,0,0,0.7));
       color: white; padding: 20px 16px 16px; text-align: center;
+    }
+
+    /* Subsections styles */
+    .subsection-card {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+      cursor: pointer; transition: all 0.2s ease; padding: 20px;
+    }
+    .subsection-card:hover {
+      transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #2563eb;
+    }
+    .subsection-title {
+      font-weight: 700; color: #111827; font-size: 16px; margin-bottom: 8px;
+    }
+    .subsection-tags {
+      color: #6b7280; font-size: 12px; margin-bottom: 8px;
+    }
+    .subsection-count {
+      color: #059669; font-size: 14px; font-weight: 600;
     }
 
     /* Modal */
@@ -127,7 +147,7 @@
       <div class="stats">
         <div>Total obras: <b id="statTotal">-</b></div>
         <div>Autores: <b id="statAuthors">-</b></div>
-        <div>Secciones: <b id="statSections">-</b></div>
+        <div>Secciones: <b id="statSections">12</b></div>
       </div>
     </header>
 
@@ -136,6 +156,10 @@
       <a onclick="showSections()">📚 Inicio</a>
       <span class="breadcrumb-separator">›</span>
       <span id="currentSection">Sección</span>
+      <span id="subsectionBreadcrumb" style="display:none;">
+        <span class="breadcrumb-separator">›</span>
+        <span id="currentSubsection">Subsección</span>
+      </span>
     </div>
 
     <!-- Vista de Secciones -->
@@ -146,6 +170,11 @@
       <div id="sectionsGrid" class="grid" style="display:none;"></div>
     </div>
 
+    <!-- Vista de Subsecciones -->
+    <div id="subsectionsView" class="subsections-view">
+      <div id="subsectionsGrid" class="grid"></div>
+    </div>
+
     <!-- Vista de Libros -->
     <div id="booksView" class="books-view">
       <div class="controls">
@@ -153,7 +182,7 @@
         <select id="author"><option value="">Todos los autores</option></select>
         <select id="format"><option value="">Todos los formatos</option></select>
       </div>
-      
+
       <div id="booksGrid" class="grid"></div>
       <div id="noResults" class="no-results" style="display:none;">No se encontraron resultados</div>
     </div>
@@ -186,47 +215,47 @@
             <label class="form-label" for="editTitulo">Título *</label>
             <input type="text" id="editTitulo" name="titulo" class="form-control" required>
           </div>
-          
+
           <div class="form-group">
             <label class="form-label" for="editAutor">Autor</label>
             <input type="text" id="editAutor" name="autor" class="form-control">
           </div>
-          
+
           <div class="form-group">
             <label class="form-label" for="editGenero">Género</label>
             <input type="text" id="editGenero" name="genero" class="form-control" placeholder="Separar múltiples géneros con comas">
           </div>
-          
+
           <div class="form-group">
             <label class="form-label" for="editSerie">Serie</label>
             <input type="text" id="editSerie" name="serie" class="form-control">
           </div>
-          
+
           <div class="form-group">
             <label class="form-label" for="editNumeroSerie">Número de serie</label>
             <input type="text" id="editNumeroSerie" name="numero_serie" class="form-control">
           </div>
-          
+
           <div class="form-group">
             <label class="form-label" for="editEditorial">Editorial</label>
             <input type="text" id="editEditorial" name="editorial" class="form-control">
           </div>
-          
+
           <div class="form-group">
             <label class="form-label" for="editFechaPublicacion">Fecha de publicación</label>
             <input type="date" id="editFechaPublicacion" name="fecha_publicacion" class="form-control">
           </div>
-          
+
           <div class="form-group">
             <label class="form-label" for="editDescripcion">Descripción</label>
             <textarea id="editDescripcion" name="descripcion" class="form-control" rows="4"></textarea>
           </div>
-          
+
           <div class="form-group">
             <label class="form-label" for="editUrlPortada">URL de portada</label>
             <input type="url" id="editUrlPortada" name="url_portada" class="form-control" placeholder="https://...">
           </div>
-          
+
           <div class="form-group">
             <label class="form-label" for="editCarpetaObra">Carpeta de obra</label>
             <input type="text" id="editCarpetaObra" name="carpeta_obra" class="form-control">
@@ -242,23 +271,226 @@
 
   <!-- Supabase Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
+
   <script>
     // ⚠️ CONFIGURAR CON TUS CREDENCIALES DE SUPABASE
 const SUPABASE_URL = 'https://fanyuclarbgwraiwbcmr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
-    
+
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
+
+    // Classification system from JSON
+    const classificationSystem = {
+      "RELIGION_Y_ESPIRITUALIDAD": {
+        "name": "Religión y Espiritualidad",
+        "subsections": {
+          "TEOLOGIA": {
+            "name": "Teología",
+            "tags": ["Religion", "teología", "Tomismo", "magisterio", "Filosofía", "Espiritualidad", "benedictoxvi", "Papa Francisco", "religión", "cristiana", "catolica", "cristiano", "catolico", "documento", "Religion & Spirituality"]
+          },
+          "TEXTOS_SAGRADOS": {
+            "name": "Textos Sagrados y Estudios Bíblicos",
+            "tags": ["Bíblia", "Religion", "Consulta", "teología", "Camino Neocatecumenal"]
+          },
+          "VIDA_ESPIRITUAL": {
+            "name": "Vida Espiritual",
+            "tags": ["Espiritualidad", "oración", "Religion", "Padre Pío", "catalina de siena", "María", "Fátima", "san ignacio"]
+          },
+          "HISTORIA_RELIGIOSA": {
+            "name": "Historia Religiosa",
+            "tags": ["Iglesia", "Historia", "Inquisición", "Religion"]
+          }
+        }
+      },
+      "FILOSOFIA": {
+        "name": "Filosofía",
+        "subsections": {
+          "FILOSOFIA_GENERAL": {
+            "name": "Filosofía General",
+            "tags": ["Filosofía", "Philosophy", "Consulta", "Philosophy & Religion", "General", "History & Surveys", "Criticism"]
+          },
+          "METAFISICA_ONTOLOGIA": {
+            "name": "Metafísica y Ontología",
+            "tags": ["Metafísica", "ontología", "Filosofía"]
+          },
+          "HISTORIA_FILOSOFIA": {
+            "name": "Historia de la Filosofía",
+            "tags": ["Historia", "Filosofía", "posmodernismo", "Consulta"]
+          },
+          "CORRIENTES_FILOSOFICAS": {
+            "name": "Corrientes Filosóficas",
+            "tags": ["existencialismo", "marxismo", "estructuralismo", "posmodernismo", "Filosofía"]
+          }
+        }
+      },
+      "CIENCIAS": {
+        "name": "Ciencias",
+        "subsections": {
+          "CIENCIAS_EXACTAS": {
+            "name": "Ciencias Exactas",
+            "tags": ["Ciencias exactas", "Ciencia", "Divulgación", "Science", "Life Sciences"]
+          },
+          "MEDICINA_SALUD": {
+            "name": "Medicina y Salud",
+            "tags": ["Salud", "Educación", "Salud y bienestar", "BOOKSMEDICOS.ORG", "Ciencia", "neurociencia", "anatomía"]
+          },
+          "PSICOLOGIA": {
+            "name": "Psicología",
+            "tags": ["Psicología", "Psychology", "General", "Emotions", "Clinical Psychology", "Applied Psychology", "Movements", "Industrial & Organizational Psychology"]
+          }
+        }
+      },
+      "TECNOLOGIA_INFORMATICA": {
+        "name": "Tecnología e Informática",
+        "subsections": {
+          "PROGRAMACION": {
+            "name": "Programación",
+            "tags": ["Tecnología", "Programming", "Python", "java", "poo", "Software Development & Engineering", "Computers"]
+          },
+          "SISTEMAS_REDES": {
+            "name": "Sistemas y Redes",
+            "tags": ["Networking", "General", "git", "blockchain", "bitcoin", "AWS"]
+          },
+          "METODOLOGIAS": {
+            "name": "Metodologías",
+            "tags": ["agile", "scrum master", "scrum", "BPM", "design thinking"]
+          }
+        }
+      },
+      "DESARROLLO_PERSONAL": {
+        "name": "Desarrollo Personal",
+        "subsections": {
+          "AUTOAYUDA": {
+            "name": "Autoayuda",
+            "tags": ["Autoayuda", "Self-Help", "Desarrollo", "Personal Growth", "Self-Esteem", "Self-Management", "Happiness", "Success"]
+          },
+          "LIDERAZGO": {
+            "name": "Liderazgo",
+            "tags": ["liderazgo", "Leadership", "Management"]
+          },
+          "PRODUCTIVIDAD": {
+            "name": "Productividad",
+            "tags": ["Productividad", "tecnicas estudio", "memoria", "Stress Management"]
+          },
+          "INTELIGENCIA_EMOCIONAL": {
+            "name": "Inteligencia Emocional",
+            "tags": ["inteligencia emocional", "emociones", "Psychology", "Emotions"]
+          }
+        }
+      },
+      "ECONOMIA_NEGOCIOS": {
+        "name": "Economía y Negocios",
+        "subsections": {
+          "ECONOMIA": {
+            "name": "Economía",
+            "tags": ["Economía", "Business & Economics", "Economic Policy", "liberalismo"]
+          },
+          "NEGOCIOS": {
+            "name": "Negocios",
+            "tags": ["Negocios y Economía", "Innovación", "Strategic Planning", "General"]
+          },
+          "MARCA_PERSONAL": {
+            "name": "Marca Personal",
+            "tags": ["Marca Personal", "Comunicación", "Profesional"]
+          }
+        }
+      },
+      "POLITICA_SOCIEDAD": {
+        "name": "Política y Sociedad",
+        "subsections": {
+          "POLITICA": {
+            "name": "Política",
+            "tags": ["Política", "Political Science", "Political Ideologies", "Conservatism & Liberalism", "Public Policy", "Fascism & Totalitarianism"]
+          },
+          "SOCIOLOGIA": {
+            "name": "Sociología",
+            "tags": ["Ciencias Sociales", "Social Science", "Sociology", "General", "Anthropology", "Cultural & Social"]
+          },
+          "HISTORIA": {
+            "name": "Historia",
+            "tags": ["Historia", "History", "cultura", "Europe", "Italy"]
+          }
+        }
+      },
+      "LITERATURA_ARTES": {
+        "name": "Literatura y Artes",
+        "subsections": {
+          "LITERATURA": {
+            "name": "Literatura",
+            "tags": ["Novela", "Literary Collections", "Ancient & Classical", "Fiction", "General"]
+          },
+          "FANTASIA_FICCION": {
+            "name": "Fantasía y Ficción",
+            "tags": ["Fantasía épica", "Fantástico", "Fantasy", "Young Adult Fiction"]
+          },
+          "MITOLOGIA": {
+            "name": "Mitología",
+            "tags": ["mitología griega", "Divulgación", "cultura"]
+          }
+        }
+      },
+      "ENTRETENIMIENTO": {
+        "name": "Entretenimiento",
+        "subsections": {
+          "COMICS_TEBEOS": {
+            "name": "Comics y Tebeos",
+            "tags": ["Comic", "Tebeo", "Mortadelo_y_Filemón"]
+          },
+          "FOTOGRAFIA": {
+            "name": "Fotografía",
+            "tags": ["aficiones", "Fotografía"]
+          },
+          "COCINA": {
+            "name": "Cocina",
+            "tags": ["cocina"]
+          }
+        }
+      },
+      "EDUCACION": {
+        "name": "Educación",
+        "subsections": {
+          "EDUCACION_GENERAL": {
+            "name": "Educación General",
+            "tags": ["Educación", "Education", "Estudios", "Práctico"]
+          },
+          "IDIOMAS": {
+            "name": "Idiomas",
+            "tags": ["inglés", "Spanish"]
+          },
+          "METODOLOGIA_ESTUDIO": {
+            "name": "Metodología de Estudio",
+            "tags": ["tecnicas estudio", "memoria", "lectura rápida"]
+          }
+        }
+      },
+      "VARIOS": {
+        "name": "Varios",
+        "subsections": {
+          "CATALOGOS_CONSULTA": {
+            "name": "Catálogos y Consulta",
+            "tags": ["Consulta", "Catálogo", "revista", "artículo"]
+          },
+          "SIN_CLASIFICAR": {
+            "name": "Sin Clasificar",
+            "tags": ["sin_revisar_metadatos", "Downloaded from Z-Library", "Image To PDF Conversion", "ePubLibre"]
+          },
+          "ESPECIALIZADOS": {
+            "name": "Especializados",
+            "tags": ["eneagrama", "Exercise", "Family & Relationships", "Death; Grief; Bereavement"]
+          }
+        }
+      }
+    };
+
     // Variables globales para datos en memoria
     let allBooks = [];
     let allFormats = [];
     let books = []; // Array combinado final
-    let sections = []; // Secciones (géneros únicos)
     let currentSection = null;
+    let currentSubsection = null;
     let filtered = [];
     let currentEditingBook = null;
-    
+
     // Cache de opciones para filtros
     let cachedAuthors = new Set();
     let cachedFormats = new Set();
@@ -286,66 +518,66 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       try {
         console.log('🚀 Iniciando carga completa de datos...');
         document.getElementById('loading').innerHTML = '📄 Cargando libros...';
-        
+
         // Consulta 1: Obtener TODOS los libros
         console.log('📚 Consultando tabla books...');
         const { data: booksData, error: booksError } = await supabase
           .from('books')
           .select('*')
           .order('titulo');
-        
+
         if (booksError) {
           console.error('Error en consulta books:', booksError);
           throw new Error(`Error cargando libros: ${booksError.message}`);
         }
-        
+
         if (!booksData) {
           throw new Error('No se recibieron datos de libros');
         }
-        
-        allBooks = [...booksData]; // Crear copia para evitar referencias
+
+        allBooks = [...booksData];
         console.log(`📚 ${allBooks.length} libros cargados en memoria`);
-        
+
         document.getElementById('loading').innerHTML = '💿 Cargando formatos...';
-        
+
         // Consulta 2: Obtener TODOS los formatos
         console.log('💿 Consultando tabla book_formats...');
         const { data: formatsData, error: formatsError } = await supabase
           .from('book_formats')
           .select('*');
-        
+
         if (formatsError) {
           console.error('Error en consulta formats:', formatsError);
           throw new Error(`Error cargando formatos: ${formatsError.message}`);
         }
-        
-        allFormats = formatsData ? [...formatsData] : []; // Crear copia y manejar null
+
+        allFormats = formatsData ? [...formatsData] : [];
         console.log(`💿 ${allFormats.length} formatos cargados en memoria`);
-        
+
         document.getElementById('loading').innerHTML = '🔄 Procesando datos...';
-        
+
         // Crear índices para búsquedas rápidas
         const formatsByBookId = new Map();
         allFormats.forEach(format => {
-          if (format && format.book_id) { // Validar datos
+          if (format && format.book_id) {
             if (!formatsByBookId.has(format.book_id)) {
               formatsByBookId.set(format.book_id, []);
             }
-            formatsByBookId.get(format.book_id).push({...format}); // Copia del objeto
+            formatsByBookId.get(format.book_id).push({...format});
           }
         });
-        
+
         // Combinar datos y crear cachés
         books = allBooks.map(book => {
           try {
             const bookFormats = formatsByBookId.get(book.id) || [];
             const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
-            
-            // Actualizar cachés (validar antes de agregar)
+
+            // Actualizar cachés
             if (book.autor) cachedAuthors.add(book.autor);
             genres.forEach(g => { if (g) cachedGenres.add(g); });
             bookFormats.forEach(f => { if (f.formato) cachedFormats.add(f.formato); });
-            
+
             return {
               id: book.id,
               titulo: book.titulo || '',
@@ -360,7 +592,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
               carpeta_obra: book.carpeta_obra || '',
               formatos: bookFormats,
               _genres: genres,
-              // Pre-procesar campos para búsqueda más rápida
               _searchText: [
                 book.titulo,
                 book.autor,
@@ -373,99 +604,131 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
             console.warn('Error procesando libro:', book.id, bookError);
             return null;
           }
-        }).filter(Boolean); // Eliminar libros con errores
-        
-        // Crear secciones basadas en géneros
-        const genreCounts = new Map();
-        books.forEach(book => {
-          book._genres.forEach(genre => {
-            if (genre) {
-              genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
-            }
-          });
-        });
-        
-        sections = Array.from(genreCounts.entries())
-          .map(([genre, count]) => ({ name: genre, count: count }))
-          .sort((a, b) => a.name.localeCompare(b.name));
-        
+        }).filter(Boolean);
+
         console.log('✅ Datos combinados y optimizados en memoria');
-        console.log(`📊 Estadísticas: ${books.length} libros, ${cachedAuthors.size} autores, ${cachedFormats.size} formatos, ${sections.length} secciones`);
-        
+        console.log(`📊 Estadísticas: ${books.length} libros, ${cachedAuthors.size} autores, ${cachedFormats.size} formatos`);
+
         // Actualizar estadísticas UI
         document.getElementById('statTotal').textContent = books.length;
         document.getElementById('statAuthors').textContent = cachedAuthors.size;
-        document.getElementById('statSections').textContent = sections.length;
         document.getElementById('loading').style.display = 'none';
         document.getElementById('sectionsGrid').style.display = 'grid';
-        
+
       } catch (error) {
         console.error('❌ Error cargando datos:', error);
         console.error('Stack trace:', error.stack);
-        
-        // Mostrar error más detallado
+
         let errorMessage = error.message;
         if (error.name === 'DataCloneError') {
           errorMessage = 'Error de clonación de datos. Reintentando...';
-          // Intentar recargar la página después de un breve delay
           setTimeout(() => {
             console.log('🔄 Recargando página...');
             window.location.reload();
           }, 2000);
         }
-        
+
         document.getElementById('loading').innerHTML = 
           `❌ Error: ${errorMessage}<br><small>Revisa consola para más detalles. ${error.name === 'DataCloneError' ? 'Recargando...' : ''}</small>`;
       }
     }
 
     function showSections() {
-      // Ocultar vista de libros y breadcrumb
+      // Ocultar todas las vistas
       document.getElementById('booksView').style.display = 'none';
+      document.getElementById('subsectionsView').style.display = 'none';
       document.getElementById('breadcrumb').style.display = 'none';
-      
+
       // Mostrar vista de secciones
       document.getElementById('sectionsView').style.display = 'block';
-      
-      // Renderizar secciones
+
+      // Renderizar secciones principales
       const sectionsGrid = document.getElementById('sectionsGrid');
-      sectionsGrid.innerHTML = sections.map(renderSectionCard).join('');
-      
-      currentSection = null;
-    }
+      sectionsGrid.innerHTML = Object.keys(classificationSystem).map(sectionKey => {
+        const section = classificationSystem[sectionKey];
+        const subsectionCount = Object.keys(section.subsections).length;
 
-    function renderSectionCard(section) {
-      return `
-        <div class="section-card" onclick="showBooksInSection('${esc(section.name)}')">
-          <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}" 
-               onerror="this.style.background='#eef2f6'; this.alt='📚';">
-          <div class="section-content">
+        return `
+          <div class="section-card" onclick="showSubsections('${sectionKey}')">
             <div class="section-title">${esc(section.name)}</div>
-            <div class="section-count">${section.count} libro${section.count !== 1 ? 's' : ''}</div>
+            <div class="section-count">${subsectionCount} subsección${subsectionCount !== 1 ? 'es' : ''}</div>
           </div>
-        </div>
-      `;
+        `;
+      }).join('');
+
+      currentSection = null;
+      currentSubsection = null;
     }
 
-    function showBooksInSection(sectionName) {
-      currentSection = sectionName;
-      
+    function showSubsections(sectionKey) {
+      currentSection = sectionKey;
+      const section = classificationSystem[sectionKey];
+
       // Actualizar breadcrumb
-      document.getElementById('currentSection').textContent = sectionName;
+      document.getElementById('currentSection').textContent = section.name;
       document.getElementById('breadcrumb').style.display = 'flex';
-      
-      // Ocultar vista de secciones
+      document.getElementById('subsectionBreadcrumb').style.display = 'none';
+
+      // Ocultar otras vistas
       document.getElementById('sectionsView').style.display = 'none';
-      
+      document.getElementById('booksView').style.display = 'none';
+
+      // Mostrar vista de subsecciones
+      document.getElementById('subsectionsView').style.display = 'block';
+
+      // Renderizar subsecciones
+      const subsectionsGrid = document.getElementById('subsectionsGrid');
+      subsectionsGrid.innerHTML = Object.keys(section.subsections).map(subsectionKey => {
+        const subsection = section.subsections[subsectionKey];
+
+        // Contar libros que coinciden con los tags de esta subsección
+        const matchingBooks = books.filter(book => 
+          book._genres.some(genre => 
+            subsection.tags.some(tag => 
+              genre.toLowerCase().includes(tag.toLowerCase()) || 
+              tag.toLowerCase().includes(genre.toLowerCase())
+            )
+          )
+        );
+
+        const tagsList = subsection.tags.slice(0, 5).join(', ') + 
+                        (subsection.tags.length > 5 ? '...' : '');
+
+        return `
+          <div class="subsection-card" onclick="showBooksInSubsection('${sectionKey}', '${subsectionKey}')">
+            <div class="subsection-title">${esc(subsection.name)}</div>
+            <div class="subsection-tags">Tags: ${esc(tagsList)}</div>
+            <div class="subsection-count">${matchingBooks.length} libro${matchingBooks.length !== 1 ? 's' : ''}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function showBooksInSubsection(sectionKey, subsectionKey) {
+      currentSection = sectionKey;
+      currentSubsection = subsectionKey;
+
+      const section = classificationSystem[sectionKey];
+      const subsection = section.subsections[subsectionKey];
+
+      // Actualizar breadcrumb
+      document.getElementById('currentSection').textContent = section.name;
+      document.getElementById('currentSubsection').textContent = subsection.name;
+      document.getElementById('subsectionBreadcrumb').style.display = 'inline';
+
+      // Ocultar otras vistas
+      document.getElementById('sectionsView').style.display = 'none';
+      document.getElementById('subsectionsView').style.display = 'none';
+
       // Mostrar vista de libros
       document.getElementById('booksView').style.display = 'block';
-      
+
       // Inicializar filtros si no se han inicializado
       if (cachedAuthors.size > 0 && document.getElementById('author').children.length === 1) {
         initFilters();
       }
-      
-      // Filtrar libros por sección
+
+      // Filtrar libros por subsección
       applyFilters();
     }
 
@@ -486,9 +749,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       while (sel.children.length > 1) {
         sel.removeChild(sel.lastChild);
       }
-      
+
       values.forEach(v => {
-        if (v) { // Solo agregar valores no vacíos
+        if (v) {
           const opt = document.createElement('option');
           opt.value = v;
           opt.textContent = v;
@@ -499,33 +762,46 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
     function applyFilters() {
       const startTime = performance.now();
-      
+
       const q = document.getElementById('q').value.toLowerCase().trim();
       const a = document.getElementById('author').value;
       const f = document.getElementById('format').value;
 
-      // Filtrado optimizado usando el texto pre-procesado
+      // Filtrado optimizado
       filtered = books.filter(book => {
-        // Filtro por sección actual (obligatorio)
-        if (currentSection && !book._genres.includes(currentSection)) {
-          return false;
+        // Filtro por subsección actual (obligatorio)
+        if (currentSection && currentSubsection) {
+          const section = classificationSystem[currentSection];
+          const subsection = section.subsections[currentSubsection];
+
+          // Verificar si el libro coincide con los tags de la subsección
+          const matches = book._genres.some(genre => 
+            subsection.tags.some(tag => 
+              genre.toLowerCase().includes(tag.toLowerCase()) || 
+              tag.toLowerCase().includes(genre.toLowerCase())
+            )
+          );
+
+          if (!matches) {
+            return false;
+          }
         }
-        
-        // Búsqueda por texto (más rápida usando _searchText)
+
+        // Búsqueda por texto
         if (q && !book._searchText.includes(q)) {
           return false;
         }
-        
+
         // Filtro por autor
         if (a && book.autor !== a) {
           return false;
         }
-        
-        // Filtro por formato (usando some para eficiencia)
+
+        // Filtro por formato
         if (f && !book.formatos.some(format => format.formato === f)) {
           return false;
         }
-        
+
         return true;
       });
 
@@ -538,19 +814,19 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     function renderBooks() {
       const grid = document.getElementById('booksGrid');
       const empty = document.getElementById('noResults');
-      
+
       if (!filtered.length) {
         grid.innerHTML = '';
         empty.style.display = 'block';
         return;
       }
-      
+
       empty.style.display = 'none';
-      
+
       const startTime = performance.now();
       grid.innerHTML = filtered.map(renderCard).join('');
       const endTime = performance.now();
-      
+
       console.log(`🎨 Renderizado completado en ${(endTime - startTime).toFixed(2)}ms`);
     }
 
@@ -577,7 +853,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       // Botón de visor (usa el primer formato disponible)
       const firstFormat = (b.formatos || [])[0];
       const viewerButton = firstFormat
-        ? `<button class="btn secondary" onclick="toggleViewer('${viewerId}', '${esc(firstFormat.url)}')">👁️ Visor</button>`
+        ? `<button class="btn secondary" onclick="toggleViewer('${viewerId}', '${esc(firstFormat.url)}')")">👁️ Visor</button>`
         : '';
 
       // Botón de editar
@@ -645,7 +921,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
       currentEditingBook = book;
       const backdrop = document.getElementById('editModalBackdrop');
-      
+
       // Llenar el formulario con los datos actuales
       document.getElementById('editTitulo').value = book.titulo || '';
       document.getElementById('editAutor').value = book.autor || '';
@@ -708,7 +984,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
       try {
         console.log('💾 Guardando cambios del libro...', updatedData);
-        
+
         // Actualizar en Supabase
         const { data, error } = await supabase
           .from('books')
@@ -723,7 +999,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
         }
 
         console.log('✅ Libro actualizado exitosamente:', data);
-        
+
         // Actualizar los datos en memoria
         const bookIndex = books.findIndex(b => b.id === currentEditingBook.id);
         if (bookIndex !== -1) {
@@ -755,29 +1031,16 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
         // Cerrar modal
         closeEditModal();
-        
+
         // Re-renderizar la vista actual
-        if (currentSection) {
+        if (currentSection && currentSubsection) {
           applyFilters();
+        } else if (currentSection) {
+          showSubsections(currentSection);
         } else {
-          // Si estamos en vista de secciones, recalcular secciones
-          const genreCounts = new Map();
-          books.forEach(book => {
-            book._genres.forEach(genre => {
-              if (genre) {
-                genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
-              }
-            });
-          });
-          
-          sections = Array.from(genreCounts.entries())
-            .map(([genre, count]) => ({ name: genre, count: count }))
-            .sort((a, b) => a.name.localeCompare(b.name));
-          
-          document.getElementById('statSections').textContent = sections.length;
           showSections();
         }
-        
+
         // Mostrar mensaje de éxito
         alert('✅ Los cambios se han guardado exitosamente');
 
@@ -810,7 +1073,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     function toggleViewer(viewerId, formatUrl) {
       const iframe = document.getElementById(viewerId);
       if (!iframe) return;
-      
+
       if (iframe.style.display === 'none' || !iframe.style.display) {
         const previewUrl = buildPreviewUrl(formatUrl);
         if (!previewUrl) {
