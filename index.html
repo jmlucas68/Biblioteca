@@ -1788,6 +1788,45 @@
             const subsection = classification.sections[sectionKey].subsections[subsectionKey];
             return filterBooksByTags(subsection.tags).length;
         }
+
+        // Añade esto después de populateSearchFilters y antes de setupEventListeners
+        document.addEventListener('DOMContentLoaded', () => {
+    // Autor filtrable
+    const autorInput = document.getElementById('searchAutorInput');
+    const autorSelect = document.getElementById('searchAutor');
+    if (autorInput && autorSelect) {
+        autorInput.addEventListener('input', () => {
+            const val = autorInput.value.trim().toLowerCase();
+            const filtered = !val
+                ? (window._allAuthors || [])
+                : (window._allAuthors || []).filter(a => a.toLowerCase().includes(val));
+            // Repoblar el select
+            autorSelect.innerHTML = '<option value="">Todos los autores</option>' +
+                filtered.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
+        });
+        autorSelect.addEventListener('change', () => {
+            autorInput.value = autorSelect.value;
+        });
+    }
+
+    // Género filtrable
+    const generoInput = document.getElementById('searchGeneroInput');
+    const generoSelect = document.getElementById('searchGenero');
+    if (generoInput && generoSelect) {
+        generoInput.addEventListener('input', () => {
+            const val = generoInput.value.trim().toLowerCase();
+            const filtered = !val
+                ? (window._allGenres || [])
+                : (window._allGenres || []).filter(g => g.toLowerCase().includes(val));
+            // Repoblar el select
+            generoSelect.innerHTML = '<option value="">Todos los géneros</option>' +
+                filtered.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+        });
+        generoSelect.addEventListener('change', () => {
+            generoInput.value = generoSelect.value;
+        });
+    }
+});
     </script>
 </body>
 </html>
