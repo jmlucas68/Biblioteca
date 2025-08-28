@@ -1393,24 +1393,29 @@
             elements.backButton.style.display = 'none';
             elements.searchContainer.style.display = 'none';
             elements.adminControls.style.display = 'flex';
-            
+
             updateBreadcrumb([]);
-            
-            const sectionsHtml = Object.entries(classification.sections).map(([key, section]) => {
-                const bookCount = countBooksForSection(key);
-                return `
-                    <div class="section-card" onclick="showSubsections('${key}')">
-                        <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}" 
-                             onerror="this.style.background='#eef2f6'; this.alt='📚';">
-                        <div class="section-content">
-                            <div class="section-title">${esc(section.name)}</div>
-                            <div class="section-count">${bookCount} libro${bookCount !== 1 ? 's' : ''}</div>
-                            <div class="section-subtitle">${Object.keys(section.subsections).length} subsecciones</div>
-                        </div>
+
+            // Calcular y ordenar secciones por número de libros (descendente)
+            const sectionEntries = Object.entries(classification.sections)
+                .map(([key, section]) => {
+                    const bookCount = countBooksForSection(key);
+                    return { key, section, bookCount };
+                })
+                .sort((a, b) => b.bookCount - a.bookCount);
+
+            const sectionsHtml = sectionEntries.map(({ key, section, bookCount }) => `
+                <div class="section-card" onclick="showSubsections('${key}')">
+                    <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}" 
+                         onerror="this.style.background='#eef2f6'; this.alt='📚';">
+                    <div class="section-content">
+                        <div class="section-title">${esc(section.name)}</div>
+                        <div class="section-count">${bookCount} libro${bookCount !== 1 ? 's' : ''}</div>
+                        <div class="section-subtitle">${Object.keys(section.subsections).length} subsecciones</div>
                     </div>
-                `;
-            }).join('');
-            
+                </div>
+            `).join('');
+
             elements.sectionsGrid.innerHTML = sectionsHtml;
         }
 
@@ -1418,30 +1423,35 @@
         function showSubsections(sectionKey) {
             currentSection = sectionKey;
             const section = classification.sections[sectionKey];
-            
+
             hideAllViews();
             elements.subsectionsView.classList.add('active');
             elements.backButton.style.display = 'block';
             elements.searchContainer.style.display = 'none';
             elements.adminControls.style.display = 'none';
-            
+
             updateBreadcrumb([section.name]);
-            
-            const subsectionsHtml = Object.entries(section.subsections).map(([key, subsection]) => {
-                const bookCount = countBooksForSubsection(sectionKey, key);
-                return `
-                    <div class="section-card" onclick="showBooks('${sectionKey}', '${key}')">
-                        <img class="section-cover" src="biblioteca.jpg" alt="Subsección ${esc(subsection.name)}" 
-                             onerror="this.style.background='#eef2f6'; this.alt='📚';">
-                        <div class="section-content">
-                            <div class="section-title">${esc(subsection.name)}</div>
-                            <div class="section-count">${bookCount} libro${bookCount !== 1 ? 's' : ''}</div>
-                            <div class="section-subtitle">${subsection.tags.slice(0, 3).map(tag => esc(tag)).join(', ')}${subsection.tags.length > 3 ? '...' : ''}</div>
-                        </div>
+
+            // Calcular y ordenar subsecciones por número de libros (descendente)
+            const subsectionEntries = Object.entries(section.subsections)
+                .map(([key, subsection]) => {
+                    const bookCount = countBooksForSubsection(sectionKey, key);
+                    return { key, subsection, bookCount };
+                })
+                .sort((a, b) => b.bookCount - a.bookCount);
+
+            const subsectionsHtml = subsectionEntries.map(({ key, subsection, bookCount }) => `
+                <div class="section-card" onclick="showBooks('${sectionKey}', '${key}')">
+                    <img class="section-cover" src="biblioteca.jpg" alt="Subsección ${esc(subsection.name)}" 
+                         onerror="this.style.background='#eef2f6'; this.alt='📚';">
+                    <div class="section-content">
+                        <div class="section-title">${esc(subsection.name)}</div>
+                        <div class="section-count">${bookCount} libro${bookCount !== 1 ? 's' : ''}</div>
+                        <div class="section-subtitle">${subsection.tags.slice(0, 3).map(tag => esc(tag)).join(', ')}${subsection.tags.length > 3 ? '...' : ''}</div>
                     </div>
-                `;
-            }).join('');
-            
+                </div>
+            `).join('');
+
             elements.subsectionsGrid.innerHTML = subsectionsHtml;
         }
 
