@@ -130,6 +130,14 @@
             min-width: 300px;
         }
 
+        /* Admin Controls */
+        .admin-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            justify-content: flex-end;
+        }
+
         /* Buttons */
         .btn {
             display: inline-flex;
@@ -172,6 +180,15 @@
 
         .btn--success:hover {
             background: #059669;
+        }
+
+        .btn--warning {
+            background: var(--color-warning);
+            color: white;
+        }
+
+        .btn--warning:hover {
+            background: #d97706;
         }
 
         .btn--small {
@@ -609,6 +626,10 @@
                 min-width: auto;
             }
 
+            .admin-controls {
+                justify-content: center;
+            }
+
             .grid--sections {
                 grid-template-columns: 1fr;
             }
@@ -680,6 +701,13 @@
                 </div>
             </div>
         </header>
+
+        <!-- Admin Controls -->
+        <div class="admin-controls" id="adminControls">
+            <button class="btn btn--warning" onclick="openClassificationEditor()" title="Editar la estructura de clasificación de secciones y tags">
+                ⚙️ Editar Clasificación
+            </button>
+        </div>
 
         <!-- Controls -->
         <div class="controls" id="controls">
@@ -808,6 +836,11 @@
             const id = m ? m[1] : null;
             if (!id) return urlPortada;
             return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
+        }
+
+        // Open Classification Editor
+        function openClassificationEditor() {
+            window.open('editor-clasificacion.html', '_blank');
         }
 
         // Classification structure
@@ -1043,7 +1076,8 @@
             bookModal: document.getElementById('bookModal'),
             modalContent: document.getElementById('modalContent'),
             closeModal: document.getElementById('closeModal'),
-            editModal: document.getElementById('editModal')
+            editModal: document.getElementById('editModal'),
+            adminControls: document.getElementById('adminControls')
         };
 
         // Initialize app
@@ -1113,6 +1147,7 @@
             elements.sectionsView.classList.add('active');
             elements.backButton.style.display = 'none';
             elements.searchContainer.style.display = 'none';
+            elements.adminControls.style.display = 'flex';
             
             updateBreadcrumb([]);
             
@@ -1143,6 +1178,7 @@
             elements.subsectionsView.classList.add('active');
             elements.backButton.style.display = 'block';
             elements.searchContainer.style.display = 'none';
+            elements.adminControls.style.display = 'none';
             
             updateBreadcrumb([section.name]);
             
@@ -1176,6 +1212,7 @@
             elements.booksView.classList.add('active');
             elements.backButton.style.display = 'block';
             elements.searchContainer.style.display = 'flex';
+            elements.adminControls.style.display = 'none';
             
             updateBreadcrumb([section.name, subsection.name]);
             

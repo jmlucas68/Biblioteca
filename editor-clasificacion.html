@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor de Clasificación</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
+    .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+    h1 { font-size: 24px; margin-bottom: 16px; color: #333; }
+    textarea { width: 100%; height: 500px; border: 1px solid #ccc; border-radius: 4px; padding: 12px; font-family: monospace; font-size: 14px; resize: vertical; }
+    .buttons { margin-top: 16px; display: flex; gap: 12px; }
+    button { padding: 10px 16px; font-size: 14px; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1e4bb8; }
+    .btn-secondary { background: #64748b; color: #fff; }
+    .btn-secondary:hover { background: #4a5568; }
+    .message { margin-top: 12px; font-size: 14px; }
+    .message.success { color: #10b981; }
+    .message.error { color: #ef4444; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Editor de Clasificación</h1>
+    <p>Modifica la estructura JSON de secciones, subsecciones y tags. Cuando termines, guarda los cambios.</p>
+    <textarea id="jsonEditor"></textarea>
+    <div class="buttons">
+      <button class="btn btn-secondary" id="loadBtn">Cargar JSON</button>
+      <button class="btn btn-primary" id="saveBtn">Guardar Cambios</button>
+    </div>
+    <div class="message" id="message"></div>
+  </div>
+
+  <script>
+    const editor = document.getElementById('jsonEditor');
+    const message = document.getElementById('message');
+
+    // Cargar JSON desde archivo local
+    document.getElementById('loadBtn').addEventListener('click', async () => {
+      fetch('clasificacion.json')
+        .then(res => res.text())
+        .then(text => {
+          editor.value = text;
+          showMessage('JSON cargado correctamente.', 'success');
+        })
+        .catch(err => showMessage('Error al cargar JSON.', 'error'));
+    });
+
+    // Guardar JSON - descarga archivo
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(editor.value);
+        const blob = new Blob([editor.value], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'clasificacion.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showMessage('Archivo clasificacion.json preparado para descarga.', 'success');
+      } catch (e) {
+        showMessage('JSON inválido. Revisa la sintaxis.', 'error');
+      }
+    });
+
+    function showMessage(text, type) {
+      message.textContent = text;
+      message.className = 'message ' + type;
+      setTimeout(() => message.textContent = '', 3000);
+    }
+  </script>
+</body>
+</html>
