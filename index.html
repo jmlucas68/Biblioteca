@@ -1293,19 +1293,14 @@
             const coverHref = book.url_portada || '#';
             
             return `
-                <div class="book-card">
-                    <div class="book-actions">
-                        <button class="btn btn--small btn--outline" onclick="event.stopPropagation(); showEditModal(${book.id})" title="Editar libro">
-                            ✏️ Editar
-                        </button>
-                    </div>
-                    <div class="book-cover-wrap" onclick="showBookDetails(${book.id})">
+                <div class="book-card" onclick="showBookDetails(${book.id})">
+                    <div class="book-cover-wrap">
                         <a href="${esc(coverHref)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">
                             <img class="book-cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" 
                                  onerror="this.style.display='none'; this.parentElement.innerHTML='📖';" />
                         </a>
                     </div>
-                    <div class="book-info" onclick="showBookDetails(${book.id})">
+                    <div class="book-info">
                         <div class="book-title">${esc(book.titulo || 'Sin título')}</div>
                         <div class="book-author">por ${esc(book.autor || 'Autor desconocido')}</div>
                         <div class="book-meta">
@@ -1580,6 +1575,9 @@
                         }).join('')}
                     </div>
                 ` : '<div class="modal-formats"><p>No hay formatos disponibles para este libro.</p></div>'}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>
+                </div>
             `;
             
             elements.modalContent.innerHTML = modalHtml;
