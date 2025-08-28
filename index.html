@@ -1030,211 +1030,6 @@
             window.open('editor-clasificacion-visual.html', '_blank');
         }
 
-        // Classification structure
-        const classification = {
-            "sections": {
-                "RELIGION_Y_ESPIRITUALIDAD": {
-                    "name": "Religión y Espiritualidad",
-                    "subsections": {
-                        "TEOLOGIA": {
-                            "name": "Teología",
-                            "tags": ["Religion", "teología", "Tomismo", "magisterio", "Filosofía", "Espiritualidad", "benedictoxvi", "Papa Francisco", "religión", "cristiana", "catolica", "cristiano", "catolico", "documento", "Religion & Spirituality"]
-                        },
-                        "TEXTOS_SAGRADOS": {
-                            "name": "Textos Sagrados y Estudios Bíblicos",
-                            "tags": ["Bíblia", "Religion", "Consulta", "teología", "Camino Neocatecumenal"]
-                        },
-                        "VIDA_ESPIRITUAL": {
-                            "name": "Vida Espiritual",
-                            "tags": ["Espiritualidad", "oración", "Religion", "Padre Pío", "catalina de siena", "María", "Fátima", "san ignacio"]
-                        },
-                        "HISTORIA_RELIGIOSA": {
-                            "name": "Historia Religiosa",
-                            "tags": ["Iglesia", "Historia", "Inquisición", "Religion"]
-                        }
-                    }
-                },
-                "FILOSOFIA": {
-                    "name": "Filosofía",
-                    "subsections": {
-                        "FILOSOFIA_GENERAL": {
-                            "name": "Filosofía General",
-                            "tags": ["Filosofía", "Philosophy", "Consulta", "Philosophy & Religion", "General", "History & Surveys", "Criticism"]
-                        },
-                        "METAFISICA_ONTOLOGIA": {
-                            "name": "Metafísica y Ontología",
-                            "tags": ["Metafísica", "ontología", "Filosofía"]
-                        },
-                        "HISTORIA_FILOSOFIA": {
-                            "name": "Historia de la Filosofía",
-                            "tags": ["Historia", "Filosofía", "posmodernismo", "Consulta"]
-                        },
-                        "CORRIENTES_FILOSOFICAS": {
-                            "name": "Corrientes Filosóficas",
-                            "tags": ["existencialismo", "marxismo", "estructuralismo", "posmodernismo", "Filosofía"]
-                        }
-                    }
-                },
-                "CIENCIAS": {
-                    "name": "Ciencias",
-                    "subsections": {
-                        "CIENCIAS_EXACTAS": {
-                            "name": "Ciencias Exactas",
-                            "tags": ["Ciencias exactas", "Ciencia", "Divulgación", "Science", "Life Sciences"]
-                        },
-                        "MEDICINA_SALUD": {
-                            "name": "Medicina y Salud",
-                            "tags": ["Salud", "Educación", "Salud y bienestar", "BOOKSMEDICOS.ORG", "Ciencia", "neurociencia", "anatomía"]
-                        },
-                        "PSICOLOGIA": {
-                            "name": "Psicología",
-                            "tags": ["Psicología", "Psychology", "General", "Emotions", "Clinical Psychology", "Applied Psychology", "Movements", "Industrial & Organizational Psychology"]
-                        }
-                    }
-                },
-                "TECNOLOGIA_INFORMATICA": {
-                    "name": "Tecnología e Informática",
-                    "subsections": {
-                        "PROGRAMACION": {
-                            "name": "Programación",
-                            "tags": ["Tecnología", "Programming", "Python", "java", "poo", "Software Development & Engineering", "Computers"]
-                        },
-                        "SISTEMAS_REDES": {
-                            "name": "Sistemas y Redes",
-                            "tags": ["Networking", "General", "git", "blockchain", "bitcoin", "AWS"]
-                        },
-                        "METODOLOGIAS": {
-                            "name": "Metodologías",
-                            "tags": ["agile", "scrum master", "scrum", "BPM", "design thinking"]
-                        }
-                    }
-                },
-                "DESARROLLO_PERSONAL": {
-                    "name": "Desarrollo Personal",
-                    "subsections": {
-                        "AUTOAYUDA": {
-                            "name": "Autoayuda",
-                            "tags": ["Autoayuda", "Self-Help", "Desarrollo", "Personal Growth", "Self-Esteem", "Self-Management", "Happiness", "Success"]
-                        },
-                        "LIDERAZGO": {
-                            "name": "Liderazgo",
-                            "tags": ["liderazgo", "Leadership", "Management"]
-                        },
-                        "PRODUCTIVIDAD": {
-                            "name": "Productividad",
-                            "tags": ["Productividad", "tecnicas estudio", "memoria", "Stress Management"]
-                        },
-                        "INTELIGENCIA_EMOCIONAL": {
-                            "name": "Inteligencia Emocional",
-                            "tags": ["inteligencia emocional", "emociones", "Psychology", "Emotions"]
-                        }
-                    }
-                },
-                "ECONOMIA_NEGOCIOS": {
-                    "name": "Economía y Negocios",
-                    "subsections": {
-                        "ECONOMIA": {
-                            "name": "Economía",
-                            "tags": ["Economía", "Business & Economics", "Economic Policy", "liberalismo"]
-                        },
-                        "NEGOCIOS": {
-                            "name": "Negocios",
-                            "tags": ["Negocios y Economía", "Innovación", "Strategic Planning", "General"]
-                        },
-                        "MARCA_PERSONAL": {
-                            "name": "Marca Personal",
-                            "tags": ["Marca Personal", "Comunicación", "Profesional"]
-                        }
-                    }
-                },
-                "POLITICA_SOCIEDAD": {
-                    "name": "Política y Sociedad",
-                    "subsections": {
-                        "POLITICA": {
-                            "name": "Política",
-                            "tags": ["Política", "Political Science", "Political Ideologies", "Conservatism & Liberalism", "Public Policy", "Fascism & Totalitarianism"]
-                        },
-                        "SOCIOLOGIA": {
-                            "name": "Sociología",
-                            "tags": ["Ciencias Sociales", "Social Science", "Sociology", "General", "Anthropology", "Cultural & Social"]
-                        },
-                        "HISTORIA": {
-                            "name": "Historia",
-                            "tags": ["Historia", "History", "cultura", "Europe", "Italy"]
-                        }
-                    }
-                },
-                "LITERATURA_ARTES": {
-                    "name": "Literatura y Artes",
-                    "subsections": {
-                        "LITERATURA": {
-                            "name": "Literatura",
-                            "tags": ["Novela", "Literary Collections", "Ancient & Classical", "Fiction", "General"]
-                        },
-                        "FANTASIA_FICCION": {
-                            "name": "Fantasía y Ficción",
-                            "tags": ["Fantasía épica", "Fantástico", "Fantasy", "Young Adult Fiction"]
-                        },
-                        "MITOLOGIA": {
-                            "name": "Mitología",
-                            "tags": ["mitología griega", "Divulgación", "cultura"]
-                        }
-                    }
-                },
-                "ENTRETENIMIENTO": {
-                    "name": "Entretenimiento",
-                    "subsections": {
-                        "COMICS_TEBEOS": {
-                            "name": "Comics y Tebeos",
-                            "tags": ["Comic", "Tebeo", "Mortadelo_y_Filemón"]
-                        },
-                        "FOTOGRAFIA": {
-                            "name": "Fotografía",
-                            "tags": ["aficiones", "Fotografía"]
-                        },
-                        "COCINA": {
-                            "name": "Cocina",
-                            "tags": ["cocina"]
-                        }
-                    }
-                },
-                "EDUCACION": {
-                    "name": "Educación",
-                    "subsections": {
-                        "EDUCACION_GENERAL": {
-                            "name": "Educación General",
-                            "tags": ["Educación", "Education", "Estudios", "Práctico"]
-                        },
-                        "IDIOMAS": {
-                            "name": "Idiomas",
-                            "tags": ["inglés", "Spanish"]
-                        },
-                        "METODOLOGIA_ESTUDIO": {
-                            "name": "Metodología de Estudio",
-                            "tags": ["tecnicas estudio", "memoria", "lectura rápida"]
-                        }
-                    }
-                },
-                "VARIOS": {
-                    "name": "Varios",
-                    "subsections": {
-                        "CATALOGOS_CONSULTA": {
-                            "name": "Catálogos y Consulta",
-                            "tags": ["Consulta", "Catálogo", "revista", "artículo"]
-                        },
-                        "SIN_CLASIFICAR": {
-                            "name": "Sin Clasificar",
-                            "tags": ["sin_revisar_metadatos", "Downloaded from Z-Library", "Image To PDF Conversion", "ePubLibre"]
-                        },
-                        "ESPECIALIZADOS": {
-                            "name": "Especializados",
-                            "tags": ["eneagrama", "Exercise", "Family & Relationships", "Death; Grief; Bereavement"]
-                        }
-                    }
-                }
-            }
-        };
-
         // Global variables
         let allBooks = [];
         let allFormats = [];
@@ -1243,6 +1038,7 @@
         let filteredBooks = [];
         let currentBooks = [];
         let currentEditingBook = null;
+        let classification = null; // Cambia: ahora se cargará desde la base de datos
 
         // DOM elements
         const elements = {
@@ -1271,6 +1067,7 @@
         // Initialize app
         document.addEventListener('DOMContentLoaded', async () => {
             await loadData();
+            await loadClassification(); // Cambia: cargar la clasificación desde la base de datos
             populateSearchFilters();
             showSections();
             setupEventListeners();
@@ -1306,6 +1103,27 @@
             } catch (error) {
                 console.error('Error loading data:', error);
                 elements.loading.innerHTML = '❌ Error al cargar los datos';
+            }
+        }
+
+        // NUEVA FUNCIÓN: Cargar la clasificación desde la tabla "clasificacion"
+        async function loadClassification() {
+            try {
+                elements.loading.style.display = 'flex';
+                // Solo hay una fila, selecciona la primera
+                const { data, error } = await supabaseClient
+                    .from('clasificacion')
+                    .select('data')
+                    .limit(1)
+                    .single();
+
+                if (error) throw error;
+                // data.data es el JSON de clasificación
+                classification = data.data;
+                elements.loading.style.display = 'none';
+            } catch (error) {
+                console.error('Error loading classification:', error);
+                elements.loading.innerHTML = '❌ Error al cargar la clasificación';
             }
         }
 
