@@ -722,9 +722,24 @@
             
             // Show/hide tag field based on current view
             const tagGroup = document.getElementById('newTagGroup');
-            tagGroup.style.display = currentView === 'tags' ? 'block' : 'none';
-            
-            document.getElementById('newItemKey').focus();
+            const keyGroup = document.getElementById('newItemKey').parentElement;
+            const nameGroup = document.getElementById('newItemName').parentElement;
+
+            if (currentView === 'tags') {
+                tagGroup.style.display = 'block';
+                keyGroup.style.display = 'none';
+                nameGroup.style.display = 'none';
+            } else {
+                tagGroup.style.display = 'none';
+                keyGroup.style.display = 'block';
+                nameGroup.style.display = 'block';
+            }
+
+            if (currentView !== 'tags') {
+                document.getElementById('newItemKey').focus();
+            } else {
+                document.getElementById('newItemTags').focus();
+            }
         }
 
         // Cancel add
@@ -738,6 +753,27 @@
             const name = document.getElementById('newItemName').value.trim();
             const tags = document.getElementById('newItemTags').value;
             
+            if (currentView === 'tags') {
+                if (!tags.trim()) {
+                    showMessage('Por favor, introduce al menos un tag.', 'error');
+                    return;
+                }
+                const newTags = tags.split(',').map(t => t.trim()).filter(t => t);
+                const existingTags = currentClassification.sections[currentSectionKey].subsections[currentSubsectionKey].tags;
+                let added = 0;
+                newTags.forEach(tag => {
+                    if (tag && !existingTags.includes(tag)) {
+                        existingTags.push(tag);
+                        added++;
+                    }
+                });
+                renderTags(currentSectionKey, currentSubsectionKey);
+                showMessage(`${added} tag(s) añadido(s) correctamente.`, 'success');
+                cancelAdd();
+                return;
+            }
+
+            // Para secciones y subsecciones
             if (!key || !name) {
                 showMessage('Por favor, completa todos los campos requeridos.', 'error');
                 return;
@@ -772,24 +808,6 @@
                 };
                 renderSubsections(currentSectionKey);
                 showMessage(`Subsección "${name}" añadida correctamente.`, 'success');
-                
-            } else if (currentView === 'tags') {
-                if (!tags.trim()) {
-                    showMessage('Por favor, introduce al menos un tag.', 'error');
-                    return;
-                }
-                
-                const newTags = tags.split(',').map(t => t.trim()).filter(t => t);
-                const existingTags = currentClassification.sections[currentSectionKey].subsections[currentSubsectionKey].tags;
-                
-                newTags.forEach(tag => {
-                    if (!existingTags.includes(tag)) {
-                        existingTags.push(tag);
-                    }
-                });
-                
-                renderTags(currentSectionKey, currentSubsectionKey);
-                showMessage(`${newTags.length} tag(s) añadido(s) correctamente.`, 'success');
             }
             
             cancelAdd();
