@@ -816,16 +816,27 @@
         // Delete item
         function deleteItem(type, key) {
             deleteTarget = { type, key };
-            
+
             let message = '';
             if (type === 'section') {
                 const section = currentClassification.sections[key];
-                message = `¿Estás seguro de que quieres eliminar la sección "${section.name}"? Se eliminarán también todas sus subsecciones y tags.`;
+                const subsections = section.subsections || {};
+                if (Object.keys(subsections).length > 0) {
+                    showMessage('No se puede eliminar una sección que tiene subsecciones. Elimina primero las subsecciones.', 'error');
+                    deleteTarget = null;
+                    return;
+                }
+                message = `¿Estás seguro de que quieres eliminar la sección "${section.name}"?`;
             } else if (type === 'subsection') {
                 const subsection = currentClassification.sections[currentSectionKey].subsections[key];
-                message = `¿Estás seguro de que quieres eliminar la subsección "${subsection.name}"? Se eliminarán también todos sus tags.`;
+                if (subsection.tags && subsection.tags.length > 0) {
+                    showMessage('No se puede eliminar una subsección que tiene tags. Elimina primero los tags.', 'error');
+                    deleteTarget = null;
+                    return;
+                }
+                message = `¿Estás seguro de que quieres eliminar la subsección "${subsection.name}"?`;
             }
-            
+
             elements.deleteMessage.textContent = message;
             elements.deleteModal.classList.add('show');
         }
