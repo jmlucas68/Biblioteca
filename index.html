@@ -1278,10 +1278,14 @@
                     matchesEditorial = book.editorial === editorial;
                 }
 
-                // Filter by year
+                // Filter by year (solo comparar el año, no mes/día)
                 let matchesYear = true;
                 if (year) {
-                    matchesYear = book.fecha_publicacion === year;
+                    let bookYear = '';
+                    if (book.fecha_publicacion && typeof book.fecha_publicacion === 'string' && book.fecha_publicacion.length >= 4) {
+                        bookYear = book.fecha_publicacion.slice(0, 4);
+                    }
+                    matchesYear = bookYear === year;
                 }
 
                 // Filter by format
