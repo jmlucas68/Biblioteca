@@ -1204,19 +1204,23 @@
                 let matchesText = true;
                 if (query) {
                     const searchTextNorm = normalizeString(query);
+
+                    // Obtener formatos del libro y unirlos para búsqueda
+                    const bookFormats = getBookFormats(book.id).map(f => f.formato).join(' ');
                     
-                    // Base search fields (always included)
+                    // Base search fields (siempre incluidos)
                     const baseSearchableText = [
                         book.titulo,
                         book.autor,
                         book.genero,
                         book.serie,
-                        book.editorial
+                        book.editorial,
+                        bookFormats // <-- Añadido: formatos del libro
                     ].filter(Boolean).map(normalizeString).join(' ');
-                    
+
                     // Check if text matches in base fields
                     matchesText = baseSearchableText.includes(searchTextNorm);
-                    
+
                     // If not found and description is enabled, check description
                     if (!matchesText && includeDescription && book.descripcion) {
                         matchesText = normalizeString(book.descripcion).includes(searchTextNorm);

@@ -10,5 +10,4 @@ Se puede modificar el json de clasificación
 
 El json de clasificación está en la base de datos
 
-----
-EN ESPERA DE NUEVAS FUNCIONALIDADES
+Busqueda de libros: también por formato de libro
