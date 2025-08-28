@@ -68,11 +68,13 @@
       allBooks = booksData.map(b => ({...b, _searchText:(b.titulo+" "+b.autor+" "+b.genero).toLowerCase()}));
       document.getElementById('statTotal').textContent = allBooks.length;
 
-      // Cargar clasificación desde el JSON
+      // Cargar clasificación desde archivo local
       const res = await fetch('clasificacion.json');
-      classification = (await res.json()).sections;
-      document.getElementById('statSections').textContent = Object.keys(classification).length;
+      const jsonText = await res.text();
+      const clean = jsonText.replace(/^classification\s*=\s*/, '');
+      classification = JSON.parse(clean).sections;
 
+      document.getElementById('statSections').textContent = Object.keys(classification).length;
       showSections();
 
       document.getElementById('q').addEventListener('input', renderBooks);
@@ -103,11 +105,22 @@
       document.getElementById('booksView').style.display='none';
       document.getElementById('breadcrumb').innerHTML='';
       const grid = document.getElementById('sectionsView');
-      grid.innerHTML = Object.entries(classification).map(([key, sec])=>`
-        <div class="card" onclick="showSubsections('${key}')">
-          <h3>${sec.name}</h3>
-          <p>${Object.keys(sec.subsections).length} subsecciones</p>
-        </div>`).join('');
+
+      grid.innerHTML = Object.entries(classification).map(([secKey, sec]) => {
+        // contar libros en todas las subsecciones de esta sección
+        let totalBooksInSection = 0;
+        Object.values(sec.subsections).forEach(sub => {
+          const tags = sub.tags.map(t=>t.toLowerCase());
+          const count = allBooks.filter(b=> tags.some(t=>b._searchText.includes(t)) ).length;
+          totalBooksInSection += count;
+        });
+        const totalSubsections = Object.keys(sec.subsections).length;
+        return `
+          <div class="card" onclick="showSubsections('${secKey}')">
+            <h3>${sec.name}</h3>
+            <p>${totalSubsections} subseccion${totalSubsections!==1?'es':''} · ${totalBooksInSection} libro${totalBooksInSection!==1?'s':''}</p>
+          </div>`;
+      }).join('');
     }
 
     function showSubsections(sectionKey) {
@@ -119,11 +132,16 @@
       setBreadcrumb();
       const grid = document.getElementById('subsectionsView');
       const subs = classification[sectionKey].subsections;
-      grid.innerHTML = Object.entries(subs).map(([key,sub])=>`
-        <div class="card" onclick="showBooks('${key}')">
-          <h3>${sub.name}</h3>
-          <p>${sub.tags.length} etiquetas</p>
-        </div>`).join('');
+
+      grid.innerHTML = Object.entries(subs).map(([key,sub])=>{
+        const tags = sub.tags.map(t=>t.toLowerCase());
+        const count = allBooks.filter(b=> tags.some(t=>b._searchText.includes(t)) ).length;
+        return `
+          <div class="card" onclick="showBooks('${key}')">
+            <h3>${sub.name}</h3>
+            <p>${count} libro${count!==1?'s':''}</p>
+          </div>`;
+      }).join('');
     }
 
     function showBooks(subKey) {
@@ -147,7 +165,6 @@
         return true;
       });
 
-      // Autores en selector
       const sel = document.getElementById('author');
       while (sel.children.length>1) sel.removeChild(sel.lastChild);
       [...new Set(filtered.map(b=>b.autor))].sort().forEach(a=>{
