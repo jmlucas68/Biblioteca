@@ -1216,8 +1216,16 @@
             document.getElementById('searchSerie').value = '';
             document.getElementById('searchEditorial').value = '';
             document.getElementById('searchYear').value = '';
-            document.getElementById('searchFormato').value = ''; // Limpiar formato
+            document.getElementById('searchFormato').value = '';
             document.getElementById('searchResults').innerHTML = '';
+            // Limpiar también los inputs de filtro dinámico de autor y género
+            const autorInput = document.getElementById('searchAutorInput');
+            const generoInput = document.getElementById('searchGeneroInput');
+            if (autorInput) autorInput.value = '';
+            if (generoInput) generoInput.value = '';
+            // Repoblar selects completos
+            if (window._allAuthors) populateSelect('searchAutor', window._allAuthors);
+            if (window._allGenres) populateSelect('searchGenero', window._allGenres);
         }
 
         function performSearch() {
