@@ -584,6 +584,16 @@
             background: var(--color-primary-light);
         }
 
+        .format-link--disabled {
+            background: var(--color-secondary);
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .format-link--disabled:hover {
+            background: var(--color-secondary);
+        }
+
         /* Empty state */
         .empty-state {
             text-align: center;
@@ -823,7 +833,7 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
         const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-        // Utility functions - CRÍTICAS PARA LAS IMÁGENES Y DESCARGAS
+        // Utility functions - CRÍTICAS PARA LAS IMÁGENES
         function esc(s) {
             return String(s || '')
                 .replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -836,36 +846,6 @@
             const id = m ? m[1] : null;
             if (!id) return urlPortada;
             return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
-        }
-
-        // NUEVA FUNCIÓN: Convertir URL de Drive a enlace de descarga directa
-        function resolveDownloadUrl(driveUrl) {
-            if (!driveUrl) return '#';
-            
-            // Extraer ID del archivo de diferentes formatos de URLs de Google Drive
-            let fileId = null;
-            
-            // Patrón 1: https://drive.google.com/file/d/ID/view
-            let match = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-            if (match) {
-                fileId = match[1];
-            }
-            
-            // Patrón 2: https://drive.google.com/open?id=ID
-            if (!fileId) {
-                match = driveUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-                if (match) {
-                    fileId = match[1];
-                }
-            }
-            
-            // Si encontramos el ID, construir URL de descarga directa
-            if (fileId) {
-                return `https://drive.google.com/uc?id=${fileId}&export=download`;
-            }
-            
-            // Si no es URL de Drive, devolver la URL original
-            return driveUrl;
         }
 
         // Open Classification Editor
@@ -1131,13 +1111,16 @@
                 if (booksError) throw booksError;
                 allBooks = booksData || [];
 
-                // Load formats
+                // Load formats - INCLUIR url_download
                 const { data: formatsData, error: formatsError } = await supabaseClient
                     .from('book_formats')
                     .select('*');
                 
                 if (formatsError) throw formatsError;
                 allFormats = formatsData || [];
+
+                console.log('Formatos cargados:', allFormats.length);
+                console.log('Ejemplo formato:', allFormats[0]); // Para debug
 
                 // Update stats
                 elements.totalBooks.textContent = allBooks.length;
@@ -1383,7 +1366,7 @@
             return allFormats.filter(format => format.book_id === bookId);
         }
 
-        // Show book details - CON DESCARGA CORREGIDA
+        // Show book details - USANDO url_download DIRECTAMENTE
         function showBookDetails(bookId) {
             const book = allBooks.find(b => b.id === bookId);
             if (!book) return;
@@ -1392,6 +1375,8 @@
             const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
             const portadaSrc = resolveCoverThumb(book.url_portada);
             const coverHref = book.url_portada || '#';
+            
+            console.log('Formatos del libro:', formats); // Para debug
             
             const modalHtml = `
                 <div class="modal-book">
@@ -1419,16 +1404,21 @@
                 ${formats.length > 0 ? `
                     <div class="modal-formats">
                         ${formats.map(format => {
-                            const downloadUrl = resolveDownloadUrl(format.ruta_archivo);
+                            // USAR url_download DIRECTAMENTE
+                            const downloadUrl = format.url_download || format.ruta_archivo || '#';
+                            const hasValidUrl = downloadUrl && downloadUrl !== '#';
+                            
                             return `
-                                <a href="${esc(downloadUrl)}" class="format-link" target="_blank" rel="noopener" ${!format.ruta_archivo ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                                <a href="${esc(downloadUrl)}" 
+                                   class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}" 
+                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault(); alert(\'No hay enlace de descarga disponible para este formato.\');"'}>
                                     📄 ${esc(format.formato)}
                                     ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
                                 </a>
                             `;
                         }).join('')}
                     </div>
-                ` : ''}
+                ` : '<div class="modal-formats"><p>No hay formatos disponibles para este libro.</p></div>'}
             `;
             
             elements.modalContent.innerHTML = modalHtml;
