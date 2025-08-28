@@ -8,4 +8,4 @@ Se pueden editar los metadatos de los libros
 
 Se puede modificar el json de clasificación
 
-Descarga de libros corregida
+El json de clasificación está en la base de datos
