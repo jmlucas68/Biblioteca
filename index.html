@@ -277,6 +277,51 @@
             margin-bottom: 20px;
         }
 
+        .search-option {
+            margin: 16px 0;
+            padding: 12px;
+            background: var(--color-hover);
+            border-radius: var(--radius);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--color-text);
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--color-border);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 12px;
+            color: transparent;
+        }
+
+        .checkbox-label:hover .checkmark {
+            border-color: var(--color-primary);
+        }
+
+        .checkbox-label input[type="checkbox"]:checked + .checkmark {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: white;
+        }
+
         /* Loading */
         .loading {
             display: flex;
@@ -823,8 +868,17 @@
                 <div class="modal-body">
                     <!-- Search Form -->
                     <div class="form-group">
-                        <label class="form-label" for="searchQuery">Buscar por título, autor, serie, descripción...</label>
+                        <label class="form-label" for="searchQuery">Buscar por título, autor, serie...</label>
                         <input type="text" id="searchQuery" class="form-control" placeholder="Escribe aquí tu búsqueda...">
+                    </div>
+                    
+                    <!-- Search Option: Include Description -->
+                    <div class="search-option">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="includeDescription" />
+                            <span class="checkmark">✓</span>
+                            Incluir descripción en la búsqueda
+                        </label>
                     </div>
                     
                     <!-- Advanced Filters -->
@@ -1298,6 +1352,7 @@
 
         function clearSearch() {
             document.getElementById('searchQuery').value = '';
+            document.getElementById('includeDescription').checked = false;
             document.getElementById('searchAutor').value = '';
             document.getElementById('searchGenero').value = '';
             document.getElementById('searchSerie').value = '';
@@ -1307,7 +1362,8 @@
         }
 
         function performSearch() {
-            const query = normalizeString(document.getElementById('searchQuery').value);
+            const query = document.getElementById('searchQuery').value.trim();
+            const includeDescription = document.getElementById('includeDescription').checked;
             const autor = document.getElementById('searchAutor').value;
             const genero = document.getElementById('searchGenero').value;
             const serie = document.getElementById('searchSerie').value;
@@ -1318,15 +1374,24 @@
                 // Text search
                 let matchesText = true;
                 if (query) {
-                    const searchableText = [
+                    const searchTextNorm = normalizeString(query);
+                    
+                    // Base search fields (always included)
+                    const baseSearchableText = [
                         book.titulo,
                         book.autor,
                         book.genero,
                         book.serie,
-                        book.editorial,
-                        book.descripcion
+                        book.editorial
                     ].filter(Boolean).map(normalizeString).join(' ');
-                    matchesText = searchableText.includes(query);
+                    
+                    // Check if text matches in base fields
+                    matchesText = baseSearchableText.includes(searchTextNorm);
+                    
+                    // If not found and description is enabled, check description
+                    if (!matchesText && includeDescription && book.descripcion) {
+                        matchesText = normalizeString(book.descripcion).includes(searchTextNorm);
+                    }
                 }
 
                 // Filter by author
