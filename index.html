@@ -174,15 +174,18 @@
       [...new Set(filtered.map(b=>b.autor))].sort().forEach(a=>{
         if(a){ let opt=document.createElement('option'); opt.value=a; opt.textContent=a; sel.appendChild(opt);} });
 
-      document.getElementById('booksGrid').innerHTML = filtered.map(b=>`
+      document.getElementById('booksGrid').innerHTML = filtered.map(b=>{
+        const imgSrc = b.drive || b.imagen || 'biblioteca.jpg';
+        return `
         <div class="book-card">
-          <img src="${b.imagen||'biblioteca.jpg'}" alt="${b.titulo}" />
+          <img src="${imgSrc}" alt="${b.titulo}" />
           <div class="info">
             <h4>${b.titulo}</h4>
             <div class="author">${b.autor||'Autor desconocido'}</div>
             <div class="tags">${tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
   </script>
 </body>
