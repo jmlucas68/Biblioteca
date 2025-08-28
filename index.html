@@ -286,9 +286,14 @@
             box-shadow: var(--shadow-md);
         }
 
+        .book-cover-wrap {
+            flex: 0 0 110px;
+            position: relative;
+        }
+
         .book-cover {
-            flex: 0 0 80px;
-            height: 120px;
+            width: 110px;
+            height: 150px;
             background: var(--color-hover);
             border-radius: var(--radius);
             display: flex;
@@ -298,6 +303,8 @@
             color: var(--color-text-secondary);
             text-align: center;
             overflow: hidden;
+            object-fit: cover;
+            cursor: pointer;
         }
 
         .book-cover img {
@@ -424,8 +431,8 @@
         }
 
         .modal-cover {
-            flex: 0 0 120px;
-            height: 180px;
+            flex: 0 0 160px;
+            height: 220px;
             background: var(--color-hover);
             border-radius: var(--radius);
             display: flex;
@@ -543,7 +550,7 @@
                 text-align: center;
             }
 
-            .book-cover {
+            .book-cover-wrap {
                 align-self: center;
             }
 
@@ -639,6 +646,21 @@
         const supabaseUrl = 'https://fanyuclarbgwraiwbcmr.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
         const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        // Utility functions - CRÍTICAS PARA LAS IMÁGENES
+        function esc(s) {
+            return String(s || '')
+                .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+        }
+
+        function resolveCoverThumb(urlPortada) {
+            if (!urlPortada) return '';
+            const m = urlPortada.match(/\/d\/([^/]+)\//);
+            const id = m ? m[1] : null;
+            if (!id) return urlPortada;
+            return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
+        }
 
         // Classification structure
         const classification = {
@@ -943,7 +965,7 @@
                 return `
                     <div class="card" onclick="showSubsections('${key}')">
                         <div class="card-header">
-                            <div class="card-title">${section.name}</div>
+                            <div class="card-title">${esc(section.name)}</div>
                             <div class="card-count">${bookCount}</div>
                         </div>
                         <div class="card-description">
@@ -973,11 +995,11 @@
                 return `
                     <div class="card" onclick="showBooks('${sectionKey}', '${key}')">
                         <div class="card-header">
-                            <div class="card-title">${subsection.name}</div>
+                            <div class="card-title">${esc(subsection.name)}</div>
                             <div class="card-count">${bookCount}</div>
                         </div>
                         <div class="card-description">
-                            ${subsection.tags.slice(0, 3).join(', ')}${subsection.tags.length > 3 ? '...' : ''}
+                            ${subsection.tags.slice(0, 3).map(tag => esc(tag)).join(', ')}${subsection.tags.length > 3 ? '...' : ''}
                         </div>
                     </div>
                 `;
@@ -1098,24 +1120,26 @@
             const booksHtml = currentBooks.map(book => {
                 const formats = getBookFormats(book.id);
                 const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
+                const portadaSrc = resolveCoverThumb(book.url_portada);
+                const coverHref = book.url_portada || '#';
                 
                 return `
                     <div class="book-card" onclick="showBookDetails(${book.id})">
-                        <div class="book-cover">
-                            ${book.url_portada ? 
-                                `<img src="${book.url_portada}" alt="${book.titulo}" onerror="this.style.display='none'">` : 
-                                '📖'
-                            }
+                        <div class="book-cover-wrap">
+                            <a href="${esc(coverHref)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">
+                                <img class="book-cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" 
+                                     onerror="this.style.display='none'; this.parentElement.innerHTML='📖';" />
+                            </a>
                         </div>
                         <div class="book-info">
-                            <div class="book-title">${book.titulo || 'Sin título'}</div>
-                            <div class="book-author">${book.autor || 'Autor desconocido'}</div>
+                            <div class="book-title">${esc(book.titulo || 'Sin título')}</div>
+                            <div class="book-author">por ${esc(book.autor || 'Autor desconocido')}</div>
                             <div class="book-meta">
-                                ${book.serie ? `<span class="book-badge book-badge--series">${book.serie}${book.numero_serie ? ` #${book.numero_serie}` : ''}</span>` : ''}
-                                ${genres.slice(0, 2).map(genre => `<span class="book-badge book-badge--genre">${genre}</span>`).join('')}
+                                ${book.serie ? `<span class="book-badge book-badge--series">${esc(book.serie)}${book.numero_serie ? ` #${book.numero_serie}` : ''}</span>` : ''}
+                                ${genres.slice(0, 2).map(genre => `<span class="book-badge book-badge--genre">${esc(genre)}</span>`).join('')}
                             </div>
                             <div class="book-formats">
-                                ${formats.map(format => `<span class="format-badge">${format.formato}</span>`).join('')}
+                                ${formats.map(format => `<span class="format-badge">${esc(format.formato)}</span>`).join('')}
                             </div>
                         </div>
                     </div>
@@ -1137,35 +1161,37 @@
             
             const formats = getBookFormats(bookId);
             const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
+            const portadaSrc = resolveCoverThumb(book.url_portada);
+            const coverHref = book.url_portada || '#';
             
             const modalHtml = `
                 <div class="modal-book">
                     <div class="modal-cover">
-                        ${book.url_portada ? 
-                            `<img src="${book.url_portada}" alt="${book.titulo}" onerror="this.style.display='none'">` : 
-                            '📖'
-                        }
+                        <a href="${esc(coverHref)}" target="_blank" rel="noopener">
+                            <img src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" 
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='📖';" />
+                        </a>
                     </div>
                     <div class="modal-info">
-                        <h2>${book.titulo || 'Sin título'}</h2>
-                        <p><strong>Autor:</strong> ${book.autor || 'Desconocido'}</p>
-                        ${book.serie ? `<p><strong>Serie:</strong> ${book.serie}${book.numero_serie ? ` #${book.numero_serie}` : ''}</p>` : ''}
-                        ${book.editorial ? `<p><strong>Editorial:</strong> ${book.editorial}</p>` : ''}
-                        ${book.fecha_publicacion ? `<p><strong>Año:</strong> ${book.fecha_publicacion}</p>` : ''}
-                        <p><strong>Géneros:</strong> ${genres.join(', ') || 'Sin especificar'}</p>
+                        <h2>${esc(book.titulo || 'Sin título')}</h2>
+                        <p><strong>Autor:</strong> ${esc(book.autor || 'Desconocido')}</p>
+                        ${book.serie ? `<p><strong>Serie:</strong> ${esc(book.serie)}${book.numero_serie ? ` #${book.numero_serie}` : ''}</p>` : ''}
+                        ${book.editorial ? `<p><strong>Editorial:</strong> ${esc(book.editorial)}</p>` : ''}
+                        ${book.fecha_publicacion ? `<p><strong>Año:</strong> ${esc(book.fecha_publicacion)}</p>` : ''}
+                        <p><strong>Géneros:</strong> ${genres.map(g => esc(g)).join(', ') || 'Sin especificar'}</p>
                     </div>
                 </div>
                 ${book.descripcion ? `
                     <div class="modal-description">
                         <h3>Descripción</h3>
-                        <p>${book.descripcion}</p>
+                        <p>${esc(book.descripcion)}</p>
                     </div>
                 ` : ''}
                 ${formats.length > 0 ? `
                     <div class="modal-formats">
                         ${formats.map(format => `
-                            <a href="${format.ruta_archivo || '#'}" class="format-link" ${format.ruta_archivo ? 'target="_blank"' : ''}>
-                                📄 ${format.formato}
+                            <a href="${esc(format.ruta_archivo || '#')}" class="format-link" ${format.ruta_archivo ? 'target="_blank"' : ''}>
+                                📄 ${esc(format.formato)}
                                 ${format.tamano_mb ? `(${format.tamano_mb} MB)` : ''}
                             </a>
                         `).join('')}
@@ -1207,9 +1233,9 @@
             
             const breadcrumbHtml = path.map((item, index) => {
                 if (index === path.length - 1) {
-                    return `<span class="breadcrumb-item">${item}</span>`;
+                    return `<span class="breadcrumb-item">${esc(item)}</span>`;
                 } else {
-                    return `<span class="breadcrumb-item">${item}</span><span class="breadcrumb-separator"> › </span>`;
+                    return `<span class="breadcrumb-item">${esc(item)}</span><span class="breadcrumb-separator"> › </span>`;
                 }
             }).join('');
             
