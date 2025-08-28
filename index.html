@@ -1,857 +1,1233 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mi Biblioteca Personal</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f5f7fb; margin:0; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 18px; }
-    header { background:#1f2937; color:#fff; padding:18px; border-radius:12px; }
-    header h1 { margin:0 0 6px 0; font-size:22px; }
-    .stats { display:flex; gap:24px; font-size:14px; opacity:.9; }
-    .controls { display:flex; gap:8px; flex-wrap:wrap; padding:12px 0; }
-    .controls input, .controls select { padding:10px 12px; border-radius:8px; border:1px solid #cfd8e3; background:#fff; }
-    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap:14px; }
-    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; display:flex; gap:12px; padding:12px; }
-    .cover-wrap { position: relative; flex:0 0 110px; }
-    .cover { width:110px; height:150px; border-radius:8px; background:#eef2f6; object-fit:cover; cursor:pointer; display:block; }
-    .content { flex:1; display:flex; flex-direction:column; gap:6px; }
-    .title { font-weight:700; color:#111827; line-height:1.2; }
-    .author { color:#6b7280; font-size:14px; }
-    .meta { display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:#374151; }
-    .badge { padding:2px 8px; border-radius:999px; font-weight:600; }
-    .badge.series { background:#eef2ff; color:#4338ca; }
-    .badge.genre { background:#ecfeff; color:#0369a1; }
-    .formats { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
-    .format-link { 
-      font-size:12px; border:1px solid #d1d5db; border-radius:8px; padding:4px 8px; 
-      background:#f9fafb; text-decoration:none; color:#374151; cursor:pointer;
-      transition: all 0.2s ease;
-    }
-    .format-link:hover { 
-      background:#2563eb; color:#fff; border-color:#2563eb; 
-      text-decoration:none; transform: translateY(-1px);
-    }
-    .actions { display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap; }
-    .btn { padding:8px 12px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-weight:700; cursor:pointer; font-size:12px; }
-    .btn.secondary { background:#6b7280; }
-    .btn.ghost { background:#eef2f7; color:#1f2937; }
-    .btn.edit { background:#059669; }
-    .btn.edit:hover { background:#047857; }
-    .viewer { margin-top:10px; width:100%; height:360px; border:0; border-radius:8px; background:#f0f2f5; display:none; }
-    .no-results { text-align:center; color:#6b7280; padding:40px 0; }
-    .loading { text-align:center; padding:50px; font-size:18px; color:#6b7280; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Biblioteca Personal - Clasificada</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-light: #3b82f6;
+            --color-secondary: #64748b;
+            --color-background: #f8fafc;
+            --color-surface: #ffffff;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+            --color-hover: #f1f5f9;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius: 8px;
+            --radius-lg: 12px;
+        }
 
-    /* Estilos para vista de secciones */
-    .sections-view { display: none; }
-    .books-view { display: none; }
-    .breadcrumb { 
-      display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; color: #6b7280;
-    }
-    .breadcrumb a { 
-      color: #2563eb; text-decoration: none; cursor: pointer;
-    }
-    .breadcrumb a:hover { text-decoration: underline; }
-    .breadcrumb-separator { margin: 0 4px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    /* Tarjetas de secciones */
-    .section-card {
-      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
-      cursor: pointer; transition: all 0.2s ease; position: relative;
-    }
-    .section-card:hover {
-      transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #2563eb;
-    }
-    .section-cover {
-      width: 100%; height: 200px; object-fit: cover; background: #eef2f6;
-    }
-    .section-content {
-      padding: 16px;
-    }
-    .section-title {
-      font-weight: 700; color: #111827; font-size: 18px; margin-bottom: 8px;
-    }
-    .section-count {
-      color: #6b7280; font-size: 14px;
-    }
-    .section-overlay {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      background: linear-gradient(transparent, rgba(0,0,0,0.7));
-      color: white; padding: 20px 16px 16px; text-align: center;
-    }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text);
+            line-height: 1.6;
+        }
 
-    /* Modal */
-    .modal-backdrop {
-      position: fixed; inset: 0; background: rgba(0,0,0,.45);
-      display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50;
-    }
-    .modal {
-      width: min(800px, 100%); background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.2);
-      max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
-    }
-    .modal-header { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
-    .modal-title { font-weight: 700; color: #111827; margin: 0; }
-    .modal-close { background: transparent; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: #6b7280; }
-    .modal-body { padding: 16px; overflow: auto; color: #111827; line-height: 1.6; }
-    .modal-footer { padding: 12px 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 8px; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
-    /* Edit Modal Styles */
-    .form-group { margin-bottom: 12px; }
-    .form-label { display: block; margin-bottom: 4px; font-weight: 600; color: #374151; }
-    .form-control { 
-      width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; 
-      background: #fff; font-size: 14px; box-sizing: border-box;
-    }
-    .form-control:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-    .form-control[readonly] { background: #f9fafb; color: #6b7280; }
-    textarea.form-control { min-height: 80px; resize: vertical; }
-    .btn-save { background: #059669; }
-    .btn-save:hover { background: #047857; }
-    .btn-cancel { background: #6b7280; }
-    .btn-cancel:hover { background: #4b5563; }
+        /* Header */
+        .header {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+        }
 
-    @media (max-width: 480px) {
-      .card { flex-direction:column; align-items:center; }
-      .cover-wrap { flex: 0 0 auto; }
-      .cover { width:160px; height:220px; }
-      .content { width:100%; }
-      .section-cover { height: 150px; }
-    }
-  </style>
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-text);
+            margin-bottom: 8px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--color-text-secondary);
+        }
+
+        .breadcrumb-item {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb-item:hover {
+            color: var(--color-primary);
+        }
+
+        .breadcrumb-separator {
+            color: var(--color-text-secondary);
+        }
+
+        .stats {
+            display: flex;
+            gap: 32px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            display: block;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 12px;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            white-space: nowrap;
+        }
+
+        .btn--primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn--primary:hover {
+            background: var(--color-primary-light);
+        }
+
+        .btn--outline {
+            background: var(--color-surface);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn--outline:hover {
+            background: var(--color-hover);
+        }
+
+        /* Form Controls */
+        .form-control {
+            padding: 10px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            font-size: 14px;
+            background: var(--color-surface);
+            color: var(--color-text);
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+        }
+
+        #searchInput {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            color: var(--color-text-secondary);
+            font-size: 16px;
+        }
+
+        .loading::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--color-border);
+            border-top: 2px solid var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .grid--sections {
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+
+        .grid--books {
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        }
+
+        /* Cards */
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .card-count {
+            background: var(--color-primary);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .card-description {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Book Cards */
+        .book-card {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .book-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .book-cover {
+            flex: 0 0 80px;
+            height: 120px;
+            background: var(--color-hover);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .book-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: var(--radius);
+        }
+
+        .book-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .book-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--color-text);
+            line-height: 1.3;
+        }
+
+        .book-author {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+        }
+
+        .book-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .book-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .book-badge--genre {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .book-badge--series {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+
+        .book-formats {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .format-badge {
+            padding: 2px 6px;
+            background: var(--color-hover);
+            color: var(--color-text-secondary);
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--color-hover);
+            color: var(--color-text);
+        }
+
+        .modal-book {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .modal-cover {
+            flex: 0 0 120px;
+            height: 180px;
+            background: var(--color-hover);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .modal-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .modal-info h2 {
+            margin-bottom: 8px;
+            font-size: 20px;
+            color: var(--color-text);
+        }
+
+        .modal-info p {
+            margin-bottom: 6px;
+            color: var(--color-text-secondary);
+        }
+
+        .modal-description {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .modal-description h3 {
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: var(--color-text);
+        }
+
+        .modal-formats {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .format-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: var(--color-primary);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--radius);
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .format-link:hover {
+            background: var(--color-primary-light);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--color-text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 8px;
+            color: var(--color-text);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .stats {
+                align-self: flex-end;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-container {
+                min-width: auto;
+            }
+
+            .grid--sections {
+                grid-template-columns: 1fr;
+            }
+
+            .grid--books {
+                grid-template-columns: 1fr;
+            }
+
+            .book-card {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .book-cover {
+                align-self: center;
+            }
+
+            .modal-book {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .modal-cover {
+                align-self: center;
+            }
+        }
+
+        /* Hide views initially */
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>📚 Mi Biblioteca Personal</h1>
-      <div class="stats">
-        <div>Total obras: <b id="statTotal">-</b></div>
-        <div>Autores: <b id="statAuthors">-</b></div>
-        <div>Secciones: <b id="statSections">-</b></div>
-      </div>
-    </header>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>📚 Mi Biblioteca Personal</h1>
+                    <div class="breadcrumb" id="breadcrumb"></div>
+                </div>
+                <div class="header-right">
+                    <div class="stats">
+                        <div class="stat">
+                            <span class="stat-number" id="totalBooks">0</span>
+                            <span class="stat-label">Libros</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number" id="totalFormats">0</span>
+                            <span class="stat-label">Formatos</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
 
-    <!-- Breadcrumb -->
-    <div id="breadcrumb" class="breadcrumb" style="display:none;">
-      <a onclick="showSections()">📚 Inicio</a>
-      <span class="breadcrumb-separator">›</span>
-      <span id="currentSection">Sección</span>
+        <!-- Controls -->
+        <div class="controls" id="controls">
+            <button class="btn btn--outline" id="backButton" style="display: none;">
+                ← Volver
+            </button>
+            <div class="search-container" id="searchContainer" style="display: none;">
+                <input type="text" class="form-control" id="searchInput" placeholder="Buscar libros...">
+                <select class="form-control" id="sortSelect">
+                    <option value="title">Ordenar por Título</option>
+                    <option value="author">Ordenar por Autor</option>
+                    <option value="year">Ordenar por Año</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            Cargando biblioteca...
+        </div>
+
+        <!-- Views -->
+        <div class="view" id="sectionsView">
+            <div class="grid grid--sections" id="sectionsGrid"></div>
+        </div>
+
+        <div class="view" id="subsectionsView">
+            <div class="grid grid--sections" id="subsectionsGrid"></div>
+        </div>
+
+        <div class="view" id="booksView">
+            <div class="grid grid--books" id="booksGrid"></div>
+        </div>
+
+        <!-- Modal -->
+        <div class="modal" id="bookModal">
+            <div class="modal-content">
+                <button class="modal-close" id="closeModal">×</button>
+                <div id="modalContent"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- Vista de Secciones -->
-    <div id="sectionsView" class="sections-view">
-      <div id="loading" class="loading">
-        📄 Cargando biblioteca desde la base de datos...
-      </div>
-      <div id="sectionsGrid" class="grid" style="display:none;"></div>
-    </div>
+    <script>
+        // Supabase configuration
+        const { createClient } = supabase;
+        const supabaseUrl = 'https://fanyuclarbgwraiwbcmr.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-    <!-- Vista de Libros -->
-    <div id="booksView" class="books-view">
-      <div class="controls">
-        <input id="q" type="search" placeholder="Buscar por título, autor..." />
-        <select id="author"><option value="">Todos los autores</option></select>
-        <select id="format"><option value="">Todos los formatos</option></select>
-      </div>
-      
-      <div id="booksGrid" class="grid"></div>
-      <div id="noResults" class="no-results" style="display:none;">No se encontraron resultados</div>
-    </div>
-  </div>
-
-  <!-- Modal de descripción -->
-  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal">
-      <div class="modal-header">
-        <h2 id="modalTitle" class="modal-title">Descripción</h2>
-        <button class="modal-close" aria-label="Cerrar" onclick="closeModal()">×</button>
-      </div>
-      <div id="modalBody" class="modal-body"></div>
-      <div class="modal-footer">
-        <button class="btn" onclick="closeModal()">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal de edición -->
-  <div id="editModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
-    <div class="modal">
-      <div class="modal-header">
-        <h2 id="editModalTitle" class="modal-title">✏️ Editar libro</h2>
-        <button class="modal-close" aria-label="Cerrar" onclick="closeEditModal()">×</button>
-      </div>
-      <div class="modal-body">
-        <form id="editForm">
-          <div class="form-group">
-            <label class="form-label" for="editTitulo">Título *</label>
-            <input type="text" id="editTitulo" name="titulo" class="form-control" required>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="editAutor">Autor</label>
-            <input type="text" id="editAutor" name="autor" class="form-control">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="editGenero">Género</label>
-            <input type="text" id="editGenero" name="genero" class="form-control" placeholder="Separar múltiples géneros con comas">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="editSerie">Serie</label>
-            <input type="text" id="editSerie" name="serie" class="form-control">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="editNumeroSerie">Número de serie</label>
-            <input type="text" id="editNumeroSerie" name="numero_serie" class="form-control">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="editEditorial">Editorial</label>
-            <input type="text" id="editEditorial" name="editorial" class="form-control">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="editFechaPublicacion">Fecha de publicación</label>
-            <input type="date" id="editFechaPublicacion" name="fecha_publicacion" class="form-control">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="editDescripcion">Descripción</label>
-            <textarea id="editDescripcion" name="descripcion" class="form-control" rows="4"></textarea>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="editUrlPortada">URL de portada</label>
-            <input type="url" id="editUrlPortada" name="url_portada" class="form-control" placeholder="https://...">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="editCarpetaObra">Carpeta de obra</label>
-            <input type="text" id="editCarpetaObra" name="carpeta_obra" class="form-control">
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-cancel" onclick="closeEditModal()">Cancelar</button>
-        <button type="button" class="btn btn-save" onclick="saveBookChanges()">Guardar cambios</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Supabase Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <script>
-    // ⚠️ CONFIGURAR CON TUS CREDENCIALES DE SUPABASE
-const SUPABASE_URL = 'https://fanyuclarbgwraiwbcmr.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
-    
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // Variables globales para datos en memoria
-    let allBooks = [];
-    let allFormats = [];
-    let books = []; // Array combinado final
-    let sections = []; // Secciones (géneros únicos)
-    let currentSection = null;
-    let filtered = [];
-    let currentEditingBook = null;
-    
-    // Cache de opciones para filtros
-    let cachedAuthors = new Set();
-    let cachedFormats = new Set();
-    let cachedGenres = new Set();
-
-    document.addEventListener('DOMContentLoaded', async () => {
-      await loadAllDataToMemory();
-      showSections();
-
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          closeModal();
-          closeEditModal();
-        }
-      });
-      document.getElementById('modalBackdrop').addEventListener('click', (e) => {
-        if (e.target.id === 'modalBackdrop') closeModal();
-      });
-      document.getElementById('editModalBackdrop').addEventListener('click', (e) => {
-        if (e.target.id === 'editModalBackdrop') closeEditModal();
-      });
-    });
-
-    async function loadAllDataToMemory() {
-      try {
-        console.log('🚀 Iniciando carga completa de datos...');
-        document.getElementById('loading').innerHTML = '📄 Cargando libros...';
-        
-        // Consulta 1: Obtener TODOS los libros
-        console.log('📚 Consultando tabla books...');
-        const { data: booksData, error: booksError } = await supabase
-          .from('books')
-          .select('*')
-          .order('titulo');
-        
-        if (booksError) {
-          console.error('Error en consulta books:', booksError);
-          throw new Error(`Error cargando libros: ${booksError.message}`);
-        }
-        
-        if (!booksData) {
-          throw new Error('No se recibieron datos de libros');
-        }
-        
-        allBooks = [...booksData]; // Crear copia para evitar referencias
-        console.log(`📚 ${allBooks.length} libros cargados en memoria`);
-        
-        document.getElementById('loading').innerHTML = '💿 Cargando formatos...';
-        
-        // Consulta 2: Obtener TODOS los formatos
-        console.log('💿 Consultando tabla book_formats...');
-        const { data: formatsData, error: formatsError } = await supabase
-          .from('book_formats')
-          .select('*');
-        
-        if (formatsError) {
-          console.error('Error en consulta formats:', formatsError);
-          throw new Error(`Error cargando formatos: ${formatsError.message}`);
-        }
-        
-        allFormats = formatsData ? [...formatsData] : []; // Crear copia y manejar null
-        console.log(`💿 ${allFormats.length} formatos cargados en memoria`);
-        
-        document.getElementById('loading').innerHTML = '🔄 Procesando datos...';
-        
-        // Crear índices para búsquedas rápidas
-        const formatsByBookId = new Map();
-        allFormats.forEach(format => {
-          if (format && format.book_id) { // Validar datos
-            if (!formatsByBookId.has(format.book_id)) {
-              formatsByBookId.set(format.book_id, []);
+        // Classification structure
+        const classification = {
+            "sections": {
+                "RELIGION_Y_ESPIRITUALIDAD": {
+                    "name": "Religión y Espiritualidad",
+                    "subsections": {
+                        "TEOLOGIA": {
+                            "name": "Teología",
+                            "tags": ["Religion", "teología", "Tomismo", "magisterio", "Filosofía", "Espiritualidad", "benedictoxvi", "Papa Francisco", "religión", "cristiana", "catolica", "cristiano", "catolico", "documento", "Religion & Spirituality"]
+                        },
+                        "TEXTOS_SAGRADOS": {
+                            "name": "Textos Sagrados y Estudios Bíblicos",
+                            "tags": ["Bíblia", "Religion", "Consulta", "teología", "Camino Neocatecumenal"]
+                        },
+                        "VIDA_ESPIRITUAL": {
+                            "name": "Vida Espiritual",
+                            "tags": ["Espiritualidad", "oración", "Religion", "Padre Pío", "catalina de siena", "María", "Fátima", "san ignacio"]
+                        },
+                        "HISTORIA_RELIGIOSA": {
+                            "name": "Historia Religiosa",
+                            "tags": ["Iglesia", "Historia", "Inquisición", "Religion"]
+                        }
+                    }
+                },
+                "FILOSOFIA": {
+                    "name": "Filosofía",
+                    "subsections": {
+                        "FILOSOFIA_GENERAL": {
+                            "name": "Filosofía General",
+                            "tags": ["Filosofía", "Philosophy", "Consulta", "Philosophy & Religion", "General", "History & Surveys", "Criticism"]
+                        },
+                        "METAFISICA_ONTOLOGIA": {
+                            "name": "Metafísica y Ontología",
+                            "tags": ["Metafísica", "ontología", "Filosofía"]
+                        },
+                        "HISTORIA_FILOSOFIA": {
+                            "name": "Historia de la Filosofía",
+                            "tags": ["Historia", "Filosofía", "posmodernismo", "Consulta"]
+                        },
+                        "CORRIENTES_FILOSOFICAS": {
+                            "name": "Corrientes Filosóficas",
+                            "tags": ["existencialismo", "marxismo", "estructuralismo", "posmodernismo", "Filosofía"]
+                        }
+                    }
+                },
+                "CIENCIAS": {
+                    "name": "Ciencias",
+                    "subsections": {
+                        "CIENCIAS_EXACTAS": {
+                            "name": "Ciencias Exactas",
+                            "tags": ["Ciencias exactas", "Ciencia", "Divulgación", "Science", "Life Sciences"]
+                        },
+                        "MEDICINA_SALUD": {
+                            "name": "Medicina y Salud",
+                            "tags": ["Salud", "Educación", "Salud y bienestar", "BOOKSMEDICOS.ORG", "Ciencia", "neurociencia", "anatomía"]
+                        },
+                        "PSICOLOGIA": {
+                            "name": "Psicología",
+                            "tags": ["Psicología", "Psychology", "General", "Emotions", "Clinical Psychology", "Applied Psychology", "Movements", "Industrial & Organizational Psychology"]
+                        }
+                    }
+                },
+                "TECNOLOGIA_INFORMATICA": {
+                    "name": "Tecnología e Informática",
+                    "subsections": {
+                        "PROGRAMACION": {
+                            "name": "Programación",
+                            "tags": ["Tecnología", "Programming", "Python", "java", "poo", "Software Development & Engineering", "Computers"]
+                        },
+                        "SISTEMAS_REDES": {
+                            "name": "Sistemas y Redes",
+                            "tags": ["Networking", "General", "git", "blockchain", "bitcoin", "AWS"]
+                        },
+                        "METODOLOGIAS": {
+                            "name": "Metodologías",
+                            "tags": ["agile", "scrum master", "scrum", "BPM", "design thinking"]
+                        }
+                    }
+                },
+                "DESARROLLO_PERSONAL": {
+                    "name": "Desarrollo Personal",
+                    "subsections": {
+                        "AUTOAYUDA": {
+                            "name": "Autoayuda",
+                            "tags": ["Autoayuda", "Self-Help", "Desarrollo", "Personal Growth", "Self-Esteem", "Self-Management", "Happiness", "Success"]
+                        },
+                        "LIDERAZGO": {
+                            "name": "Liderazgo",
+                            "tags": ["liderazgo", "Leadership", "Management"]
+                        },
+                        "PRODUCTIVIDAD": {
+                            "name": "Productividad",
+                            "tags": ["Productividad", "tecnicas estudio", "memoria", "Stress Management"]
+                        },
+                        "INTELIGENCIA_EMOCIONAL": {
+                            "name": "Inteligencia Emocional",
+                            "tags": ["inteligencia emocional", "emociones", "Psychology", "Emotions"]
+                        }
+                    }
+                },
+                "ECONOMIA_NEGOCIOS": {
+                    "name": "Economía y Negocios",
+                    "subsections": {
+                        "ECONOMIA": {
+                            "name": "Economía",
+                            "tags": ["Economía", "Business & Economics", "Economic Policy", "liberalismo"]
+                        },
+                        "NEGOCIOS": {
+                            "name": "Negocios",
+                            "tags": ["Negocios y Economía", "Innovación", "Strategic Planning", "General"]
+                        },
+                        "MARCA_PERSONAL": {
+                            "name": "Marca Personal",
+                            "tags": ["Marca Personal", "Comunicación", "Profesional"]
+                        }
+                    }
+                },
+                "POLITICA_SOCIEDAD": {
+                    "name": "Política y Sociedad",
+                    "subsections": {
+                        "POLITICA": {
+                            "name": "Política",
+                            "tags": ["Política", "Political Science", "Political Ideologies", "Conservatism & Liberalism", "Public Policy", "Fascism & Totalitarianism"]
+                        },
+                        "SOCIOLOGIA": {
+                            "name": "Sociología",
+                            "tags": ["Ciencias Sociales", "Social Science", "Sociology", "General", "Anthropology", "Cultural & Social"]
+                        },
+                        "HISTORIA": {
+                            "name": "Historia",
+                            "tags": ["Historia", "History", "cultura", "Europe", "Italy"]
+                        }
+                    }
+                },
+                "LITERATURA_ARTES": {
+                    "name": "Literatura y Artes",
+                    "subsections": {
+                        "LITERATURA": {
+                            "name": "Literatura",
+                            "tags": ["Novela", "Literary Collections", "Ancient & Classical", "Fiction", "General"]
+                        },
+                        "FANTASIA_FICCION": {
+                            "name": "Fantasía y Ficción",
+                            "tags": ["Fantasía épica", "Fantástico", "Fantasy", "Young Adult Fiction"]
+                        },
+                        "MITOLOGIA": {
+                            "name": "Mitología",
+                            "tags": ["mitología griega", "Divulgación", "cultura"]
+                        }
+                    }
+                },
+                "ENTRETENIMIENTO": {
+                    "name": "Entretenimiento",
+                    "subsections": {
+                        "COMICS_TEBEOS": {
+                            "name": "Comics y Tebeos",
+                            "tags": ["Comic", "Tebeo", "Mortadelo_y_Filemón"]
+                        },
+                        "FOTOGRAFIA": {
+                            "name": "Fotografía",
+                            "tags": ["aficiones", "Fotografía"]
+                        },
+                        "COCINA": {
+                            "name": "Cocina",
+                            "tags": ["cocina"]
+                        }
+                    }
+                },
+                "EDUCACION": {
+                    "name": "Educación",
+                    "subsections": {
+                        "EDUCACION_GENERAL": {
+                            "name": "Educación General",
+                            "tags": ["Educación", "Education", "Estudios", "Práctico"]
+                        },
+                        "IDIOMAS": {
+                            "name": "Idiomas",
+                            "tags": ["inglés", "Spanish"]
+                        },
+                        "METODOLOGIA_ESTUDIO": {
+                            "name": "Metodología de Estudio",
+                            "tags": ["tecnicas estudio", "memoria", "lectura rápida"]
+                        }
+                    }
+                },
+                "VARIOS": {
+                    "name": "Varios",
+                    "subsections": {
+                        "CATALOGOS_CONSULTA": {
+                            "name": "Catálogos y Consulta",
+                            "tags": ["Consulta", "Catálogo", "revista", "artículo"]
+                        },
+                        "SIN_CLASIFICAR": {
+                            "name": "Sin Clasificar",
+                            "tags": ["sin_revisar_metadatos", "Downloaded from Z-Library", "Image To PDF Conversion", "ePubLibre"]
+                        },
+                        "ESPECIALIZADOS": {
+                            "name": "Especializados",
+                            "tags": ["eneagrama", "Exercise", "Family & Relationships", "Death; Grief; Bereavement"]
+                        }
+                    }
+                }
             }
-            formatsByBookId.get(format.book_id).push({...format}); // Copia del objeto
-          }
+        };
+
+        // Global variables
+        let allBooks = [];
+        let allFormats = [];
+        let currentSection = null;
+        let currentSubsection = null;
+        let filteredBooks = [];
+        let currentBooks = [];
+
+        // DOM elements
+        const elements = {
+            loading: document.getElementById('loading'),
+            sectionsView: document.getElementById('sectionsView'),
+            subsectionsView: document.getElementById('subsectionsView'),
+            booksView: document.getElementById('booksView'),
+            sectionsGrid: document.getElementById('sectionsGrid'),
+            subsectionsGrid: document.getElementById('subsectionsGrid'),
+            booksGrid: document.getElementById('booksGrid'),
+            breadcrumb: document.getElementById('breadcrumb'),
+            backButton: document.getElementById('backButton'),
+            searchContainer: document.getElementById('searchContainer'),
+            searchInput: document.getElementById('searchInput'),
+            sortSelect: document.getElementById('sortSelect'),
+            totalBooks: document.getElementById('totalBooks'),
+            totalFormats: document.getElementById('totalFormats'),
+            bookModal: document.getElementById('bookModal'),
+            modalContent: document.getElementById('modalContent'),
+            closeModal: document.getElementById('closeModal')
+        };
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadData();
+            showSections();
+            setupEventListeners();
         });
-        
-        // Combinar datos y crear cachés
-        books = allBooks.map(book => {
-          try {
-            const bookFormats = formatsByBookId.get(book.id) || [];
+
+        // Load data from Supabase
+        async function loadData() {
+            try {
+                elements.loading.style.display = 'flex';
+                
+                // Load books
+                const { data: booksData, error: booksError } = await supabaseClient
+                    .from('books')
+                    .select('*')
+                    .order('titulo');
+                
+                if (booksError) throw booksError;
+                allBooks = booksData || [];
+
+                // Load formats
+                const { data: formatsData, error: formatsError } = await supabaseClient
+                    .from('book_formats')
+                    .select('*');
+                
+                if (formatsError) throw formatsError;
+                allFormats = formatsData || [];
+
+                // Update stats
+                elements.totalBooks.textContent = allBooks.length;
+                elements.totalFormats.textContent = allFormats.length;
+
+                elements.loading.style.display = 'none';
+            } catch (error) {
+                console.error('Error loading data:', error);
+                elements.loading.innerHTML = '❌ Error al cargar los datos';
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            elements.backButton.addEventListener('click', goBack);
+            elements.searchInput.addEventListener('input', filterBooks);
+            elements.sortSelect.addEventListener('change', sortBooks);
+            elements.closeModal.addEventListener('click', closeModal);
+            elements.bookModal.addEventListener('click', (e) => {
+                if (e.target === elements.bookModal) closeModal();
+            });
+            
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeModal();
+            });
+        }
+
+        // Show sections
+        function showSections() {
+            hideAllViews();
+            elements.sectionsView.classList.add('active');
+            elements.backButton.style.display = 'none';
+            elements.searchContainer.style.display = 'none';
+            
+            updateBreadcrumb([]);
+            
+            const sectionsHtml = Object.entries(classification.sections).map(([key, section]) => {
+                const bookCount = countBooksForSection(key);
+                return `
+                    <div class="card" onclick="showSubsections('${key}')">
+                        <div class="card-header">
+                            <div class="card-title">${section.name}</div>
+                            <div class="card-count">${bookCount}</div>
+                        </div>
+                        <div class="card-description">
+                            ${Object.keys(section.subsections).length} subsecciones
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            elements.sectionsGrid.innerHTML = sectionsHtml;
+        }
+
+        // Show subsections
+        function showSubsections(sectionKey) {
+            currentSection = sectionKey;
+            const section = classification.sections[sectionKey];
+            
+            hideAllViews();
+            elements.subsectionsView.classList.add('active');
+            elements.backButton.style.display = 'block';
+            elements.searchContainer.style.display = 'none';
+            
+            updateBreadcrumb([section.name]);
+            
+            const subsectionsHtml = Object.entries(section.subsections).map(([key, subsection]) => {
+                const bookCount = countBooksForSubsection(sectionKey, key);
+                return `
+                    <div class="card" onclick="showBooks('${sectionKey}', '${key}')">
+                        <div class="card-header">
+                            <div class="card-title">${subsection.name}</div>
+                            <div class="card-count">${bookCount}</div>
+                        </div>
+                        <div class="card-description">
+                            ${subsection.tags.slice(0, 3).join(', ')}${subsection.tags.length > 3 ? '...' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            elements.subsectionsGrid.innerHTML = subsectionsHtml;
+        }
+
+        // Show books
+        function showBooks(sectionKey, subsectionKey) {
+            currentSection = sectionKey;
+            currentSubsection = subsectionKey;
+            
+            const section = classification.sections[sectionKey];
+            const subsection = section.subsections[subsectionKey];
+            
+            hideAllViews();
+            elements.booksView.classList.add('active');
+            elements.backButton.style.display = 'block';
+            elements.searchContainer.style.display = 'flex';
+            
+            updateBreadcrumb([section.name, subsection.name]);
+            
+            // Filter books by tags
+            filteredBooks = filterBooksByTags(subsection.tags);
+            currentBooks = [...filteredBooks];
+            
+            renderBooks();
+        }
+
+        // Filter books by tags
+        function filterBooksByTags(tags) {
+            const normalizedTags = tags.map(tag => normalizeString(tag));
+            
+            return allBooks.filter(book => {
+                if (!book.genero) return false;
+                
+                const bookGenres = book.genero.split(',').map(g => normalizeString(g.trim()));
+                
+                return normalizedTags.some(tag => 
+                    bookGenres.some(genre => 
+                        genre.includes(tag) || tag.includes(genre)
+                    )
+                );
+            });
+        }
+
+        // Normalize string for comparison
+        function normalizeString(str) {
+            return str.toLowerCase()
+                .replace(/[áàäâ]/g, 'a')
+                .replace(/[éèëê]/g, 'e')
+                .replace(/[íìïî]/g, 'i')
+                .replace(/[óòöô]/g, 'o')
+                .replace(/[úùüû]/g, 'u')
+                .replace(/ñ/g, 'n')
+                .replace(/&amp;/g, '&')
+                .trim();
+        }
+
+        // Filter books by search
+        function filterBooks() {
+            const searchTerm = normalizeString(elements.searchInput.value);
+            
+            if (!searchTerm) {
+                currentBooks = [...filteredBooks];
+            } else {
+                currentBooks = filteredBooks.filter(book => {
+                    const searchableText = [
+                        book.titulo,
+                        book.autor,
+                        book.genero,
+                        book.serie,
+                        book.editorial
+                    ].filter(Boolean).map(normalizeString).join(' ');
+                    
+                    return searchableText.includes(searchTerm);
+                });
+            }
+            
+            sortBooks();
+        }
+
+        // Sort books
+        function sortBooks() {
+            const sortBy = elements.sortSelect.value;
+            
+            currentBooks.sort((a, b) => {
+                switch (sortBy) {
+                    case 'author':
+                        return (a.autor || '').localeCompare(b.autor || '');
+                    case 'year':
+                        const yearA = parseInt(a.fecha_publicacion) || 0;
+                        const yearB = parseInt(b.fecha_publicacion) || 0;
+                        return yearB - yearA;
+                    case 'title':
+                    default:
+                        return (a.titulo || '').localeCompare(b.titulo || '');
+                }
+            });
+            
+            renderBooks();
+        }
+
+        // Render books
+        function renderBooks() {
+            if (currentBooks.length === 0) {
+                elements.booksGrid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📚</div>
+                        <h3>No se encontraron libros</h3>
+                        <p>No hay libros que coincidan con los criterios de búsqueda.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const booksHtml = currentBooks.map(book => {
+                const formats = getBookFormats(book.id);
+                const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
+                
+                return `
+                    <div class="book-card" onclick="showBookDetails(${book.id})">
+                        <div class="book-cover">
+                            ${book.url_portada ? 
+                                `<img src="${book.url_portada}" alt="${book.titulo}" onerror="this.style.display='none'">` : 
+                                '📖'
+                            }
+                        </div>
+                        <div class="book-info">
+                            <div class="book-title">${book.titulo || 'Sin título'}</div>
+                            <div class="book-author">${book.autor || 'Autor desconocido'}</div>
+                            <div class="book-meta">
+                                ${book.serie ? `<span class="book-badge book-badge--series">${book.serie}${book.numero_serie ? ` #${book.numero_serie}` : ''}</span>` : ''}
+                                ${genres.slice(0, 2).map(genre => `<span class="book-badge book-badge--genre">${genre}</span>`).join('')}
+                            </div>
+                            <div class="book-formats">
+                                ${formats.map(format => `<span class="format-badge">${format.formato}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            elements.booksGrid.innerHTML = booksHtml;
+        }
+
+        // Get book formats
+        function getBookFormats(bookId) {
+            return allFormats.filter(format => format.book_id === bookId);
+        }
+
+        // Show book details
+        function showBookDetails(bookId) {
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book) return;
+            
+            const formats = getBookFormats(bookId);
             const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
             
-            // Actualizar cachés (validar antes de agregar)
-            if (book.autor) cachedAuthors.add(book.autor);
-            genres.forEach(g => { if (g) cachedGenres.add(g); });
-            bookFormats.forEach(f => { if (f.formato) cachedFormats.add(f.formato); });
+            const modalHtml = `
+                <div class="modal-book">
+                    <div class="modal-cover">
+                        ${book.url_portada ? 
+                            `<img src="${book.url_portada}" alt="${book.titulo}" onerror="this.style.display='none'">` : 
+                            '📖'
+                        }
+                    </div>
+                    <div class="modal-info">
+                        <h2>${book.titulo || 'Sin título'}</h2>
+                        <p><strong>Autor:</strong> ${book.autor || 'Desconocido'}</p>
+                        ${book.serie ? `<p><strong>Serie:</strong> ${book.serie}${book.numero_serie ? ` #${book.numero_serie}` : ''}</p>` : ''}
+                        ${book.editorial ? `<p><strong>Editorial:</strong> ${book.editorial}</p>` : ''}
+                        ${book.fecha_publicacion ? `<p><strong>Año:</strong> ${book.fecha_publicacion}</p>` : ''}
+                        <p><strong>Géneros:</strong> ${genres.join(', ') || 'Sin especificar'}</p>
+                    </div>
+                </div>
+                ${book.descripcion ? `
+                    <div class="modal-description">
+                        <h3>Descripción</h3>
+                        <p>${book.descripcion}</p>
+                    </div>
+                ` : ''}
+                ${formats.length > 0 ? `
+                    <div class="modal-formats">
+                        ${formats.map(format => `
+                            <a href="${format.ruta_archivo || '#'}" class="format-link" ${format.ruta_archivo ? 'target="_blank"' : ''}>
+                                📄 ${format.formato}
+                                ${format.tamano_mb ? `(${format.tamano_mb} MB)` : ''}
+                            </a>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            `;
             
-            return {
-              id: book.id,
-              titulo: book.titulo || '',
-              autor: book.autor || '',
-              genero: book.genero || '',
-              serie: book.serie || '',
-              numero_serie: book.numero_serie || '',
-              editorial: book.editorial || '',
-              fecha_publicacion: book.fecha_publicacion || '',
-              descripcion: book.descripcion || '',
-              url_portada: book.url_portada || '',
-              carpeta_obra: book.carpeta_obra || '',
-              formatos: bookFormats,
-              _genres: genres,
-              // Pre-procesar campos para búsqueda más rápida
-              _searchText: [
-                book.titulo,
-                book.autor,
-                book.genero,
-                book.serie,
-                book.editorial
-              ].filter(Boolean).join(' ').toLowerCase()
-            };
-          } catch (bookError) {
-            console.warn('Error procesando libro:', book.id, bookError);
-            return null;
-          }
-        }).filter(Boolean); // Eliminar libros con errores
-        
-        // Crear secciones basadas en géneros
-        const genreCounts = new Map();
-        books.forEach(book => {
-          book._genres.forEach(genre => {
-            if (genre) {
-              genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
+            elements.modalContent.innerHTML = modalHtml;
+            elements.bookModal.classList.add('show');
+        }
+
+        // Close modal
+        function closeModal() {
+            elements.bookModal.classList.remove('show');
+        }
+
+        // Go back
+        function goBack() {
+            if (elements.booksView.classList.contains('active')) {
+                showSubsections(currentSection);
+            } else if (elements.subsectionsView.classList.contains('active')) {
+                showSections();
             }
-          });
-        });
-        
-        sections = Array.from(genreCounts.entries())
-          .map(([genre, count]) => ({ name: genre, count: count }))
-          .sort((a, b) => a.name.localeCompare(b.name));
-        
-        console.log('✅ Datos combinados y optimizados en memoria');
-        console.log(`📊 Estadísticas: ${books.length} libros, ${cachedAuthors.size} autores, ${cachedFormats.size} formatos, ${sections.length} secciones`);
-        
-        // Actualizar estadísticas UI
-        document.getElementById('statTotal').textContent = books.length;
-        document.getElementById('statAuthors').textContent = cachedAuthors.size;
-        document.getElementById('statSections').textContent = sections.length;
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('sectionsGrid').style.display = 'grid';
-        
-      } catch (error) {
-        console.error('❌ Error cargando datos:', error);
-        console.error('Stack trace:', error.stack);
-        
-        // Mostrar error más detallado
-        let errorMessage = error.message;
-        if (error.name === 'DataCloneError') {
-          errorMessage = 'Error de clonación de datos. Reintentando...';
-          // Intentar recargar la página después de un breve delay
-          setTimeout(() => {
-            console.log('🔄 Recargando página...');
-            window.location.reload();
-          }, 2000);
-        }
-        
-        document.getElementById('loading').innerHTML = 
-          `❌ Error: ${errorMessage}<br><small>Revisa consola para más detalles. ${error.name === 'DataCloneError' ? 'Recargando...' : ''}</small>`;
-      }
-    }
-
-    function showSections() {
-      // Ocultar vista de libros y breadcrumb
-      document.getElementById('booksView').style.display = 'none';
-      document.getElementById('breadcrumb').style.display = 'none';
-      
-      // Mostrar vista de secciones
-      document.getElementById('sectionsView').style.display = 'block';
-      
-      // Renderizar secciones
-      const sectionsGrid = document.getElementById('sectionsGrid');
-      sectionsGrid.innerHTML = sections.map(renderSectionCard).join('');
-      
-      currentSection = null;
-    }
-
-    function renderSectionCard(section) {
-      return `
-        <div class="section-card" onclick="showBooksInSection('${esc(section.name)}')">
-          <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}" 
-               onerror="this.style.background='#eef2f6'; this.alt='📚';">
-          <div class="section-content">
-            <div class="section-title">${esc(section.name)}</div>
-            <div class="section-count">${section.count} libro${section.count !== 1 ? 's' : ''}</div>
-          </div>
-        </div>
-      `;
-    }
-
-    function showBooksInSection(sectionName) {
-      currentSection = sectionName;
-      
-      // Actualizar breadcrumb
-      document.getElementById('currentSection').textContent = sectionName;
-      document.getElementById('breadcrumb').style.display = 'flex';
-      
-      // Ocultar vista de secciones
-      document.getElementById('sectionsView').style.display = 'none';
-      
-      // Mostrar vista de libros
-      document.getElementById('booksView').style.display = 'block';
-      
-      // Inicializar filtros si no se han inicializado
-      if (cachedAuthors.size > 0 && document.getElementById('author').children.length === 1) {
-        initFilters();
-      }
-      
-      // Filtrar libros por sección
-      applyFilters();
-    }
-
-    function initFilters() {
-      // Llenar filtros usando los cachés
-      fillSelect('author', [...cachedAuthors].sort());
-      fillSelect('format', [...cachedFormats].sort());
-
-      // Event listeners para filtros
-      document.getElementById('q').addEventListener('input', applyFilters);
-      document.getElementById('author').addEventListener('change', applyFilters);
-      document.getElementById('format').addEventListener('change', applyFilters);
-    }
-
-    function fillSelect(id, values) {
-      const sel = document.getElementById(id);
-      // Limpiar opciones existentes (excepto la primera)
-      while (sel.children.length > 1) {
-        sel.removeChild(sel.lastChild);
-      }
-      
-      values.forEach(v => {
-        if (v) { // Solo agregar valores no vacíos
-          const opt = document.createElement('option');
-          opt.value = v;
-          opt.textContent = v;
-          sel.appendChild(opt);
-        }
-      });
-    }
-
-    function applyFilters() {
-      const startTime = performance.now();
-      
-      const q = document.getElementById('q').value.toLowerCase().trim();
-      const a = document.getElementById('author').value;
-      const f = document.getElementById('format').value;
-
-      // Filtrado optimizado usando el texto pre-procesado
-      filtered = books.filter(book => {
-        // Filtro por sección actual (obligatorio)
-        if (currentSection && !book._genres.includes(currentSection)) {
-          return false;
-        }
-        
-        // Búsqueda por texto (más rápida usando _searchText)
-        if (q && !book._searchText.includes(q)) {
-          return false;
-        }
-        
-        // Filtro por autor
-        if (a && book.autor !== a) {
-          return false;
-        }
-        
-        // Filtro por formato (usando some para eficiencia)
-        if (f && !book.formatos.some(format => format.formato === f)) {
-          return false;
-        }
-        
-        return true;
-      });
-
-      const endTime = performance.now();
-      console.log(`🔍 Filtrado completado en ${(endTime - startTime).toFixed(2)}ms - ${filtered.length} resultados`);
-
-      renderBooks();
-    }
-
-    function renderBooks() {
-      const grid = document.getElementById('booksGrid');
-      const empty = document.getElementById('noResults');
-      
-      if (!filtered.length) {
-        grid.innerHTML = '';
-        empty.style.display = 'block';
-        return;
-      }
-      
-      empty.style.display = 'none';
-      
-      const startTime = performance.now();
-      grid.innerHTML = filtered.map(renderCard).join('');
-      const endTime = performance.now();
-      
-      console.log(`🎨 Renderizado completado en ${(endTime - startTime).toFixed(2)}ms`);
-    }
-
-    function renderCard(b) {
-      const viewerId = 'viewer_' + hash(b.titulo + '|' + b.autor + '|' + (b.carpeta_obra || ''));
-      const portadaSrc = resolveCoverThumb(b.url_portada);
-      const coverHref = b.url_portada || '#';
-      const series = b.serie ? `<span class="badge series">${esc(b.serie)}${b.numero_serie ? ' #' + esc(b.numero_serie) : ''}</span>` : '';
-      const genres = b._genres.slice(0, 3).map(g => `<span class="badge genre">${esc(g)}</span>`).join(' ');
-      const year = safeYear(b.fecha_publicacion);
-
-      // Enlaces directos por formato
-      const formatLinks = (b.formatos || []).map(f => {
-        const text = f.tamanio ? `${f.formato} · ${f.tamanio}` : f.formato;
-        return `<a href="${esc(f.url)}" target="_blank" rel="noopener" class="format-link" title="Abrir ${f.formato}">${esc(text)}</a>`;
-      }).join('');
-
-      // Botón de descripción solo si hay descripción
-      const hasDesc = !!stripHtml(b.descripcion || '').trim();
-      const descButton = hasDesc
-        ? `<button class="btn ghost" onclick="openDescription('${esc(b.titulo)}','${esc(b.autor || '')}', \`${escMultiline(stripHtml(b.descripcion))}\`)">📄 Descripción</button>`
-        : '';
-
-      // Botón de visor (usa el primer formato disponible)
-      const firstFormat = (b.formatos || [])[0];
-      const viewerButton = firstFormat
-        ? `<button class="btn secondary" onclick="toggleViewer('${viewerId}', '${esc(firstFormat.url)}')">👁️ Visor</button>`
-        : '';
-
-      // Botón de editar
-      const editButton = `<button class="btn edit" onclick="openEditModal(${b.id})">✏️ Editar</button>`;
-
-      return `
-        <div class="card">
-          <div class="cover-wrap">
-            <a href="${esc(coverHref)}" target="_blank" rel="noopener">
-              <img class="cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(b.titulo)}"
-                onerror="this.style.display='none';"/>
-            </a>
-          </div>
-          <div class="content">
-            <div class="title">${esc(b.titulo)}</div>
-            <div class="author">por ${esc(b.autor || 'Autor desconocido')}</div>
-            <div class="meta">
-              ${year ? `<span>Año: ${year}</span>` : ''}
-              ${b.editorial ? `<span>Editorial: ${esc(b.editorial)}</span>` : ''}
-              ${series}
-            </div>
-            <div class="meta">${genres}</div>
-
-            <div class="formats">${formatLinks}</div>
-
-            <div class="actions">
-              ${viewerButton}
-              ${descButton}
-              ${editButton}
-            </div>
-
-            <iframe id="${viewerId}" class="viewer" loading="lazy"></iframe>
-          </div>
-        </div>
-      `;
-    }
-
-    // Modal de descripción (existente)
-    function openDescription(title, author, description) {
-      const backdrop = document.getElementById('modalBackdrop');
-      const titleEl = document.getElementById('modalTitle');
-      const bodyEl = document.getElementById('modalBody');
-
-      titleEl.textContent = author ? `${title} — ${author}` : title;
-      bodyEl.textContent = description || '(Sin descripción)';
-      backdrop.style.display = 'flex';
-      setTimeout(() => {
-        const closeBtn = backdrop.querySelector('.modal-close');
-        if (closeBtn) closeBtn.focus();
-      }, 0);
-    }
-
-    function closeModal() {
-      const backdrop = document.getElementById('modalBackdrop');
-      backdrop.style.display = 'none';
-    }
-
-    // Modal de edición
-    function openEditModal(bookId) {
-      const book = books.find(b => b.id === bookId);
-      if (!book) {
-        alert('Error: Libro no encontrado');
-        return;
-      }
-
-      currentEditingBook = book;
-      const backdrop = document.getElementById('editModalBackdrop');
-      
-      // Llenar el formulario con los datos actuales
-      document.getElementById('editTitulo').value = book.titulo || '';
-      document.getElementById('editAutor').value = book.autor || '';
-      document.getElementById('editGenero').value = book.genero || '';
-      document.getElementById('editSerie').value = book.serie || '';
-      document.getElementById('editNumeroSerie').value = book.numero_serie || '';
-      document.getElementById('editEditorial').value = book.editorial || '';
-      document.getElementById('editFechaPublicacion').value = book.fecha_publicacion || '';
-      document.getElementById('editDescripcion').value = stripHtml(book.descripcion || '');
-      document.getElementById('editUrlPortada').value = book.url_portada || '';
-      document.getElementById('editCarpetaObra').value = book.carpeta_obra || '';
-
-      backdrop.style.display = 'flex';
-      setTimeout(() => {
-        document.getElementById('editTitulo').focus();
-      }, 0);
-    }
-
-    function closeEditModal() {
-      const backdrop = document.getElementById('editModalBackdrop');
-      backdrop.style.display = 'none';
-      currentEditingBook = null;
-    }
-
-    async function saveBookChanges() {
-      if (!currentEditingBook) {
-        alert('Error: No hay libro seleccionado para editar');
-        return;
-      }
-
-      // Validar campos requeridos
-      const titulo = document.getElementById('editTitulo').value.trim();
-      if (!titulo) {
-        alert('El título es requerido');
-        document.getElementById('editTitulo').focus();
-        return;
-      }
-
-      // Validar URL de portada si se proporciona
-      const urlPortada = document.getElementById('editUrlPortada').value.trim();
-      if (urlPortada && !isValidUrl(urlPortada)) {
-        alert('Por favor, ingresa una URL de portada válida');
-        document.getElementById('editUrlPortada').focus();
-        return;
-      }
-
-      // Recopilar todos los datos del formulario
-      const updatedData = {
-        titulo: titulo,
-        autor: document.getElementById('editAutor').value.trim(),
-        genero: document.getElementById('editGenero').value.trim(),
-        serie: document.getElementById('editSerie').value.trim() || null,
-        numero_serie: document.getElementById('editNumeroSerie').value.trim() || null,
-        editorial: document.getElementById('editEditorial').value.trim(),
-        fecha_publicacion: document.getElementById('editFechaPublicacion').value || null,
-        descripcion: document.getElementById('editDescripcion').value.trim(),
-        url_portada: urlPortada,
-        carpeta_obra: document.getElementById('editCarpetaObra').value.trim()
-      };
-
-      try {
-        console.log('💾 Guardando cambios del libro...', updatedData);
-        
-        // Actualizar en Supabase
-        const { data, error } = await supabase
-          .from('books')
-          .update(updatedData)
-          .eq('id', currentEditingBook.id)
-          .select();
-
-        if (error) {
-          console.error('Error actualizando libro:', error);
-          alert(`Error al guardar los cambios: ${error.message}`);
-          return;
         }
 
-        console.log('✅ Libro actualizado exitosamente:', data);
-        
-        // Actualizar los datos en memoria
-        const bookIndex = books.findIndex(b => b.id === currentEditingBook.id);
-        if (bookIndex !== -1) {
-          // Actualizar el libro en memoria preservando los formatos
-          books[bookIndex] = {
-            ...books[bookIndex],
-            ...updatedData,
-            _genres: (updatedData.genero || '').split(',').map(g => g.trim()).filter(Boolean),
-            _searchText: [
-              updatedData.titulo,
-              updatedData.autor,
-              updatedData.genero,
-              updatedData.serie,
-              updatedData.editorial
-            ].filter(Boolean).join(' ').toLowerCase()
-          };
+        // Hide all views
+        function hideAllViews() {
+            elements.sectionsView.classList.remove('active');
+            elements.subsectionsView.classList.remove('active');
+            elements.booksView.classList.remove('active');
         }
 
-        // Actualizar también en allBooks
-        const allBookIndex = allBooks.findIndex(b => b.id === currentEditingBook.id);
-        if (allBookIndex !== -1) {
-          allBooks[allBookIndex] = { ...allBooks[allBookIndex], ...updatedData };
+        // Update breadcrumb
+        function updateBreadcrumb(path) {
+            if (path.length === 0) {
+                elements.breadcrumb.innerHTML = '';
+                return;
+            }
+            
+            const breadcrumbHtml = path.map((item, index) => {
+                if (index === path.length - 1) {
+                    return `<span class="breadcrumb-item">${item}</span>`;
+                } else {
+                    return `<span class="breadcrumb-item">${item}</span><span class="breadcrumb-separator"> › </span>`;
+                }
+            }).join('');
+            
+            elements.breadcrumb.innerHTML = breadcrumbHtml;
         }
 
-        // Actualizar cachés si es necesario
-        if (updatedData.autor) cachedAuthors.add(updatedData.autor);
-        const newGenres = (updatedData.genero || '').split(',').map(g => g.trim()).filter(Boolean);
-        newGenres.forEach(g => { if (g) cachedGenres.add(g); });
-
-        // Cerrar modal
-        closeEditModal();
-        
-        // Re-renderizar la vista actual
-        if (currentSection) {
-          applyFilters();
-        } else {
-          // Si estamos en vista de secciones, recalcular secciones
-          const genreCounts = new Map();
-          books.forEach(book => {
-            book._genres.forEach(genre => {
-              if (genre) {
-                genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
-              }
-            });
-          });
-          
-          sections = Array.from(genreCounts.entries())
-            .map(([genre, count]) => ({ name: genre, count: count }))
-            .sort((a, b) => a.name.localeCompare(b.name));
-          
-          document.getElementById('statSections').textContent = sections.length;
-          showSections();
+        // Count books for section
+        function countBooksForSection(sectionKey) {
+            const section = classification.sections[sectionKey];
+            const allTags = Object.values(section.subsections).flatMap(s => s.tags);
+            return filterBooksByTags(allTags).length;
         }
-        
-        // Mostrar mensaje de éxito
-        alert('✅ Los cambios se han guardado exitosamente');
 
-      } catch (error) {
-        console.error('Error inesperado:', error);
-        alert(`Error inesperado al guardar: ${error.message}`);
-      }
-    }
-
-    // Función auxiliar para validar URLs
-    function isValidUrl(string) {
-      try {
-        const url = new URL(string);
-        return url.protocol === 'http:' || url.protocol === 'https:';
-      } catch (_) {
-        return false;
-      }
-    }
-
-    // Visor embebido
-    function buildPreviewUrl(viewUrl) {
-      const m = String(viewUrl || '').match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/i);
-      if (m && m[1]) {
-        const id = m[1];
-        return `https://drive.google.com/file/d/${id}/preview`;
-      }
-      return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(viewUrl || '')}`;
-    }
-
-    function toggleViewer(viewerId, formatUrl) {
-      const iframe = document.getElementById(viewerId);
-      if (!iframe) return;
-      
-      if (iframe.style.display === 'none' || !iframe.style.display) {
-        const previewUrl = buildPreviewUrl(formatUrl);
-        if (!previewUrl) {
-          iframe.style.display = 'none';
-          return;
+        // Count books for subsection
+        function countBooksForSubsection(sectionKey, subsectionKey) {
+            const subsection = classification.sections[sectionKey].subsections[subsectionKey];
+            return filterBooksByTags(subsection.tags).length;
         }
-        iframe.style.display = 'block';
-        iframe.onerror = () => { iframe.style.display = 'none'; };
-        iframe.src = previewUrl;
-      } else {
-        iframe.style.display = 'none';
-        iframe.removeAttribute('src');
-      }
-    }
-
-    // Thumbnail de portada (Drive)
-    function resolveCoverThumb(urlPortada) {
-      if (!urlPortada) return '';
-      const m = urlPortada.match(/\/d\/([^/]+)\//);
-      const id = m ? m[1] : null;
-      if (!id) return urlPortada;
-      return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
-    }
-
-    // Utils
-    function safeYear(dateStr) {
-      if (!dateStr || dateStr.startsWith('0101')) return '';
-      const d = new Date(dateStr);
-      const y = d.getFullYear();
-      return isNaN(y) ? '' : String(y);
-    }
-    function stripHtml(s){ return String(s || '').replace(/<[^>]+>/g,''); }
-    function esc(s){
-      return String(s || '')
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-    }
-    function escMultiline(s) {
-      return String(s || '').replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g,'\\$').replace(/\r?\n/g, '\\n');
-    }
-    function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i); h|=0;} return String(Math.abs(h)); }
-  </script>
+    </script>
 </body>
 </html>
