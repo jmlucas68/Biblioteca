@@ -918,6 +918,14 @@
                                 <option value="">Todos los años</option>
                             </select>
                         </div>
+                        <!-- Nuevo: Filtro por Formato -->
+                        <div class="form-group">
+                            <label class="form-label" for="searchFormato">Formato</label>
+                            <select id="searchFormato" class="form-control">
+                                <option value="">Todos</option>
+                                <!-- Opciones de formato se rellenan dinámicamente -->
+                            </select>
+                        </div>
                     </div>
                     
                     <!-- Search Actions -->
@@ -1147,6 +1155,7 @@
             const series = [...new Set(allBooks.map(book => book.serie).filter(Boolean))].sort();
             const editorials = [...new Set(allBooks.map(book => book.editorial).filter(Boolean))].sort();
             const years = [...new Set(allBooks.map(book => book.fecha_publicacion).filter(Boolean))].sort().reverse();
+            const formats = [...new Set(allBooks.flatMap(book => getBookFormats(book.id).map(f => f.formato)))].sort();
 
             // Populate dropdowns
             populateSelect('searchAutor', authors);
@@ -1154,6 +1163,7 @@
             populateSelect('searchSerie', series);
             populateSelect('searchEditorial', editorials);
             populateSelect('searchYear', years);
+            populateSelect('searchFormato', formats); // Población de formatos
         }
 
         function populateSelect(selectId, options) {
@@ -1187,6 +1197,7 @@
             document.getElementById('searchSerie').value = '';
             document.getElementById('searchEditorial').value = '';
             document.getElementById('searchYear').value = '';
+            document.getElementById('searchFormato').value = ''; // Limpiar formato
             document.getElementById('searchResults').innerHTML = '';
         }
 
@@ -1198,6 +1209,7 @@
             const serie = document.getElementById('searchSerie').value;
             const editorial = document.getElementById('searchEditorial').value;
             const year = document.getElementById('searchYear').value;
+            const formato = document.getElementById('searchFormato').value; // Obtener formato
 
             let results = allBooks.filter(book => {
                 // Text search
@@ -1258,7 +1270,14 @@
                     matchesYear = book.fecha_publicacion === year;
                 }
 
-                return matchesText && matchesAutor && matchesGenero && matchesSerie && matchesEditorial && matchesYear;
+                // Filter by format
+                let matchesFormato = true;
+                if (formato) {
+                    const bookFormats = getBookFormats(book.id).map(f => f.formato);
+                    matchesFormato = bookFormats.includes(formato);
+                }
+
+                return matchesText && matchesAutor && matchesGenero && matchesSerie && matchesEditorial && matchesYear && matchesFormato;
             });
 
             renderSearchResults(results);
