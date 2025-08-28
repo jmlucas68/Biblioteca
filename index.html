@@ -91,6 +91,12 @@
             color: var(--color-text-secondary);
         }
 
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
         .stats {
             display: flex;
             gap: 32px;
@@ -112,6 +118,26 @@
             color: var(--color-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        /* Search Button in Header */
+        .header-search-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-search-btn:hover {
+            background: var(--color-primary-light);
         }
 
         /* Controls */
@@ -234,6 +260,21 @@
         textarea.form-control {
             min-height: 80px;
             resize: vertical;
+        }
+
+        /* Search Modal Specific */
+        .search-filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .search-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-bottom: 20px;
         }
 
         /* Loading */
@@ -467,6 +508,10 @@
             position: relative;
         }
 
+        .modal--large {
+            max-width: 900px;
+        }
+
         .modal-header {
             padding: 24px 24px 16px;
             border-bottom: 1px solid var(--color-border);
@@ -623,8 +668,13 @@
                 align-items: flex-start;
             }
 
+            .header-right {
+                align-self: stretch;
+                justify-content: space-between;
+            }
+
             .stats {
-                align-self: flex-end;
+                gap: 16px;
             }
 
             .controls {
@@ -676,6 +726,14 @@
                 margin-top: 12px;
                 justify-content: center;
             }
+
+            .search-filters {
+                grid-template-columns: 1fr;
+            }
+
+            .search-actions {
+                justify-content: center;
+            }
         }
 
         /* Hide views initially */
@@ -698,6 +756,9 @@
                     <div class="breadcrumb" id="breadcrumb"></div>
                 </div>
                 <div class="header-right">
+                    <button class="header-search-btn" onclick="openSearchModal()">
+                        🔍 Buscar Libros
+                    </button>
                     <div class="stats">
                         <div class="stat">
                             <span class="stat-number" id="totalBooks">0</span>
@@ -750,6 +811,68 @@
 
         <div class="view" id="booksView">
             <div class="grid grid--books" id="booksGrid"></div>
+        </div>
+
+        <!-- Search Modal -->
+        <div class="modal-backdrop" id="searchModal">
+            <div class="modal modal--large">
+                <div class="modal-header">
+                    <h2 class="modal-title">🔍 Buscar en tu Biblioteca</h2>
+                    <button class="modal-close" onclick="closeSearchModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Search Form -->
+                    <div class="form-group">
+                        <label class="form-label" for="searchQuery">Buscar por título, autor, serie, descripción...</label>
+                        <input type="text" id="searchQuery" class="form-control" placeholder="Escribe aquí tu búsqueda...">
+                    </div>
+                    
+                    <!-- Advanced Filters -->
+                    <div class="search-filters">
+                        <div class="form-group">
+                            <label class="form-label" for="searchAutor">Autor</label>
+                            <select id="searchAutor" class="form-control">
+                                <option value="">Todos los autores</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="searchGenero">Género</label>
+                            <select id="searchGenero" class="form-control">
+                                <option value="">Todos los géneros</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="searchSerie">Serie</label>
+                            <select id="searchSerie" class="form-control">
+                                <option value="">Todas las series</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="searchEditorial">Editorial</label>
+                            <select id="searchEditorial" class="form-control">
+                                <option value="">Todas las editoriales</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="searchYear">Año</label>
+                            <select id="searchYear" class="form-control">
+                                <option value="">Todos los años</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Actions -->
+                    <div class="search-actions">
+                        <button type="button" class="btn btn--outline" onclick="clearSearch()">Limpiar</button>
+                        <button type="button" class="btn btn--primary" onclick="performSearch()">🔍 Buscar</button>
+                    </div>
+                    
+                    <!-- Search Results -->
+                    <div id="searchResults" style="margin-top: 24px;">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Modal de detalles -->
@@ -1087,12 +1210,14 @@
             modalContent: document.getElementById('modalContent'),
             closeModal: document.getElementById('closeModal'),
             editModal: document.getElementById('editModal'),
-            adminControls: document.getElementById('adminControls')
+            adminControls: document.getElementById('adminControls'),
+            searchModal: document.getElementById('searchModal')
         };
 
         // Initialize app
         document.addEventListener('DOMContentLoaded', async () => {
             await loadData();
+            populateSearchFilters();
             showSections();
             setupEventListeners();
         });
@@ -1111,16 +1236,13 @@
                 if (booksError) throw booksError;
                 allBooks = booksData || [];
 
-                // Load formats - INCLUIR url_download
+                // Load formats
                 const { data: formatsData, error: formatsError } = await supabaseClient
                     .from('book_formats')
                     .select('*');
                 
                 if (formatsError) throw formatsError;
                 allFormats = formatsData || [];
-
-                console.log('Formatos cargados:', allFormats.length);
-                console.log('Ejemplo formato:', allFormats[0]); // Para debug
 
                 // Update stats
                 elements.totalBooks.textContent = allBooks.length;
@@ -1131,6 +1253,177 @@
                 console.error('Error loading data:', error);
                 elements.loading.innerHTML = '❌ Error al cargar los datos';
             }
+        }
+
+        // Populate search filters
+        function populateSearchFilters() {
+            const authors = [...new Set(allBooks.map(book => book.autor).filter(Boolean))].sort();
+            const genres = [...new Set(allBooks.flatMap(book => 
+                book.genero ? book.genero.split(',').map(g => g.trim()) : []
+            ))].sort();
+            const series = [...new Set(allBooks.map(book => book.serie).filter(Boolean))].sort();
+            const editorials = [...new Set(allBooks.map(book => book.editorial).filter(Boolean))].sort();
+            const years = [...new Set(allBooks.map(book => book.fecha_publicacion).filter(Boolean))].sort().reverse();
+
+            // Populate dropdowns
+            populateSelect('searchAutor', authors);
+            populateSelect('searchGenero', genres);
+            populateSelect('searchSerie', series);
+            populateSelect('searchEditorial', editorials);
+            populateSelect('searchYear', years);
+        }
+
+        function populateSelect(selectId, options) {
+            const select = document.getElementById(selectId);
+            const currentOptions = select.querySelectorAll('option:not([value=""])');
+            currentOptions.forEach(option => option.remove());
+            
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                select.appendChild(optionElement);
+            });
+        }
+
+        // Search Modal Functions
+        function openSearchModal() {
+            elements.searchModal.classList.add('show');
+            document.getElementById('searchQuery').focus();
+        }
+
+        function closeSearchModal() {
+            elements.searchModal.classList.remove('show');
+        }
+
+        function clearSearch() {
+            document.getElementById('searchQuery').value = '';
+            document.getElementById('searchAutor').value = '';
+            document.getElementById('searchGenero').value = '';
+            document.getElementById('searchSerie').value = '';
+            document.getElementById('searchEditorial').value = '';
+            document.getElementById('searchYear').value = '';
+            document.getElementById('searchResults').innerHTML = '';
+        }
+
+        function performSearch() {
+            const query = normalizeString(document.getElementById('searchQuery').value);
+            const autor = document.getElementById('searchAutor').value;
+            const genero = document.getElementById('searchGenero').value;
+            const serie = document.getElementById('searchSerie').value;
+            const editorial = document.getElementById('searchEditorial').value;
+            const year = document.getElementById('searchYear').value;
+
+            let results = allBooks.filter(book => {
+                // Text search
+                let matchesText = true;
+                if (query) {
+                    const searchableText = [
+                        book.titulo,
+                        book.autor,
+                        book.genero,
+                        book.serie,
+                        book.editorial,
+                        book.descripcion
+                    ].filter(Boolean).map(normalizeString).join(' ');
+                    matchesText = searchableText.includes(query);
+                }
+
+                // Filter by author
+                let matchesAutor = true;
+                if (autor) {
+                    matchesAutor = book.autor === autor;
+                }
+
+                // Filter by genre
+                let matchesGenero = true;
+                if (genero) {
+                    const bookGenres = book.genero ? book.genero.split(',').map(g => g.trim()) : [];
+                    matchesGenero = bookGenres.includes(genero);
+                }
+
+                // Filter by series
+                let matchesSerie = true;
+                if (serie) {
+                    matchesSerie = book.serie === serie;
+                }
+
+                // Filter by editorial
+                let matchesEditorial = true;
+                if (editorial) {
+                    matchesEditorial = book.editorial === editorial;
+                }
+
+                // Filter by year
+                let matchesYear = true;
+                if (year) {
+                    matchesYear = book.fecha_publicacion === year;
+                }
+
+                return matchesText && matchesAutor && matchesGenero && matchesSerie && matchesEditorial && matchesYear;
+            });
+
+            renderSearchResults(results);
+        }
+
+        function renderSearchResults(results) {
+            const container = document.getElementById('searchResults');
+            
+            if (results.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <h3>No se encontraron libros</h3>
+                        <p>No hay libros que coincidan con los criterios de búsqueda.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const resultsHtml = `
+                <h3 style="margin-bottom: 16px; color: var(--color-text);">
+                    ${results.length} libro${results.length !== 1 ? 's' : ''} encontrado${results.length !== 1 ? 's' : ''}
+                </h3>
+                <div class="grid grid--books">
+                    ${results.map(book => renderBook(book)).join('')}
+                </div>
+            `;
+
+            container.innerHTML = resultsHtml;
+        }
+
+        function renderBook(book) {
+            const formats = getBookFormats(book.id);
+            const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
+            const portadaSrc = resolveCoverThumb(book.url_portada);
+            const coverHref = book.url_portada || '#';
+            
+            return `
+                <div class="book-card">
+                    <div class="book-actions">
+                        <button class="btn btn--small btn--outline" onclick="event.stopPropagation(); showEditModal(${book.id})" title="Editar libro">
+                            ✏️ Editar
+                        </button>
+                    </div>
+                    <div class="book-cover-wrap" onclick="showBookDetails(${book.id})">
+                        <a href="${esc(coverHref)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">
+                            <img class="book-cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" 
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='📖';" />
+                        </a>
+                    </div>
+                    <div class="book-info" onclick="showBookDetails(${book.id})">
+                        <div class="book-title">${esc(book.titulo || 'Sin título')}</div>
+                        <div class="book-author">por ${esc(book.autor || 'Autor desconocido')}</div>
+                        <div class="book-meta">
+                            ${book.serie ? `<span class="book-badge book-badge--series">${esc(book.serie)}${book.numero_serie ? ` #${book.numero_serie}` : ''}</span>` : ''}
+                            ${genres.slice(0, 2).map(genre => `<span class="book-badge book-badge--genre">${esc(genre)}</span>`).join('')}
+                        </div>
+                        <div class="book-formats">
+                            ${formats.map(format => `<span class="format-badge">${esc(format.formato)}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // Setup event listeners
@@ -1145,11 +1438,20 @@
             elements.editModal.addEventListener('click', (e) => {
                 if (e.target === elements.editModal) closeEditModal();
             });
+            elements.searchModal.addEventListener('click', (e) => {
+                if (e.target === elements.searchModal) closeSearchModal();
+            });
             
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     closeModal();
                     closeEditModal();
+                    closeSearchModal();
+                }
+                
+                // Enter to search
+                if (e.key === 'Enter' && elements.searchModal.classList.contains('show')) {
+                    performSearch();
                 }
             });
         }
@@ -1324,40 +1626,7 @@
                 return;
             }
             
-            const booksHtml = currentBooks.map(book => {
-                const formats = getBookFormats(book.id);
-                const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
-                const portadaSrc = resolveCoverThumb(book.url_portada);
-                const coverHref = book.url_portada || '#';
-                
-                return `
-                    <div class="book-card">
-                        <div class="book-actions">
-                            <button class="btn btn--small btn--outline" onclick="event.stopPropagation(); showEditModal(${book.id})" title="Editar libro">
-                                ✏️ Editar
-                            </button>
-                        </div>
-                        <div class="book-cover-wrap" onclick="showBookDetails(${book.id})">
-                            <a href="${esc(coverHref)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">
-                                <img class="book-cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" 
-                                     onerror="this.style.display='none'; this.parentElement.innerHTML='📖';" />
-                            </a>
-                        </div>
-                        <div class="book-info" onclick="showBookDetails(${book.id})">
-                            <div class="book-title">${esc(book.titulo || 'Sin título')}</div>
-                            <div class="book-author">por ${esc(book.autor || 'Autor desconocido')}</div>
-                            <div class="book-meta">
-                                ${book.serie ? `<span class="book-badge book-badge--series">${esc(book.serie)}${book.numero_serie ? ` #${book.numero_serie}` : ''}</span>` : ''}
-                                ${genres.slice(0, 2).map(genre => `<span class="book-badge book-badge--genre">${esc(genre)}</span>`).join('')}
-                            </div>
-                            <div class="book-formats">
-                                ${formats.map(format => `<span class="format-badge">${esc(format.formato)}</span>`).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
+            const booksHtml = currentBooks.map(book => renderBook(book)).join('');
             elements.booksGrid.innerHTML = booksHtml;
         }
 
@@ -1375,8 +1644,6 @@
             const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
             const portadaSrc = resolveCoverThumb(book.url_portada);
             const coverHref = book.url_portada || '#';
-            
-            console.log('Formatos del libro:', formats); // Para debug
             
             const modalHtml = `
                 <div class="modal-book">
@@ -1489,6 +1756,9 @@
                     allBooks[bookIndex] = { ...allBooks[bookIndex], ...updatedData };
                 }
 
+                // Update search filters after editing
+                populateSearchFilters();
+
                 alert('✅ Libro actualizado correctamente');
                 closeEditModal();
                 
@@ -1500,6 +1770,11 @@
                     filteredBooks = filterBooksByTags(subsection.tags);
                     currentBooks = [...filteredBooks];
                     filterBooks(); // Re-apply search if any
+                }
+
+                // If search modal is open, re-run search
+                if (elements.searchModal.classList.contains('show')) {
+                    performSearch();
                 }
 
             } catch (error) {
