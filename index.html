@@ -175,10 +175,10 @@
         if(a){ let opt=document.createElement('option'); opt.value=a; opt.textContent=a; sel.appendChild(opt);} });
 
       document.getElementById('booksGrid').innerHTML = filtered.map(b=>{
-        const imgSrc = b.drive || b.imagen || 'biblioteca.jpg';
+        const imgSrc = b.url_portada || b.drive || b.imagen || 'biblioteca.jpg';
         return `
         <div class="book-card">
-          <img src="${imgSrc}" alt="${b.titulo}" />
+          <img src="${imgSrc}" alt="${b.titulo}" loading="lazy" onerror="this.onerror=null;this.src='biblioteca.jpg';" />
           <div class="info">
             <h4>${b.titulo}</h4>
             <div class="author">${b.autor||'Autor desconocido'}</div>
