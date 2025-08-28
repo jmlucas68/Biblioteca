@@ -226,7 +226,53 @@
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
         }
 
-        /* Cards */
+        /* Section Cards - CON IMAGEN */
+        .section-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .section-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--color-primary);
+        }
+
+        .section-cover {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #eef2f6;
+        }
+
+        .section-content {
+            padding: 16px;
+        }
+
+        .section-title {
+            font-weight: 700;
+            color: var(--color-text);
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .section-count {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .section-subtitle {
+            color: var(--color-text-secondary);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* Cards genéricos (mantenidos para compatibilidad) */
         .card {
             background: var(--color-surface);
             border: 1px solid var(--color-border);
@@ -561,6 +607,10 @@
 
             .modal-cover {
                 align-self: center;
+            }
+
+            .section-cover {
+                height: 150px;
             }
         }
 
@@ -963,13 +1013,13 @@
             const sectionsHtml = Object.entries(classification.sections).map(([key, section]) => {
                 const bookCount = countBooksForSection(key);
                 return `
-                    <div class="card" onclick="showSubsections('${key}')">
-                        <div class="card-header">
-                            <div class="card-title">${esc(section.name)}</div>
-                            <div class="card-count">${bookCount}</div>
-                        </div>
-                        <div class="card-description">
-                            ${Object.keys(section.subsections).length} subsecciones
+                    <div class="section-card" onclick="showSubsections('${key}')">
+                        <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}" 
+                             onerror="this.style.background='#eef2f6'; this.alt='📚';">
+                        <div class="section-content">
+                            <div class="section-title">${esc(section.name)}</div>
+                            <div class="section-count">${bookCount} libro${bookCount !== 1 ? 's' : ''}</div>
+                            <div class="section-subtitle">${Object.keys(section.subsections).length} subsecciones</div>
                         </div>
                     </div>
                 `;
@@ -993,13 +1043,13 @@
             const subsectionsHtml = Object.entries(section.subsections).map(([key, subsection]) => {
                 const bookCount = countBooksForSubsection(sectionKey, key);
                 return `
-                    <div class="card" onclick="showBooks('${sectionKey}', '${key}')">
-                        <div class="card-header">
-                            <div class="card-title">${esc(subsection.name)}</div>
-                            <div class="card-count">${bookCount}</div>
-                        </div>
-                        <div class="card-description">
-                            ${subsection.tags.slice(0, 3).map(tag => esc(tag)).join(', ')}${subsection.tags.length > 3 ? '...' : ''}
+                    <div class="section-card" onclick="showBooks('${sectionKey}', '${key}')">
+                        <img class="section-cover" src="biblioteca.jpg" alt="Subsección ${esc(subsection.name)}" 
+                             onerror="this.style.background='#eef2f6'; this.alt='📚';">
+                        <div class="section-content">
+                            <div class="section-title">${esc(subsection.name)}</div>
+                            <div class="section-count">${bookCount} libro${bookCount !== 1 ? 's' : ''}</div>
+                            <div class="section-subtitle">${subsection.tags.slice(0, 3).map(tag => esc(tag)).join(', ')}${subsection.tags.length > 3 ? '...' : ''}</div>
                         </div>
                     </div>
                 `;
