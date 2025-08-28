@@ -840,7 +840,7 @@
 
         // Open Classification Editor
         function openClassificationEditor() {
-            window.open('editor-clasificacion.html', '_blank');
+            window.open('editor-clasificacion-visual.html', '_blank');
         }
 
         // Classification structure
@@ -1223,24 +1223,25 @@
             renderBooks();
         }
 
-        // Filter books by tags
+        // CORREGIDA - Filter books by tags (EXACTO MATCH)
         function filterBooksByTags(tags) {
+            // Normalizar los tags de la subsección para comparación exacta
             const normalizedTags = tags.map(tag => normalizeString(tag));
             
             return allBooks.filter(book => {
                 if (!book.genero) return false;
                 
+                // Normalizar los géneros del libro
                 const bookGenres = book.genero.split(',').map(g => normalizeString(g.trim()));
                 
+                // Buscar coincidencia EXACTA entre tags normalizados
                 return normalizedTags.some(tag => 
-                    bookGenres.some(genre => 
-                        genre.includes(tag) || tag.includes(genre)
-                    )
+                    bookGenres.some(genre => genre === tag)
                 );
             });
         }
 
-        // Normalize string for comparison
+        // Normalize string for comparison (mantenemos la misma función)
         function normalizeString(str) {
             return str.toLowerCase()
                 .replace(/[áàäâ]/g, 'a')
