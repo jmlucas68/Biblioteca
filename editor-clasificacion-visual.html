@@ -522,6 +522,7 @@
         let currentSectionKey = null;
         let currentSubsectionKey = null;
         let deleteTarget = null;
+        let clasificacionRowId = null; // <--- NUEVO
 
         // DOM elements
         const elements = {
@@ -553,11 +554,11 @@
                 elements.messageArea.innerHTML = `<div class="message">Cargando clasificación...</div>`;
                 const { data, error } = await supabaseClient
                     .from('clasificacion')
-                    .select('data')
+                    .select('id, data')
                     .limit(1)
                     .single();
                 if (error) throw error;
-                // Si el JSON está anidado bajo "classification", úsalo, si no, úsalo directamente
+                clasificacionRowId = data.id; // <--- Guarda el id de la fila
                 currentClassification = data.data.classification || data.data;
                 elements.messageArea.innerHTML = '';
             } catch (error) {
@@ -570,11 +571,11 @@
         async function saveChanges() {
             try {
                 elements.messageArea.innerHTML = `<div class="message">Guardando cambios...</div>`;
-                // Actualiza la única fila de la tabla
+                if (!clasificacionRowId) throw new Error('No se pudo determinar el id de la fila de clasificación.');
                 const { error } = await supabaseClient
                     .from('clasificacion')
                     .update({ data: currentClassification })
-                    .neq('id', null); // Para que actualice la única fila (puedes ajustar si tienes un id fijo)
+                    .eq('id', clasificacionRowId); // <--- Usa el id para actualizar
                 if (error) throw error;
                 elements.messageArea.innerHTML = `<div class="message success">✅ Clasificación guardada correctamente en la base de datos.</div>`;
             } catch (error) {
