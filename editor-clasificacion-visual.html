@@ -508,212 +508,16 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Global state
-        let currentClassification = {
-            "sections": {
-                "RELIGION_Y_ESPIRITUALIDAD": {
-                    "name": "Religión y Espiritualidad",
-                    "subsections": {
-                        "TEOLOGIA": {
-                            "name": "Teología",
-                            "tags": ["Religion", "teología", "Tomismo", "magisterio", "Filosofía", "Espiritualidad", "benedictoxvi", "Papa Francisco", "religión", "cristiana", "catolica", "cristiano", "catolico", "documento", "Religion & Spirituality"]
-                        },
-                        "TEXTOS_SAGRADOS": {
-                            "name": "Textos Sagrados y Estudios Bíblicos",
-                            "tags": ["Bíblia", "Religion", "Consulta", "teología", "Camino Neocatecumenal"]
-                        },
-                        "VIDA_ESPIRITUAL": {
-                            "name": "Vida Espiritual",
-                            "tags": ["Espiritualidad", "oración", "Religion", "Padre Pío", "catalina de siena", "María", "Fátima", "san ignacio"]
-                        },
-                        "HISTORIA_RELIGIOSA": {
-                            "name": "Historia Religiosa",
-                            "tags": ["Iglesia", "Historia", "Inquisición", "Religion"]
-                        }
-                    }
-                },
-                "FILOSOFIA": {
-                    "name": "Filosofía",
-                    "subsections": {
-                        "FILOSOFIA_GENERAL": {
-                            "name": "Filosofía General",
-                            "tags": ["Filosofía", "Philosophy", "Consulta", "Philosophy & Religion", "General", "History & Surveys", "Criticism"]
-                        },
-                        "METAFISICA_ONTOLOGIA": {
-                            "name": "Metafísica y Ontología",
-                            "tags": ["Metafísica", "ontología", "Filosofía"]
-                        },
-                        "HISTORIA_FILOSOFIA": {
-                            "name": "Historia de la Filosofía",
-                            "tags": ["Historia", "Filosofía", "posmodernismo", "Consulta"]
-                        },
-                        "CORRIENTES_FILOSOFICAS": {
-                            "name": "Corrientes Filosóficas",
-                            "tags": ["existencialismo", "marxismo", "estructuralismo", "posmodernismo", "Filosofía"]
-                        }
-                    }
-                },
-                "CIENCIAS": {
-                    "name": "Ciencias",
-                    "subsections": {
-                        "CIENCIAS_EXACTAS": {
-                            "name": "Ciencias Exactas",
-                            "tags": ["Ciencias exactas", "Ciencia", "Divulgación", "Science", "Life Sciences"]
-                        },
-                        "MEDICINA_SALUD": {
-                            "name": "Medicina y Salud",
-                            "tags": ["Salud", "Educación", "Salud y bienestar", "BOOKSMEDICOS.ORG", "Ciencia", "neurociencia", "anatomía"]
-                        },
-                        "PSICOLOGIA": {
-                            "name": "Psicología",
-                            "tags": ["Psicología", "Psychology", "General", "Emotions", "Clinical Psychology", "Applied Psychology", "Movements", "Industrial & Organizational Psychology"]
-                        }
-                    }
-                },
-                "TECNOLOGIA_INFORMATICA": {
-                    "name": "Tecnología e Informática",
-                    "subsections": {
-                        "PROGRAMACION": {
-                            "name": "Programación",
-                            "tags": ["Tecnología", "Programming", "Python", "java", "poo", "Software Development & Engineering", "Computers"]
-                        },
-                        "SISTEMAS_REDES": {
-                            "name": "Sistemas y Redes",
-                            "tags": ["Networking", "General", "git", "blockchain", "bitcoin", "AWS"]
-                        },
-                        "METODOLOGIAS": {
-                            "name": "Metodologías",
-                            "tags": ["agile", "scrum master", "scrum", "BPM", "design thinking"]
-                        }
-                    }
-                },
-                "DESARROLLO_PERSONAL": {
-                    "name": "Desarrollo Personal",
-                    "subsections": {
-                        "AUTOAYUDA": {
-                            "name": "Autoayuda",
-                            "tags": ["Autoayuda", "Self-Help", "Desarrollo", "Personal Growth", "Self-Esteem", "Self-Management", "Happiness", "Success"]
-                        },
-                        "LIDERAZGO": {
-                            "name": "Liderazgo",
-                            "tags": ["liderazgo", "Leadership", "Management"]
-                        },
-                        "PRODUCTIVIDAD": {
-                            "name": "Productividad",
-                            "tags": ["Productividad", "tecnicas estudio", "memoria", "Stress Management"]
-                        },
-                        "INTELIGENCIA_EMOCIONAL": {
-                            "name": "Inteligencia Emocional",
-                            "tags": ["inteligencia emocional", "emociones", "Psychology", "Emotions"]
-                        }
-                    }
-                },
-                "ECONOMIA_NEGOCIOS": {
-                    "name": "Economía y Negocios",
-                    "subsections": {
-                        "ECONOMIA": {
-                            "name": "Economía",
-                            "tags": ["Economía", "Business & Economics", "Economic Policy", "liberalismo"]
-                        },
-                        "NEGOCIOS": {
-                            "name": "Negocios",
-                            "tags": ["Negocios y Economía", "Innovación", "Strategic Planning", "General"]
-                        },
-                        "MARCA_PERSONAL": {
-                            "name": "Marca Personal",
-                            "tags": ["Marca Personal", "Comunicación", "Profesional"]
-                        }
-                    }
-                },
-                "POLITICA_SOCIEDAD": {
-                    "name": "Política y Sociedad",
-                    "subsections": {
-                        "POLITICA": {
-                            "name": "Política",
-                            "tags": ["Política", "Political Science", "Political Ideologies", "Conservatism & Liberalism", "Public Policy", "Fascism & Totalitarianism"]
-                        },
-                        "SOCIOLOGIA": {
-                            "name": "Sociología",
-                            "tags": ["Ciencias Sociales", "Social Science", "Sociology", "General", "Anthropology", "Cultural & Social"]
-                        },
-                        "HISTORIA": {
-                            "name": "Historia",
-                            "tags": ["Historia", "History", "cultura", "Europe", "Italy"]
-                        }
-                    }
-                },
-                "LITERATURA_ARTES": {
-                    "name": "Literatura y Artes",
-                    "subsections": {
-                        "LITERATURA": {
-                            "name": "Literatura",
-                            "tags": ["Novela", "Literary Collections", "Ancient & Classical", "Fiction", "General"]
-                        },
-                        "FANTASIA_FICCION": {
-                            "name": "Fantasía y Ficción",
-                            "tags": ["Fantasía épica", "Fantástico", "Fantasy", "Young Adult Fiction"]
-                        },
-                        "MITOLOGIA": {
-                            "name": "Mitología",
-                            "tags": ["mitología griega", "Divulgación", "cultura"]
-                        }
-                    }
-                },
-                "ENTRETENIMIENTO": {
-                    "name": "Entretenimiento",
-                    "subsections": {
-                        "COMICS_TEBEOS": {
-                            "name": "Comics y Tebeos",
-                            "tags": ["Comic", "Tebeo", "Mortadelo_y_Filemón"]
-                        },
-                        "FOTOGRAFIA": {
-                            "name": "Fotografía",
-                            "tags": ["aficiones", "Fotografía"]
-                        },
-                        "COCINA": {
-                            "name": "Cocina",
-                            "tags": ["cocina"]
-                        }
-                    }
-                },
-                "EDUCACION": {
-                    "name": "Educación",
-                    "subsections": {
-                        "EDUCACION_GENERAL": {
-                            "name": "Educación General",
-                            "tags": ["Educación", "Education", "Estudios", "Práctico"]
-                        },
-                        "IDIOMAS": {
-                            "name": "Idiomas",
-                            "tags": ["inglés", "Spanish"]
-                        },
-                        "METODOLOGIA_ESTUDIO": {
-                            "name": "Metodología de Estudio",
-                            "tags": ["tecnicas estudio", "memoria", "lectura rápida"]
-                        }
-                    }
-                },
-                "VARIOS": {
-                    "name": "Varios",
-                    "subsections": {
-                        "CATALOGOS_CONSULTA": {
-                            "name": "Catálogos y Consulta",
-                            "tags": ["Consulta", "Catálogo", "revista", "artículo"]
-                        },
-                        "SIN_CLASIFICAR": {
-                            "name": "Sin Clasificar",
-                            "tags": ["sin_revisar_metadatos", "Downloaded from Z-Library", "Image To PDF Conversion", "ePubLibre"]
-                        },
-                        "ESPECIALIZADOS": {
-                            "name": "Especializados",
-                            "tags": ["eneagrama", "Exercise", "Family & Relationships", "Death; Grief; Bereavement"]
-                        }
-                    }
-                }
-            }
-        };
+        // Supabase configuration
+        const { createClient } = supabase;
+        const supabaseUrl = 'https://fanyuclarbgwraiwbcmr.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
+        // Global state
+        let currentClassification = null;
         let currentView = 'sections';
         let currentSectionKey = null;
         let currentSubsectionKey = null;
@@ -737,10 +541,49 @@
             messageArea: document.getElementById('messageArea')
         };
 
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', () => {
+        // Cargar clasificación desde Supabase al iniciar
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadClassification();
             showSections();
         });
+
+        // Cargar clasificación desde la tabla "clasificacion"
+        async function loadClassification() {
+            try {
+                elements.messageArea.innerHTML = `<div class="message">Cargando clasificación...</div>`;
+                const { data, error } = await supabaseClient
+                    .from('clasificacion')
+                    .select('data')
+                    .limit(1)
+                    .single();
+                if (error) throw error;
+                // Si el JSON está anidado bajo "classification", úsalo, si no, úsalo directamente
+                currentClassification = data.data.classification || data.data;
+                elements.messageArea.innerHTML = '';
+            } catch (error) {
+                elements.messageArea.innerHTML = `<div class="message error">❌ Error al cargar la clasificación: ${esc(error.message)}</div>`;
+                currentClassification = { sections: {} };
+            }
+        }
+
+        // Guardar cambios en Supabase
+        async function saveChanges() {
+            try {
+                elements.messageArea.innerHTML = `<div class="message">Guardando cambios...</div>`;
+                // Actualiza la única fila de la tabla
+                const { error } = await supabaseClient
+                    .from('clasificacion')
+                    .update({ data: currentClassification })
+                    .neq('id', null); // Para que actualice la única fila (puedes ajustar si tienes un id fijo)
+                if (error) throw error;
+                elements.messageArea.innerHTML = `<div class="message success">✅ Clasificación guardada correctamente en la base de datos.</div>`;
+            } catch (error) {
+                elements.messageArea.innerHTML = `<div class="message error">❌ Error al guardar: ${esc(error.message)}</div>`;
+            }
+            setTimeout(() => {
+                elements.messageArea.innerHTML = '';
+            }, 5000);
+        }
 
         // Show sections
         function showSections() {
@@ -1037,26 +880,6 @@
             }).join('');
             
             elements.breadcrumb.innerHTML = breadcrumbHtml;
-        }
-
-        // Save changes
-        function saveChanges() {
-            try {
-                const jsonString = JSON.stringify({ classification: currentClassification }, null, 2);
-                const blob = new Blob([jsonString], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'clasificacion.json';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                showMessage('✅ Archivo clasificacion.json generado y descargado correctamente.', 'success');
-            } catch (error) {
-                showMessage('❌ Error al generar el archivo JSON: ' + error.message, 'error');
-            }
         }
 
         // Show message
