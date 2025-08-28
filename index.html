@@ -165,6 +165,20 @@
             background: var(--color-hover);
         }
 
+        .btn--success {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .btn--success:hover {
+            background: #059669;
+        }
+
+        .btn--small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
         /* Form Controls */
         .form-control {
             padding: 10px 12px;
@@ -174,6 +188,7 @@
             background: var(--color-surface);
             color: var(--color-text);
             transition: border-color 0.2s;
+            width: 100%;
         }
 
         .form-control:focus {
@@ -182,9 +197,26 @@
             box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
         }
 
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--color-text);
+            font-size: 14px;
+        }
+
         #searchInput {
             flex: 1;
             min-width: 200px;
+        }
+
+        textarea.form-control {
+            min-height: 80px;
+            resize: vertical;
         }
 
         /* Loading */
@@ -272,49 +304,6 @@
             margin-top: 4px;
         }
 
-        /* Cards genéricos (mantenidos para compatibilidad) */
-        .card {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--color-text);
-        }
-
-        .card-count {
-            background: var(--color-primary);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .card-description {
-            color: var(--color-text-secondary);
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
         /* Book Cards */
         .book-card {
             display: flex;
@@ -325,6 +314,7 @@
             border-radius: var(--radius-lg);
             transition: all 0.2s;
             cursor: pointer;
+            position: relative;
         }
 
         .book-card:hover {
@@ -417,8 +407,22 @@
             font-weight: 500;
         }
 
+        .book-actions {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            gap: 6px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .book-card:hover .book-actions {
+            opacity: 1;
+        }
+
         /* Modal */
-        .modal {
+        .modal-backdrop {
             position: fixed;
             top: 0;
             left: 0;
@@ -432,14 +436,13 @@
             padding: 20px;
         }
 
-        .modal.show {
+        .modal-backdrop.show {
             display: flex;
         }
 
-        .modal-content {
+        .modal {
             background: var(--color-surface);
             border-radius: var(--radius-lg);
-            padding: 24px;
             max-width: 600px;
             width: 100%;
             max-height: 90vh;
@@ -447,10 +450,22 @@
             position: relative;
         }
 
+        .modal-header {
+            padding: 24px 24px 16px;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--color-text);
+            margin: 0;
+        }
+
         .modal-close {
-            position: absolute;
-            top: 16px;
-            right: 16px;
             background: none;
             border: none;
             font-size: 24px;
@@ -468,6 +483,17 @@
         .modal-close:hover {
             background: var(--color-hover);
             color: var(--color-text);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px 24px;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
         }
 
         .modal-book {
@@ -612,6 +638,13 @@
             .section-cover {
                 height: 150px;
             }
+
+            .book-actions {
+                position: static;
+                opacity: 1;
+                margin-top: 12px;
+                justify-content: center;
+            }
         }
 
         /* Hide views initially */
@@ -681,11 +714,76 @@
             <div class="grid grid--books" id="booksGrid"></div>
         </div>
 
-        <!-- Modal -->
-        <div class="modal" id="bookModal">
-            <div class="modal-content">
-                <button class="modal-close" id="closeModal">×</button>
-                <div id="modalContent"></div>
+        <!-- Modal de detalles -->
+        <div class="modal-backdrop" id="bookModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">📖 Detalles del libro</h2>
+                    <button class="modal-close" id="closeModal">×</button>
+                </div>
+                <div class="modal-body" id="modalContent"></div>
+            </div>
+        </div>
+
+        <!-- Modal de edición -->
+        <div class="modal-backdrop" id="editModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">✏️ Editar libro</h2>
+                    <button class="modal-close" onclick="closeEditModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm">
+                        <div class="form-group">
+                            <label class="form-label" for="editTitulo">Título *</label>
+                            <input type="text" id="editTitulo" name="titulo" class="form-control" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="editAutor">Autor</label>
+                            <input type="text" id="editAutor" name="autor" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="editGenero">Género</label>
+                            <input type="text" id="editGenero" name="genero" class="form-control" placeholder="Separar múltiples géneros con comas">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="editSerie">Serie</label>
+                            <input type="text" id="editSerie" name="serie" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="editNumeroSerie">Número de serie</label>
+                            <input type="text" id="editNumeroSerie" name="numero_serie" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="editEditorial">Editorial</label>
+                            <input type="text" id="editEditorial" name="editorial" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="editFechaPublicacion">Fecha de publicación</label>
+                            <input type="date" id="editFechaPublicacion" name="fecha_publicacion" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="editDescripcion">Descripción</label>
+                            <textarea id="editDescripcion" name="descripcion" class="form-control" rows="4"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="editCarpetaObra">Carpeta de obra</label>
+                            <input type="text" id="editCarpetaObra" name="carpeta_obra" class="form-control">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--outline" onclick="closeEditModal()">Cancelar</button>
+                    <button type="button" class="btn btn--success" onclick="saveBookChanges()">💾 Guardar cambios</button>
+                </div>
             </div>
         </div>
     </div>
@@ -924,6 +1022,7 @@
         let currentSubsection = null;
         let filteredBooks = [];
         let currentBooks = [];
+        let currentEditingBook = null;
 
         // DOM elements
         const elements = {
@@ -943,7 +1042,8 @@
             totalFormats: document.getElementById('totalFormats'),
             bookModal: document.getElementById('bookModal'),
             modalContent: document.getElementById('modalContent'),
-            closeModal: document.getElementById('closeModal')
+            closeModal: document.getElementById('closeModal'),
+            editModal: document.getElementById('editModal')
         };
 
         // Initialize app
@@ -995,9 +1095,15 @@
             elements.bookModal.addEventListener('click', (e) => {
                 if (e.target === elements.bookModal) closeModal();
             });
+            elements.editModal.addEventListener('click', (e) => {
+                if (e.target === elements.editModal) closeEditModal();
+            });
             
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') closeModal();
+                if (e.key === 'Escape') {
+                    closeModal();
+                    closeEditModal();
+                }
             });
         }
 
@@ -1174,14 +1280,19 @@
                 const coverHref = book.url_portada || '#';
                 
                 return `
-                    <div class="book-card" onclick="showBookDetails(${book.id})">
-                        <div class="book-cover-wrap">
+                    <div class="book-card">
+                        <div class="book-actions">
+                            <button class="btn btn--small btn--outline" onclick="event.stopPropagation(); showEditModal(${book.id})" title="Editar libro">
+                                ✏️ Editar
+                            </button>
+                        </div>
+                        <div class="book-cover-wrap" onclick="showBookDetails(${book.id})">
                             <a href="${esc(coverHref)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">
                                 <img class="book-cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" 
                                      onerror="this.style.display='none'; this.parentElement.innerHTML='📖';" />
                             </a>
                         </div>
-                        <div class="book-info">
+                        <div class="book-info" onclick="showBookDetails(${book.id})">
                             <div class="book-title">${esc(book.titulo || 'Sin título')}</div>
                             <div class="book-author">por ${esc(book.autor || 'Autor desconocido')}</div>
                             <div class="book-meta">
@@ -1253,9 +1364,98 @@
             elements.bookModal.classList.add('show');
         }
 
+        // Show edit modal
+        function showEditModal(bookId) {
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book) return;
+            
+            currentEditingBook = book;
+            
+            // Populate form fields
+            document.getElementById('editTitulo').value = book.titulo || '';
+            document.getElementById('editAutor').value = book.autor || '';
+            document.getElementById('editGenero').value = book.genero || '';
+            document.getElementById('editSerie').value = book.serie || '';
+            document.getElementById('editNumeroSerie').value = book.numero_serie || '';
+            document.getElementById('editEditorial').value = book.editorial || '';
+            document.getElementById('editFechaPublicacion').value = book.fecha_publicacion || '';
+            document.getElementById('editDescripcion').value = book.descripcion || '';
+            document.getElementById('editCarpetaObra').value = book.carpeta_obra || '';
+            
+            elements.editModal.classList.add('show');
+        }
+
+        // Save book changes
+        async function saveBookChanges() {
+            if (!currentEditingBook) {
+                alert('Error: No hay libro seleccionado para editar');
+                return;
+            }
+
+            // Validate required fields
+            const titulo = document.getElementById('editTitulo').value.trim();
+            if (!titulo) {
+                alert('El título es requerido');
+                document.getElementById('editTitulo').focus();
+                return;
+            }
+
+            // Collect all form data
+            const updatedData = {
+                titulo: titulo,
+                autor: document.getElementById('editAutor').value.trim() || null,
+                genero: document.getElementById('editGenero').value.trim() || null,
+                serie: document.getElementById('editSerie').value.trim() || null,
+                numero_serie: document.getElementById('editNumeroSerie').value.trim() || null,
+                editorial: document.getElementById('editEditorial').value.trim() || null,
+                fecha_publicacion: document.getElementById('editFechaPublicacion').value || null,
+                descripcion: document.getElementById('editDescripcion').value.trim() || null,
+                carpeta_obra: document.getElementById('editCarpetaObra').value.trim() || null
+            };
+
+            try {
+                // Update in Supabase
+                const { data, error } = await supabaseClient
+                    .from('books')
+                    .update(updatedData)
+                    .eq('id', currentEditingBook.id);
+
+                if (error) throw error;
+
+                // Update local data
+                const bookIndex = allBooks.findIndex(b => b.id === currentEditingBook.id);
+                if (bookIndex !== -1) {
+                    allBooks[bookIndex] = { ...allBooks[bookIndex], ...updatedData };
+                }
+
+                alert('✅ Libro actualizado correctamente');
+                closeEditModal();
+                
+                // Refresh the current view
+                if (elements.booksView.classList.contains('active')) {
+                    // Re-filter and render books
+                    const section = classification.sections[currentSection];
+                    const subsection = section.subsections[currentSubsection];
+                    filteredBooks = filterBooksByTags(subsection.tags);
+                    currentBooks = [...filteredBooks];
+                    filterBooks(); // Re-apply search if any
+                }
+
+            } catch (error) {
+                console.error('Error updating book:', error);
+                alert('❌ Error al actualizar el libro: ' + error.message);
+            }
+        }
+
         // Close modal
         function closeModal() {
             elements.bookModal.classList.remove('show');
+        }
+
+        // Close edit modal
+        function closeEditModal() {
+            elements.editModal.classList.remove('show');
+            currentEditingBook = null;
         }
 
         // Go back
