@@ -10,4 +10,5 @@ Se puede modificar el json de clasificación
 
 El json de clasificación está en la base de datos
 
-
+----
+EN ESPERA DE NUEVAS FUNCIONALIDADES
