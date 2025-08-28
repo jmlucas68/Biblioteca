@@ -1,64 +1,99 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mi Biblioteca Personal</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biblioteca App</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f5f7fb; margin:0; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 18px; }
-    header { background:#1f2937; color:#fff; padding:18px; border-radius:12px; }
-    header h1 { margin:0 0 6px 0; font-size:22px; }
-    .stats { display:flex; gap:24px; font-size:14px; opacity:.9; }
-    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
-    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; cursor:pointer; transition:all 0.2s; display:flex; flex-direction:column; }
-    .card:hover { box-shadow:0 4px 12px rgba(0,0,0,.1); transform:translateY(-2px); }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:Arial,sans-serif; background:#f5f5f5; }
+    .container { max-width:1200px; margin:0 auto; padding:20px; }
+    h1 { text-align:center; margin-bottom:30px; color:#333; }
+    
+    .nav-buttons { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+    .nav-buttons button { padding:10px 20px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
+    .nav-buttons button:hover { background:#0056b3; }
+    .nav-buttons button.active { background:#28a745; }
+    
+    .search-filters { display:flex; gap:10px; margin-bottom:20px; align-items:center; flex-wrap:wrap; }
+    .search-filters input, .search-filters select { padding:8px; border:1px solid #ddd; border-radius:4px; }
+    .search-filters input[type="text"] { flex:1; min-width:200px; }
+    
+    .sections-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:20px; margin-bottom:20px; }
+    .card { background:white; padding:20px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.1); cursor:pointer; transition:transform 0.2s; }
+    .card:hover { transform:translateY(-2px); }
     .card img { width:100%; height:160px; object-fit:cover; }
-    .card h3 { margin:8px 12px 0 12px; font-size:16px; color:#111827; }
-    .card p { margin:4px 12px 12px 12px; font-size:14px; color:#6b7280; }
-    .controls { display:flex; gap:8px; flex-wrap:wrap; padding:12px 0; }
-    .controls input, .controls select { padding:10px 12px; border-radius:8px; border:1px solid #cfd8e3; background:#fff; }
-    .breadcrumb { display:flex; gap:6px; margin:12px 0; font-size:14px; color:#6b7280; }
-    .breadcrumb span, .breadcrumb a { cursor:pointer; }
-    .book-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+    .card h3 { margin:10px 0; color:#333; }
+    .card p { color:#666; font-size:14px; }
+    
+    .subsections-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:15px; margin-bottom:20px; }
+    .subsection-card { background:white; padding:15px; border-radius:6px; box-shadow:0 1px 5px rgba(0,0,0,0.1); cursor:pointer; }
+    .subsection-card:hover { background:#f8f9fa; }
+    .subsection-card h4 { color:#007bff; margin-bottom:5px; }
+    .subsection-card p { color:#666; font-size:13px; }
+    
+    .books-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:15px; }
+    .book-card { background:white; border-radius:6px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
     .book-card img { width:100%; height:200px; object-fit:cover; }
-    .book-card .info { padding:12px; }
-    .book-card h4 { margin:0 0 4px; font-size:15px; color:#111827; }
-    .book-card .author { font-size:13px; color:#6b7280; }
-    .tags { margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; font-size:12px; }
-    .tag { background:#eef2ff; padding:2px 6px; border-radius:8px; color:#4338ca; }
+    .book-card .info { padding:15px; }
+    .book-card h4 { margin-bottom:8px; color:#333; font-size:14px; }
+    .book-card .author { color:#666; font-size:12px; margin-bottom:8px; }
+    .book-card .tags { display:flex; gap:5px; flex-wrap:wrap; }
+    .tag { background:#e9ecef; padding:2px 6px; border-radius:3px; font-size:10px; color:#495057; }
+    
+    .back-button { margin-bottom:20px; }
+    .back-button button { padding:8px 16px; border:none; background:#6c757d; color:white; border-radius:4px; cursor:pointer; }
+    .back-button button:hover { background:#545b62; }
+    
+    .hidden { display:none; }
+    .books-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+    .books-count { color:#666; font-size:14px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1>📚 Mi Biblioteca Personal</h1>
-      <div class="stats">
-        <div>Total obras: <b id="statTotal">-</b></div>
-        <div>Autores: <b id="statAuthors">-</b></div>
-        <div>Secciones: <b id="statSections">-</b></div>
+    <h1>📚 Biblioteca Digital</h1>
+    
+    <div id="sectionsView">
+      <div class="sections-grid" id="sectionsGrid"></div>
+    </div>
+    
+    <div id="subsectionsView" class="hidden">
+      <div class="back-button">
+        <button onclick="showSections()">← Volver a Secciones</button>
       </div>
-    </header>
-
-    <div id="breadcrumb" class="breadcrumb"></div>
-
-    <!-- Vistas dinámicas -->
-    <div id="sectionsView" class="grid"></div>
-    <div id="subsectionsView" class="grid" style="display:none;"></div>
-    <div id="booksView" style="display:none;">
-      <div class="controls">
-        <input id="q" type="search" placeholder="Buscar por título, autor..." />
-        <select id="author"><option value="">Todos los autores</option></select>
+      <h2 id="sectionTitle"></h2>
+      <div class="subsections-grid" id="subsectionsGrid"></div>
+    </div>
+    
+    <div id="booksView" class="hidden">
+      <div class="back-button">
+        <button onclick="showSubsections()">← Volver a Subsecciones</button>
       </div>
-      <div id="booksGrid" class="grid"></div>
+      
+      <div class="books-header">
+        <h2 id="booksTitle"></h2>
+        <div class="books-count" id="booksCount"></div>
+      </div>
+      
+      <div class="search-filters">
+        <input type="text" id="q" placeholder="Buscar libros...">
+        <select id="author">
+          <option value="">Todos los autores</option>
+        </select>
+        <button onclick="renderBooks()" style="padding:8px 16px;border:none;background:#007bff;color:white;border-radius:4px;cursor:pointer;">Buscar</button>
+      </div>
+      
+      <div class="books-grid" id="booksGrid"></div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const SUPABASE_URL = 'https://fanyuclarbgwraiwbcmr.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Configuración de Supabase - REEMPLAZA con tus credenciales reales
+    const supabaseUrl = 'https://tu-proyecto.supabase.co'
+    const supabaseKey = 'tu-clave-publica-anonima'
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey)
 
     let allBooks = [];
     let classification = {};
@@ -69,46 +104,26 @@
       // Cargar libros de Supabase
       const { data: booksData } = await supabase.from('books').select('*');
       allBooks = booksData.map(b => ({...b, _searchText:(b.titulo+" "+b.autor+" "+b.genero).toLowerCase()}));
-      document.getElementById('statTotal').textContent = allBooks.length;
 
       // Cargar clasificación desde archivo local
       const res = await fetch('clasificacion.json');
       const jsonText = await res.text();
-      const clean = jsonText.replace(/^classification\s*=\s*/, '');
-      classification = JSON.parse(clean).sections;
-
-      document.getElementById('statSections').textContent = Object.keys(classification).length;
+      const clean = jsonText.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+      classification = JSON.parse(clean);
+      
       showSections();
-
+      
+      // Event listeners para búsqueda
       document.getElementById('q').addEventListener('input', renderBooks);
       document.getElementById('author').addEventListener('change', renderBooks);
     });
 
-    function setBreadcrumb() {
-      const bc = document.getElementById('breadcrumb');
-      bc.innerHTML = '';
-      if (!currentSection) return;
-      const sec = document.createElement('a');
-      sec.textContent = classification[currentSection].name;
-      sec.onclick = () => { currentSubsection=null; showSubsections(currentSection); };
-      bc.appendChild(sec);
-      if (currentSubsection) {
-        bc.innerHTML += ' › ';
-        const sub = document.createElement('span');
-        sub.textContent = classification[currentSection].subsections[currentSubsection].name;
-        bc.appendChild(sub);
-      }
-    }
-
     function showSections() {
-      currentSection = null;
-      currentSubsection = null;
-      document.getElementById('sectionsView').style.display='grid';
-      document.getElementById('subsectionsView').style.display='none';
-      document.getElementById('booksView').style.display='none';
-      document.getElementById('breadcrumb').innerHTML='';
-      const grid = document.getElementById('sectionsView');
-
+      document.getElementById('sectionsView').classList.remove('hidden');
+      document.getElementById('subsectionsView').classList.add('hidden');
+      document.getElementById('booksView').classList.add('hidden');
+      
+      const grid = document.getElementById('sectionsGrid');
       grid.innerHTML = Object.entries(classification).map(([secKey, sec]) => {
         let totalBooksInSection = 0;
         Object.values(sec.subsections).forEach(sub => {
@@ -128,32 +143,37 @@
 
     function showSubsections(sectionKey) {
       currentSection = sectionKey;
-      currentSubsection = null;
-      document.getElementById('sectionsView').style.display='none';
-      document.getElementById('subsectionsView').style.display='grid';
-      document.getElementById('booksView').style.display='none';
-      setBreadcrumb();
-      const grid = document.getElementById('subsectionsView');
-      const subs = classification[sectionKey].subsections;
-
-      grid.innerHTML = Object.entries(subs).map(([key,sub])=>{
+      const section = classification[sectionKey];
+      
+      document.getElementById('sectionsView').classList.add('hidden');
+      document.getElementById('subsectionsView').classList.remove('hidden');
+      document.getElementById('booksView').classList.add('hidden');
+      
+      document.getElementById('sectionTitle').textContent = section.name;
+      
+      const grid = document.getElementById('subsectionsGrid');
+      grid.innerHTML = Object.entries(section.subsections).map(([key, sub]) => {
         const tags = sub.tags.map(t=>t.toLowerCase());
         const count = allBooks.filter(b=> tags.some(t=>b._searchText.includes(t)) ).length;
         return `
-          <div class="card" onclick="showBooks('${key}')">
-            <img src="biblioteca.jpg" alt="Biblioteca" />
-            <h3>${sub.name}</h3>
+          <div class="subsection-card" onclick="showBooks('${key}')">
+            <h4>${sub.name}</h4>
             <p>${count} libro${count!==1?'s':''}</p>
           </div>`;
       }).join('');
     }
 
-    function showBooks(subKey) {
-      currentSubsection = subKey;
-      document.getElementById('sectionsView').style.display='none';
-      document.getElementById('subsectionsView').style.display='none';
-      document.getElementById('booksView').style.display='block';
-      setBreadcrumb();
+    function showBooks(subsectionKey) {
+      currentSubsection = subsectionKey;
+      const subsection = classification[currentSection].subsections[subsectionKey];
+      
+      document.getElementById('subsectionsView').classList.add('hidden');
+      document.getElementById('booksView').classList.remove('hidden');
+      
+      document.getElementById('booksTitle').textContent = subsection.name;
+      document.getElementById('q').value = '';
+      document.getElementById('author').value = '';
+      
       renderBooks();
     }
 
@@ -175,7 +195,16 @@
         if(a){ let opt=document.createElement('option'); opt.value=a; opt.textContent=a; sel.appendChild(opt);} });
 
       document.getElementById('booksGrid').innerHTML = filtered.map(b=>{
-        const imgSrc = b.url_portada || b.drive || b.imagen || 'biblioteca.jpg';
+        // Mejorar el manejo de la imagen con validación de campos vacíos
+        const getValidUrl = (url) => {
+          if (!url) return null;
+          const trimmed = String(url).trim();
+          return trimmed && trimmed !== 'null' && trimmed !== 'undefined' ? trimmed : null;
+        };
+        const imgSrc = getValidUrl(b.url_portada) || 
+                      getValidUrl(b.drive) || 
+                      getValidUrl(b.imagen) || 
+                      'biblioteca.jpg';
         return `
         <div class="book-card">
           <img src="${imgSrc}" alt="${b.titulo}" loading="lazy" onerror="this.onerror=null;this.src='biblioteca.jpg';" />
@@ -186,6 +215,8 @@
           </div>
         </div>`;
       }).join('');
+
+      document.getElementById('booksCount').textContent = `${filtered.length} libro${filtered.length!==1?'s':''}`;
     }
   </script>
 </body>
