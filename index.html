@@ -43,6 +43,44 @@
     .no-results { text-align:center; color:#6b7280; padding:40px 0; }
     .loading { text-align:center; padding:50px; font-size:18px; color:#6b7280; }
 
+    /* Estilos para vista de secciones */
+    .sections-view { display: none; }
+    .books-view { display: none; }
+    .breadcrumb { 
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; color: #6b7280;
+    }
+    .breadcrumb a { 
+      color: #2563eb; text-decoration: none; cursor: pointer;
+    }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb-separator { margin: 0 4px; }
+
+    /* Tarjetas de secciones */
+    .section-card {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
+      cursor: pointer; transition: all 0.2s ease; position: relative;
+    }
+    .section-card:hover {
+      transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #2563eb;
+    }
+    .section-cover {
+      width: 100%; height: 200px; object-fit: cover; background: #eef2f6;
+    }
+    .section-content {
+      padding: 16px;
+    }
+    .section-title {
+      font-weight: 700; color: #111827; font-size: 18px; margin-bottom: 8px;
+    }
+    .section-count {
+      color: #6b7280; font-size: 14px;
+    }
+    .section-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      color: white; padding: 20px 16px 16px; text-align: center;
+    }
+
     /* Modal */
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.45);
@@ -78,6 +116,7 @@
       .cover-wrap { flex: 0 0 auto; }
       .cover { width:160px; height:220px; }
       .content { width:100%; }
+      .section-cover { height: 150px; }
     }
   </style>
 </head>
@@ -88,22 +127,36 @@
       <div class="stats">
         <div>Total obras: <b id="statTotal">-</b></div>
         <div>Autores: <b id="statAuthors">-</b></div>
+        <div>Secciones: <b id="statSections">-</b></div>
       </div>
     </header>
 
-    <div class="controls">
-      <input id="q" type="search" placeholder="Buscar por título, autor o género..." />
-      <select id="author"><option value="">Todos los autores</option></select>
-      <select id="format"><option value="">Todos los formatos</option></select>
-      <select id="genre"><option value="">Todos los géneros</option></select>
+    <!-- Breadcrumb -->
+    <div id="breadcrumb" class="breadcrumb" style="display:none;">
+      <a onclick="showSections()">📚 Inicio</a>
+      <span class="breadcrumb-separator">›</span>
+      <span id="currentSection">Sección</span>
     </div>
 
-    <div id="loading" class="loading">
-      📄 Cargando biblioteca desde la base de datos...
+    <!-- Vista de Secciones -->
+    <div id="sectionsView" class="sections-view">
+      <div id="loading" class="loading">
+        📄 Cargando biblioteca desde la base de datos...
+      </div>
+      <div id="sectionsGrid" class="grid" style="display:none;"></div>
     </div>
-    
-    <div id="grid" class="grid" style="display:none;"></div>
-    <div id="noResults" class="no-results" style="display:none;">No se encontraron resultados</div>
+
+    <!-- Vista de Libros -->
+    <div id="booksView" class="books-view">
+      <div class="controls">
+        <input id="q" type="search" placeholder="Buscar por título, autor..." />
+        <select id="author"><option value="">Todos los autores</option></select>
+        <select id="format"><option value="">Todos los formatos</option></select>
+      </div>
+      
+      <div id="booksGrid" class="grid"></div>
+      <div id="noResults" class="no-results" style="display:none;">No se encontraron resultados</div>
+    </div>
   </div>
 
   <!-- Modal de descripción -->
@@ -201,6 +254,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
     let allBooks = [];
     let allFormats = [];
     let books = []; // Array combinado final
+    let sections = []; // Secciones (géneros únicos)
+    let currentSection = null;
     let filtered = [];
     let currentEditingBook = null;
     
@@ -211,8 +266,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
     document.addEventListener('DOMContentLoaded', async () => {
       await loadAllDataToMemory();
-      initFilters();
-      applyFilters();
+      showSections();
 
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
@@ -321,14 +375,29 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
           }
         }).filter(Boolean); // Eliminar libros con errores
         
+        // Crear secciones basadas en géneros
+        const genreCounts = new Map();
+        books.forEach(book => {
+          book._genres.forEach(genre => {
+            if (genre) {
+              genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
+            }
+          });
+        });
+        
+        sections = Array.from(genreCounts.entries())
+          .map(([genre, count]) => ({ name: genre, count: count }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        
         console.log('✅ Datos combinados y optimizados en memoria');
-        console.log(`📊 Estadísticas: ${books.length} libros, ${cachedAuthors.size} autores, ${cachedFormats.size} formatos, ${cachedGenres.size} géneros`);
+        console.log(`📊 Estadísticas: ${books.length} libros, ${cachedAuthors.size} autores, ${cachedFormats.size} formatos, ${sections.length} secciones`);
         
         // Actualizar estadísticas UI
         document.getElementById('statTotal').textContent = books.length;
         document.getElementById('statAuthors').textContent = cachedAuthors.size;
+        document.getElementById('statSections').textContent = sections.length;
         document.getElementById('loading').style.display = 'none';
-        document.getElementById('grid').style.display = 'grid';
+        document.getElementById('sectionsGrid').style.display = 'grid';
         
       } catch (error) {
         console.error('❌ Error cargando datos:', error);
@@ -350,21 +419,74 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       }
     }
 
+    function showSections() {
+      // Ocultar vista de libros y breadcrumb
+      document.getElementById('booksView').style.display = 'none';
+      document.getElementById('breadcrumb').style.display = 'none';
+      
+      // Mostrar vista de secciones
+      document.getElementById('sectionsView').style.display = 'block';
+      
+      // Renderizar secciones
+      const sectionsGrid = document.getElementById('sectionsGrid');
+      sectionsGrid.innerHTML = sections.map(renderSectionCard).join('');
+      
+      currentSection = null;
+    }
+
+    function renderSectionCard(section) {
+      return `
+        <div class="section-card" onclick="showBooksInSection('${esc(section.name)}')">
+          <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}" 
+               onerror="this.style.background='#eef2f6'; this.alt='📚';">
+          <div class="section-content">
+            <div class="section-title">${esc(section.name)}</div>
+            <div class="section-count">${section.count} libro${section.count !== 1 ? 's' : ''}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function showBooksInSection(sectionName) {
+      currentSection = sectionName;
+      
+      // Actualizar breadcrumb
+      document.getElementById('currentSection').textContent = sectionName;
+      document.getElementById('breadcrumb').style.display = 'flex';
+      
+      // Ocultar vista de secciones
+      document.getElementById('sectionsView').style.display = 'none';
+      
+      // Mostrar vista de libros
+      document.getElementById('booksView').style.display = 'block';
+      
+      // Inicializar filtros si no se han inicializado
+      if (cachedAuthors.size > 0 && document.getElementById('author').children.length === 1) {
+        initFilters();
+      }
+      
+      // Filtrar libros por sección
+      applyFilters();
+    }
+
     function initFilters() {
       // Llenar filtros usando los cachés
       fillSelect('author', [...cachedAuthors].sort());
       fillSelect('format', [...cachedFormats].sort());
-      fillSelect('genre', [...cachedGenres].sort());
 
       // Event listeners para filtros
       document.getElementById('q').addEventListener('input', applyFilters);
       document.getElementById('author').addEventListener('change', applyFilters);
       document.getElementById('format').addEventListener('change', applyFilters);
-      document.getElementById('genre').addEventListener('change', applyFilters);
     }
 
     function fillSelect(id, values) {
       const sel = document.getElementById(id);
+      // Limpiar opciones existentes (excepto la primera)
+      while (sel.children.length > 1) {
+        sel.removeChild(sel.lastChild);
+      }
+      
       values.forEach(v => {
         if (v) { // Solo agregar valores no vacíos
           const opt = document.createElement('option');
@@ -381,10 +503,14 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       const q = document.getElementById('q').value.toLowerCase().trim();
       const a = document.getElementById('author').value;
       const f = document.getElementById('format').value;
-      const g = document.getElementById('genre').value;
 
       // Filtrado optimizado usando el texto pre-procesado
       filtered = books.filter(book => {
+        // Filtro por sección actual (obligatorio)
+        if (currentSection && !book._genres.includes(currentSection)) {
+          return false;
+        }
+        
         // Búsqueda por texto (más rápida usando _searchText)
         if (q && !book._searchText.includes(q)) {
           return false;
@@ -400,22 +526,17 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
           return false;
         }
         
-        // Filtro por género
-        if (g && !book._genres.includes(g)) {
-          return false;
-        }
-        
         return true;
       });
 
       const endTime = performance.now();
       console.log(`🔍 Filtrado completado en ${(endTime - startTime).toFixed(2)}ms - ${filtered.length} resultados`);
 
-      render();
+      renderBooks();
     }
 
-    function render() {
-      const grid = document.getElementById('grid');
+    function renderBooks() {
+      const grid = document.getElementById('booksGrid');
       const empty = document.getElementById('noResults');
       
       if (!filtered.length) {
@@ -459,7 +580,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
         ? `<button class="btn secondary" onclick="toggleViewer('${viewerId}', '${esc(firstFormat.url)}')">👁️ Visor</button>`
         : '';
 
-      // Botón de editar (NUEVO)
+      // Botón de editar
       const editButton = `<button class="btn edit" onclick="openEditModal(${b.id})">✏️ Editar</button>`;
 
       return `
@@ -514,7 +635,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       backdrop.style.display = 'none';
     }
 
-    // Modal de edición (NUEVO)
+    // Modal de edición
     function openEditModal(bookId) {
       const book = books.find(b => b.id === bookId);
       if (!book) {
@@ -635,8 +756,27 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
         // Cerrar modal
         closeEditModal();
         
-        // Re-renderizar la vista
-        applyFilters();
+        // Re-renderizar la vista actual
+        if (currentSection) {
+          applyFilters();
+        } else {
+          // Si estamos en vista de secciones, recalcular secciones
+          const genreCounts = new Map();
+          books.forEach(book => {
+            book._genres.forEach(genre => {
+              if (genre) {
+                genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
+              }
+            });
+          });
+          
+          sections = Array.from(genreCounts.entries())
+            .map(([genre, count]) => ({ name: genre, count: count }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+          
+          document.getElementById('statSections').textContent = sections.length;
+          showSections();
+        }
         
         // Mostrar mensaje de éxito
         alert('✅ Los cambios se han guardado exitosamente');
