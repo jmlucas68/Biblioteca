@@ -1293,19 +1293,14 @@
             const coverHref = book.url_portada || '#';
             
             return `
-                <div class="book-card">
-                    <div class="book-actions">
-                        <button class="btn btn--small btn--outline" onclick="event.stopPropagation(); showEditModal(${book.id})" title="Editar libro">
-                            ✏️ Editar
-                        </button>
-                    </div>
-                    <div class="book-cover-wrap" onclick="showBookDetails(${book.id})">
+                <div class="book-card" onclick="showBookDetails(${book.id})">
+                    <div class="book-cover-wrap">
                         <a href="${esc(coverHref)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">
                             <img class="book-cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" 
                                  onerror="this.style.display='none'; this.parentElement.innerHTML='📖';" />
                         </a>
                     </div>
-                    <div class="book-info" onclick="showBookDetails(${book.id})">
+                    <div class="book-info">
                         <div class="book-title">${esc(book.titulo || 'Sin título')}</div>
                         <div class="book-author">por ${esc(book.autor || 'Autor desconocido')}</div>
                         <div class="book-meta">
@@ -1318,215 +1313,6 @@
                     </div>
                 </div>
             `;
-        }
-
-        // Setup event listeners
-        function setupEventListeners() {
-            elements.backButton.addEventListener('click', goBack);
-            elements.searchInput.addEventListener('input', filterBooks);
-            elements.sortSelect.addEventListener('change', sortBooks);
-            elements.closeModal.addEventListener('click', closeModal);
-            elements.bookModal.addEventListener('click', (e) => {
-                if (e.target === elements.bookModal) closeModal();
-            });
-            elements.editModal.addEventListener('click', (e) => {
-                if (e.target === elements.editModal) closeEditModal();
-            });
-            elements.searchModal.addEventListener('click', (e) => {
-                if (e.target === elements.searchModal) closeSearchModal();
-            });
-            
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    closeModal();
-                    closeEditModal();
-                    closeSearchModal();
-                }
-                
-                // Enter to search
-                if (e.key === 'Enter' && elements.searchModal.classList.contains('show')) {
-                    performSearch();
-                }
-            });
-        }
-
-        // Show sections
-        function showSections() {
-            hideAllViews();
-            elements.sectionsView.classList.add('active');
-            elements.backButton.style.display = 'none';
-            elements.searchContainer.style.display = 'none';
-            elements.adminControls.style.display = 'flex';
-            
-            updateBreadcrumb([]);
-            
-            const sectionsHtml = Object.entries(classification.sections).map(([key, section]) => {
-                const bookCount = countBooksForSection(key);
-                return `
-                    <div class="section-card" onclick="showSubsections('${key}')">
-                        <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}" 
-                             onerror="this.style.background='#eef2f6'; this.alt='📚';">
-                        <div class="section-content">
-                            <div class="section-title">${esc(section.name)}</div>
-                            <div class="section-count">${bookCount} libro${bookCount !== 1 ? 's' : ''}</div>
-                            <div class="section-subtitle">${Object.keys(section.subsections).length} subsecciones</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            elements.sectionsGrid.innerHTML = sectionsHtml;
-        }
-
-        // Show subsections
-        function showSubsections(sectionKey) {
-            currentSection = sectionKey;
-            const section = classification.sections[sectionKey];
-            
-            hideAllViews();
-            elements.subsectionsView.classList.add('active');
-            elements.backButton.style.display = 'block';
-            elements.searchContainer.style.display = 'none';
-            elements.adminControls.style.display = 'none';
-            
-            updateBreadcrumb([section.name]);
-            
-            const subsectionsHtml = Object.entries(section.subsections).map(([key, subsection]) => {
-                const bookCount = countBooksForSubsection(sectionKey, key);
-                return `
-                    <div class="section-card" onclick="showBooks('${sectionKey}', '${key}')">
-                        <img class="section-cover" src="biblioteca.jpg" alt="Subsección ${esc(subsection.name)}" 
-                             onerror="this.style.background='#eef2f6'; this.alt='📚';">
-                        <div class="section-content">
-                            <div class="section-title">${esc(subsection.name)}</div>
-                            <div class="section-count">${bookCount} libro${bookCount !== 1 ? 's' : ''}</div>
-                            <div class="section-subtitle">${subsection.tags.slice(0, 3).map(tag => esc(tag)).join(', ')}${subsection.tags.length > 3 ? '...' : ''}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            elements.subsectionsGrid.innerHTML = subsectionsHtml;
-        }
-
-        // Show books
-        function showBooks(sectionKey, subsectionKey) {
-            currentSection = sectionKey;
-            currentSubsection = subsectionKey;
-            
-            const section = classification.sections[sectionKey];
-            const subsection = section.subsections[subsectionKey];
-            
-            hideAllViews();
-            elements.booksView.classList.add('active');
-            elements.backButton.style.display = 'block';
-            elements.searchContainer.style.display = 'flex';
-            elements.adminControls.style.display = 'none';
-            
-            updateBreadcrumb([section.name, subsection.name]);
-            
-            // Filter books by tags
-            filteredBooks = filterBooksByTags(subsection.tags);
-            currentBooks = [...filteredBooks];
-            
-            renderBooks();
-        }
-
-        // Filter books by tags (EXACTO MATCH)
-        function filterBooksByTags(tags) {
-            // Normalizar los tags de la subsección para comparación exacta
-            const normalizedTags = tags.map(tag => normalizeString(tag));
-            
-            return allBooks.filter(book => {
-                if (!book.genero) return false;
-                
-                // Normalizar los géneros del libro
-                const bookGenres = book.genero.split(',').map(g => normalizeString(g.trim()));
-                
-                // Buscar coincidencia EXACTA entre tags normalizados
-                return normalizedTags.some(tag => 
-                    bookGenres.some(genre => genre === tag)
-                );
-            });
-        }
-
-        // Normalize string for comparison
-        function normalizeString(str) {
-            return str.toLowerCase()
-                .replace(/[áàäâ]/g, 'a')
-                .replace(/[éèëê]/g, 'e')
-                .replace(/[íìïî]/g, 'i')
-                .replace(/[óòöô]/g, 'o')
-                .replace(/[úùüû]/g, 'u')
-                .replace(/ñ/g, 'n')
-                .replace(/&amp;/g, '&')
-                .trim();
-        }
-
-        // Filter books by search
-        function filterBooks() {
-            const searchTerm = normalizeString(elements.searchInput.value);
-            
-            if (!searchTerm) {
-                currentBooks = [...filteredBooks];
-            } else {
-                currentBooks = filteredBooks.filter(book => {
-                    const searchableText = [
-                        book.titulo,
-                        book.autor,
-                        book.genero,
-                        book.serie,
-                        book.editorial
-                    ].filter(Boolean).map(normalizeString).join(' ');
-                    
-                    return searchableText.includes(searchTerm);
-                });
-            }
-            
-            sortBooks();
-        }
-
-        // Sort books
-        function sortBooks() {
-            const sortBy = elements.sortSelect.value;
-            
-            currentBooks.sort((a, b) => {
-                switch (sortBy) {
-                    case 'author':
-                        return (a.autor || '').localeCompare(b.autor || '');
-                    case 'year':
-                        const yearA = parseInt(a.fecha_publicacion) || 0;
-                        const yearB = parseInt(b.fecha_publicacion) || 0;
-                        return yearB - yearA;
-                    case 'title':
-                    default:
-                        return (a.titulo || '').localeCompare(b.titulo || '');
-                }
-            });
-            
-            renderBooks();
-        }
-
-        // Render books
-        function renderBooks() {
-            if (currentBooks.length === 0) {
-                elements.booksGrid.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📚</div>
-                        <h3>No se encontraron libros</h3>
-                        <p>No hay libros que coincidan con los criterios de búsqueda.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            const booksHtml = currentBooks.map(book => renderBook(book)).join('');
-            elements.booksGrid.innerHTML = booksHtml;
-        }
-
-        // Get book formats
-        function getBookFormats(bookId) {
-            return allFormats.filter(format => format.book_id === bookId);
         }
 
         // Show book details - USANDO url_download DIRECTAMENTE
@@ -1572,7 +1358,8 @@
                             return `
                                 <a href="${esc(downloadUrl)}" 
                                    class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}" 
-                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault(); alert(\'No hay enlace de descarga disponible para este formato.\');"'}>
+                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault(); alert(\'No hay enlace de descarga disponible para este formato.\');"'}
+                                >
                                     📄 ${esc(format.formato)}
                                     ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
                                 </a>
@@ -1580,6 +1367,9 @@
                         }).join('')}
                     </div>
                 ` : '<div class="modal-formats"><p>No hay formatos disponibles para este libro.</p></div>'}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>
+                </div>
             `;
             
             elements.modalContent.innerHTML = modalHtml;
