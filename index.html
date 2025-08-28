@@ -1154,7 +1154,21 @@
             ))].sort();
             const series = [...new Set(allBooks.map(book => book.serie).filter(Boolean))].sort();
             const editorials = [...new Set(allBooks.map(book => book.editorial).filter(Boolean))].sort();
-            const years = [...new Set(allBooks.map(book => book.fecha_publicacion).filter(Boolean))].sort().reverse();
+
+            // Solo años (YYYY) para el filtro de año
+            const years = [...new Set(
+                allBooks
+                    .map(book => book.fecha_publicacion)
+                    .filter(Boolean)
+                    .map(date => {
+                        // Extraer solo el año (YYYY) aunque venga como 'YYYY-MM-DD'
+                        if (typeof date === 'string' && date.length >= 4) {
+                            return date.slice(0, 4);
+                        }
+                        return date;
+                    })
+            )].filter(y => /^\d{4}$/.test(y)).sort().reverse();
+
             const formats = [...new Set(allBooks.flatMap(book => getBookFormats(book.id).map(f => f.formato)))].sort();
 
             // Populate dropdowns
@@ -1162,8 +1176,8 @@
             populateSelect('searchGenero', genres);
             populateSelect('searchSerie', series);
             populateSelect('searchEditorial', editorials);
-            populateSelect('searchYear', years);
-            populateSelect('searchFormato', formats); // Población de formatos
+            populateSelect('searchYear', years); // Ahora solo años
+            populateSelect('searchFormato', formats);
         }
 
         function populateSelect(selectId, options) {
