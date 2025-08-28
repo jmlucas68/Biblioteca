@@ -801,6 +801,10 @@
                     <div class="breadcrumb" id="breadcrumb"></div>
                 </div>
                 <div class="header-right">
+                    <!-- Botón Editar Clasificación a la izquierda del de Buscar Libros -->
+                    <button class="btn btn--warning" style="margin-right: 0;" onclick="openClassificationEditor()" title="Editar la estructura de clasificación de secciones y tags">
+                        ⚙️ Editar Clasificación
+                    </button>
                     <button class="header-search-btn" onclick="openSearchModal()">
                         🔍 Buscar Libros
                     </button>
@@ -808,6 +812,10 @@
                         <div class="stat">
                             <span class="stat-number" id="totalBooks">0</span>
                             <span class="stat-label">Libros</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number" id="totalAuthors">0</span>
+                            <span class="stat-label">Autores</span>
                         </div>
                         <div class="stat">
                             <span class="stat-number" id="totalFormats">0</span>
@@ -1098,6 +1106,12 @@
                 // Update stats
                 elements.totalBooks.textContent = allBooks.length;
                 elements.totalFormats.textContent = allFormats.length;
+
+                // Nuevo: total de autores diferentes
+                const uniqueAuthors = new Set(allBooks.map(b => (b.autor || '').trim()).filter(Boolean));
+                const totalAuthors = uniqueAuthors.size;
+                const totalAuthorsElem = document.getElementById('totalAuthors');
+                if (totalAuthorsElem) totalAuthorsElem.textContent = totalAuthors;
 
                 elements.loading.style.display = 'none';
             } catch (error) {
