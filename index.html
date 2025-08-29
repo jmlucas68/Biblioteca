@@ -1116,14 +1116,6 @@
                 .replace(/[\\u0300-\\u036f]/g, '');  // Elimina los diacríticos (acentos)
         }
 
-                // Función para normalizar tags (eliminar acentos y convertir a minúsculas)
-        function normalizeTag(tag) {
-            return tag.trim()
-                .toLowerCase()
-                .normalize('NFD')           // Descompone los caracteres acentuados
-                .replace(/[\\u0300-\\u036f]/g, '');  // Elimina los diacríticos (acentos)
-        }
-
         async function procesarLibrosAntesDeClasificar() {
             console.log('🔍 INICIANDO procesarLibrosAntesDeClasificar...');
             
