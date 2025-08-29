@@ -1268,6 +1268,46 @@
             populateSelect('searchYear', years);
             populateSelect('searchFormato', formats);
 
+                // Función para poblar los filtros de búsqueda
+        function populateSearchFilters() {
+            if (!allBooks || allBooks.length === 0) return;
+            
+            // Extraer datos únicos de todos los libros
+            const authors = [...new Set(allBooks.map(book => book.autor).filter(Boolean))].sort();
+            const genres = [...new Set(allBooks.flatMap(book => 
+                (book.genero || '').split(',').map(g => g.trim()).filter(Boolean)
+            ))].sort();
+            const series = [...new Set(allBooks.map(book => book.serie).filter(Boolean))].sort();
+            const editorials = [...new Set(allBooks.map(book => book.editorial).filter(Boolean))].sort();
+            
+            // Solo años (YYYY) para el filtro de año
+            const years = [...new Set(
+                allBooks
+                    .map(book => book.fecha_publicacion)
+                    .filter(Boolean)
+                    .map(date => {
+                        if (typeof date === 'string' && date.length >= 4) {
+                            return date.slice(0, 4);
+                        }
+                        return date;
+                    })
+            )].filter(y => /^\\d{4}$/.test(y)).sort().reverse();
+
+            const formats = [...new Set(allFormats.map(f => f.formato))].sort();
+
+            // Guardar listas originales para filtrado dinámico
+            window._allAuthors = authors;
+            window._allGenres = genres;
+
+            // Inicializar selects completos
+            populateSelect('searchAutor', authors);
+            populateSelect('searchGenero', genres);
+            populateSelect('searchSerie', series);
+            populateSelect('searchEditorial', editorials);
+            populateSelect('searchYear', years);
+            populateSelect('searchFormato', formats);
+        }
+
         function populateSelect(selectId, options) {
             const select = document.getElementById(selectId);
             const currentOptions = select.querySelectorAll('option:not([value=""])');
