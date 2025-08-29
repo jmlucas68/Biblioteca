@@ -1112,8 +1112,8 @@
         function normalizeTag(tag) {
             return tag.trim()
                 .toLowerCase()
-                .normalize('NFD')           // Descompone los caracteres acentuados
-                .replace(/[\u0300-\u036f]/g, '');  // Elimina los diacríticos (acentos)
+                .normalize('NFD')           
+                .replace(/[\u0300-\u036f]/g, '');  // CORRECCIÓN: Eliminar las barras invertidas incorrectas
         }
 
         async function procesarLibrosAntesDeClasificar() {
@@ -1205,21 +1205,29 @@
                             console.error(`❌ Error al procesar libro ${book.titulo}:`, error);
                         }
                     } else {
-                        console.log(`  ⏭️ Manteniendo "Sin_clasificar" en "${book.titulo}" (no tiene tags clasificados)`);
+                        console.log(`  ⭐️ Manteniendo "Sin_clasificar" en "${book.titulo}" (no tiene tags clasificados)`);
                     }
                 }
             }
-            
-            console.log(`🏁 RESUMEN procesarLibrosAntesDeClasificar:`, {
-                totalLibros: allBooks.length,
-                librosConSinClasificar,
-                librosModificados,
-                tagsClasificacion: allTagsClasificacion.size
-            });
-        }
+    
+    console.log(`🏁 RESUMEN procesarLibrosAntesDeClasificar:`, {
+        totalLibros: allBooks.length,
+        librosConSinClasificar,
+        librosModificados,
+        tagsClasificacion: allTagsClasificacion.size
+    });
+}
 
         async function clasificarLibrosSinClasificar() {
-            if (!allBooks.length || !classification) return;
+            console.log('🔍 INICIANDO clasificarLibrosSinClasificar...');
+            
+            if (!allBooks.length || !classification) {
+                console.log('❌ Datos no disponibles:', { 
+                    allBooks: allBooks?.length || 0, 
+                    classification: !!classification 
+                });
+                return;
+            }
 
             // 1. Obtener todos los tags usados en la clasificación
             const allTagsClasificacion = new Set();
@@ -1231,28 +1239,39 @@
                 });
             });
 
-            console.log('Tags de clasificación encontrados:', Array.from(allTagsClasificacion));
+            console.log('🏷️ Tags de clasificación encontrados:', Array.from(allTagsClasificacion));
+
+            let librosModificados = 0;
+            let librosSinClasificar = 0;
+            let librosYaClasificados = 0;
 
             // 2. Recorrer todos los libros y marcar los que no tengan ningún tag de la clasificación
             for (const book of allBooks) {
                 const bookTags = (book.genero || '').split(',').map(t => t.trim()).filter(Boolean);
                 const bookTagsNormalized = bookTags.map(tag => normalizeTag(tag));
                 
-                console.log(`Libro: ${book.titulo}, Tags: [${bookTags.join(', ')}], Normalized: [${bookTagsNormalized.join(', ')}]`);
+                console.log(`📖 Analizando libro: ${book.titulo}`);
+                console.log(`   Tags originales: [${bookTags.join(', ')}]`);
+                console.log(`   Tags normalizados: [${bookTagsNormalized.join(', ')}]`);
                 
                 // Comparar tags normalizados
-                const tieneTagClasificado = bookTagsNormalized.some(normalizedTag => 
-                    allTagsClasificacion.has(normalizedTag)
-                );
+                const tieneTagClasificado = bookTagsNormalized.some(normalizedTag => {
+                    const hasTag = allTagsClasificacion.has(normalizedTag);
+                    if (hasTag) {
+                        console.log(`   ✅ Tag clasificado encontrado: "${normalizedTag}"`);
+                    }
+                    return hasTag;
+                });
                 
-                console.log(`¿Tiene tag clasificado? ${tieneTagClasificado}`);
+                console.log(`   ¿Tiene tag clasificado? ${tieneTagClasificado}`);
                 
                 if (!tieneTagClasificado) {
+                    librosSinClasificar++;
                     // Verificar si ya tiene "Sin_clasificar"
                     const tieneSinClasificar = bookTagsNormalized.includes('sin_clasificar');
                     
                     if (!tieneSinClasificar) {
-                        console.log(`Añadiendo "Sin_clasificar" al libro: ${book.titulo}`);
+                        console.log(`   🏷️ Añadiendo "Sin_clasificar" al libro: ${book.titulo}`);
                         const nuevosTags = [...bookTags, 'Sin_clasificar'].filter(Boolean).join(', ');
                         
                         try {
@@ -1263,22 +1282,32 @@
                                 .eq('id', book.id);
                             
                             if (error) {
-                                console.error(`Error clasificando libro ${book.titulo}:`, error);
+                                console.error(`❌ Error clasificando libro ${book.titulo}:`, error);
                             } else {
-                                console.log(`Tag "Sin_clasificar" añadido al libro: ${book.titulo}`);
+                                console.log(`   ✅ Tag "Sin_clasificar" añadido al libro: ${book.titulo}`);
                                 // Actualizar en memoria
                                 book.genero = nuevosTags;
+                                librosModificados++;
                             }
                         } catch (error) {
-                            console.error(`Error al clasificar libro ${book.titulo}:`, error);
+                            console.error(`❌ Error al clasificar libro ${book.titulo}:`, error);
                         }
                     } else {
-                        console.log(`El libro ${book.titulo} ya tiene "Sin_clasificar"`);
+                        console.log(`   ℹ️ El libro ${book.titulo} ya tiene "Sin_clasificar"`);
                     }
                 } else {
-                    console.log(`El libro ${book.titulo} SÍ tiene tags clasificados`);
+                    librosYaClasificados++;
+                    console.log(`   ✅ El libro ${book.titulo} SÍ tiene tags clasificados`);
                 }
             }
+            
+            console.log(`🏁 RESUMEN clasificarLibrosSinClasificar:`, {
+                totalLibros: allBooks.length,
+                librosSinClasificar,
+                librosYaClasificados,
+                librosModificados,
+                tagsClasificacion: allTagsClasificacion.size
+            });
         }
 
 
