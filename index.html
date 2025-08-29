@@ -1515,7 +1515,29 @@
             elements.adminControls.style.display = 'none';
             
             updateBreadcrumb([section.name, subsection.name]);
-            
+
+            // NUEVO: Mostrar tags de la subsección justo debajo de la ruta
+            let tagsHtml = '';
+            if (subsection.tags && subsection.tags.length > 0) {
+                tagsHtml = `
+                    <div id="subsectionTags" style="margin: 12px 0 20px 0;">
+                        <strong>Tags de esta subsección:</strong>
+                        ${subsection.tags.map(tag => `<span style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;margin-right:6px;font-size:13px;">${esc(tag)}</span>`).join('')}
+                    </div>
+                `;
+            } else {
+                tagsHtml = `<div id="subsectionTags" style="margin: 12px 0 20px 0; color: #64748b;">Sin tags en esta subsección.</div>`;
+            }
+            // Insertar los tags justo debajo del breadcrumb
+            const breadcrumbElem = document.getElementById('breadcrumb');
+            if (breadcrumbElem) {
+                // Elimina si ya existe
+                const oldTags = document.getElementById('subsectionTags');
+                if (oldTags) oldTags.remove();
+                // Inserta después del breadcrumb
+                breadcrumbElem.insertAdjacentHTML('afterend', tagsHtml);
+            }
+
             // Filter books by tags
             filteredBooks = filterBooksByTags(subsection.tags);
             currentBooks = [...filteredBooks];
