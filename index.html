@@ -746,7 +746,90 @@
         .view.active {
             display: block;
         }
-    </style>
+    
+
+        /* Estilos para el modal de edición de tags */
+        #tagsEditorModal .modal-content {
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #currentTagsList {
+            background: #fafafa;
+            min-height: 50px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            align-content: flex-start;
+        }
+
+        #availableTagsList {
+            background: #fafafa;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        #newTagInput:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Mejorar el botón de editar tags en la cabecera */
+        #editTagsBtn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Estilo para tags editables */
+        .subsection-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(3, 105, 161, 0.2);
+        }
+
+        /* Responsive para el modal en dispositivos móviles */
+        @media (max-width: 768px) {
+            #tagsEditorModal .modal-content {
+                margin: 5% auto;
+                width: 95%;
+                max-width: none;
+            }
+
+            #newTagInput {
+                font-size: 16px; /* Evita zoom en iOS */
+            }
+        }
+
+        /* Scrollbar personalizado para la lista de tags disponibles */
+        #availableTagsList::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #availableTagsList::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        #availableTagsList::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        #availableTagsList::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    
+        </style>
 </head>
 <body>
     <div class="container">
@@ -1478,18 +1561,46 @@
             if (subsection.tags && subsection.tags.length > 0) {
                 tagsHtml = `
                     <div id="subsectionTags" style="margin: 12px 0 20px 0;">
-                        <strong>Tags de esta subsección:</strong>
-                        ${subsection.tags.map(tag => `
-                            <span 
-                                class="subsection-tag" 
-                                data-tag="${esc(tag)}"
-                                style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;margin-right:6px;font-size:13px;cursor:pointer;transition:background 0.2s;"
-                            >${esc(tag)}</span>
-                        `).join('')}
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <strong>Tags de esta subsección:</strong>
+                            <button 
+                                id="editTagsBtn" 
+                                onclick="openSubsectionTagsEditor('${sectionKey}', '${subsectionKey}')"
+                                style="background: var(--color-primary); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: background 0.2s;"
+                                onmouseover="this.style.background='var(--color-primary-light)'"
+                                onmouseout="this.style.background='var(--color-primary)'"
+                            >
+                                ✏️ Editar Tags
+                            </button>
+                        </div>
+                        <div id="tagsContainer">
+                            ${subsection.tags.map(tag => `
+                                <span 
+                                    class="subsection-tag" 
+                                    data-tag="${esc(tag)}"
+                                    style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;margin-right:6px;font-size:13px;cursor:pointer;transition:background 0.2s;"
+                                >${esc(tag)}</span>
+                            `).join('')}
+                        </div>
                     </div>
                 `;
             } else {
-                tagsHtml = `<div id="subsectionTags" style="margin: 12px 0 20px 0; color: #64748b;">Sin tags en esta subsección.</div>`;
+                tagsHtml = `
+                    <div id="subsectionTags" style="margin: 12px 0 20px 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #64748b;">Sin tags en esta subsección.</span>
+                            <button 
+                                id="editTagsBtn" 
+                                onclick="openSubsectionTagsEditor('${sectionKey}', '${subsectionKey}')"
+                                style="background: var(--color-primary); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: background 0.2s;"
+                                onmouseover="this.style.background='var(--color-primary-light)'"
+                                onmouseout="this.style.background='var(--color-primary)'"
+                            >
+                                ✏️ Añadir Tags
+                            </button>
+                        </div>
+                    </div>
+                `;
             }
             // Insertar los tags justo debajo del breadcrumb
             const breadcrumbElem = document.getElementById('breadcrumb');
@@ -1935,6 +2046,242 @@
         });
     }
 });
-    </script>
+    
+
+        // Variables globales para el editor de tags
+        let currentEditingSectionKey = null;
+        let currentEditingSubsectionKey = null;
+        let currentSubsectionTags = [];
+
+        // Abrir el modal de edición de tags de subsección
+        function openSubsectionTagsEditor(sectionKey, subsectionKey) {
+            currentEditingSectionKey = sectionKey;
+            currentEditingSubsectionKey = subsectionKey;
+
+            const section = classification.sections[sectionKey];
+            const subsection = section.subsections[subsectionKey];
+            currentSubsectionTags = [...(subsection.tags || [])];
+
+            // Mostrar información de la subsección
+            document.getElementById('currentSubsectionInfo').innerHTML = `
+                <strong>${section.name}</strong> → <strong>${subsection.name}</strong>
+            `;
+
+            // Mostrar tags actuales
+            renderCurrentTags();
+
+            // Mostrar tags disponibles de otros libros
+            renderAvailableTags();
+
+            // Limpiar campo de nuevo tag
+            document.getElementById('newTagInput').value = '';
+
+            // Mostrar modal
+            document.getElementById('tagsEditorModal').style.display = 'block';
+        }
+
+        // Cerrar el modal de edición de tags
+        function closeTagsEditorModal() {
+            document.getElementById('tagsEditorModal').style.display = 'none';
+            currentEditingSectionKey = null;
+            currentEditingSubsectionKey = null;
+            currentSubsectionTags = [];
+        }
+
+        // Renderizar los tags actuales en el modal
+        function renderCurrentTags() {
+            const container = document.getElementById('currentTagsList');
+
+            if (currentSubsectionTags.length === 0) {
+                container.innerHTML = '<em style="color: #64748b;">No hay tags en esta subsección</em>';
+                return;
+            }
+
+            container.innerHTML = currentSubsectionTags.map(tag => `
+                <span style="display: inline-block; background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 12px; margin: 2px 4px 2px 0; font-size: 13px;">
+                    ${esc(tag)}
+                    <button onclick="removeTag('${esc(tag)}')" 
+                            style="background: none; border: none; color: #ef4444; margin-left: 4px; cursor: pointer; font-size: 12px; font-weight: bold;"
+                            title="Eliminar tag">×</button>
+                </span>
+            `).join('');
+        }
+
+        // Renderizar tags disponibles de otros libros
+        function renderAvailableTags() {
+            // Obtener todos los tags únicos de todos los libros
+            const allBookTags = new Set();
+            allBooks.forEach(book => {
+                if (book.genero) {
+                    book.genero.split(',').forEach(tag => {
+                        const cleanTag = tag.trim();
+                        if (cleanTag) allBookTags.add(cleanTag);
+                    });
+                }
+            });
+
+            // Filtrar tags que no están ya en la subsección
+            const availableTags = Array.from(allBookTags).filter(tag => 
+                !currentSubsectionTags.includes(tag)
+            ).sort();
+
+            const container = document.getElementById('availableTagsList');
+
+            if (availableTags.length === 0) {
+                container.innerHTML = '<em style="color: #64748b;">No hay tags adicionales disponibles</em>';
+                return;
+            }
+
+            container.innerHTML = availableTags.map(tag => `
+                <span onclick="addExistingTag('${esc(tag)}')"
+                      style="display: inline-block; background: #f1f5f9; color: #475569; padding: 3px 6px; border-radius: 8px; margin: 2px; font-size: 12px; cursor: pointer; border: 1px solid #e2e8f0; transition: all 0.2s;"
+                      onmouseover="this.style.background='#e2e8f0'"
+                      onmouseout="this.style.background='#f1f5f9'"
+                      title="Click para añadir">
+                    + ${esc(tag)}
+                </span>
+            `).join('');
+        }
+
+        // Añadir un nuevo tag
+        function addNewTag() {
+            const input = document.getElementById('newTagInput');
+            const newTag = input.value.trim();
+
+            if (!newTag) {
+                alert('Por favor, escriba un tag');
+                return;
+            }
+
+            if (currentSubsectionTags.includes(newTag)) {
+                alert('Este tag ya existe en la subsección');
+                return;
+            }
+
+            currentSubsectionTags.push(newTag);
+            input.value = '';
+            renderCurrentTags();
+            renderAvailableTags(); // Actualizar lista de disponibles
+        }
+
+        // Añadir un tag existente
+        function addExistingTag(tag) {
+            if (currentSubsectionTags.includes(tag)) {
+                return; // Ya está incluido
+            }
+
+            currentSubsectionTags.push(tag);
+            renderCurrentTags();
+            renderAvailableTags();
+        }
+
+        // Eliminar un tag
+        function removeTag(tag) {
+            currentSubsectionTags = currentSubsectionTags.filter(t => t !== tag);
+            renderCurrentTags();
+            renderAvailableTags();
+        }
+
+        // Guardar los cambios en los tags de la subsección
+        async function saveSubsectionTags() {
+            if (!currentEditingSectionKey || !currentEditingSubsectionKey) {
+                alert('Error: No se pudo identificar la subsección a modificar');
+                return;
+            }
+
+            try {
+                // Actualizar en la clasificación local
+                classification.sections[currentEditingSectionKey].subsections[currentEditingSubsectionKey].tags = [...currentSubsectionTags];
+
+                // Aquí podrías también guardar en una base de datos o archivo si fuera necesario
+                // Por ejemplo, si tuvieras un endpoint para actualizar la clasificación:
+                // await updateClassificationInDatabase(classification);
+
+                // Cerrar modal
+                closeTagsEditorModal();
+
+                // Refrescar la vista actual para mostrar los cambios
+                showBooks(currentEditingSectionKey, currentEditingSubsectionKey);
+
+                alert('Tags actualizados correctamente');
+
+            } catch (error) {
+                console.error('Error al guardar los tags:', error);
+                alert('Hubo un error al guardar los cambios');
+            }
+        }
+
+        // Añadir listener para Enter en el campo de nuevo tag
+        document.addEventListener('DOMContentLoaded', function() {
+            // Esperar a que el modal esté en el DOM
+            setTimeout(() => {
+                const newTagInput = document.getElementById('newTagInput');
+                if (newTagInput) {
+                    newTagInput.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addNewTag();
+                        }
+                    });
+                }
+            }, 100);
+        });
+
+
+        </script>
+
+    <!-- Modal para Editar Tags de Subsección -->
+    <div id="tagsEditorModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0;">Editar Tags de Subsección</h3>
+                <span class="close" onclick="closeTagsEditorModal()" style="cursor: pointer; font-size: 24px;">&times;</span>
+            </div>
+
+            <div id="currentSubsectionInfo" style="background: #f8fafc; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; color: #64748b;">
+                <!-- Se mostrará la información de la subsección actual -->
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Tags Actuales:</label>
+                <div id="currentTagsList" style="margin-bottom: 12px; min-height: 40px; border: 1px dashed #e2e8f0; padding: 12px; border-radius: 6px;">
+                    <!-- Se mostrarán los tags actuales aquí -->
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label for="newTagInput" style="display: block; margin-bottom: 8px; font-weight: 600;">Añadir Nuevo Tag:</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="newTagInput" placeholder="Escribir nuevo tag..." 
+                           style="flex: 1; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 14px;">
+                    <button onclick="addNewTag()" 
+                            style="background: var(--color-success); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; white-space: nowrap;">
+                        + Añadir
+                    </button>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Tags Disponibles en Otros Libros:</label>
+                <div id="availableTagsList" style="max-height: 120px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px;">
+                    <!-- Se mostrarán tags existentes de otros libros -->
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                <button onclick="closeTagsEditorModal()" 
+                        style="background: #64748b; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button onclick="saveSubsectionTags()" 
+                        style="background: var(--color-primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                    💾 Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Fin Modal Editar Tags -->
+
+
 </body>
 </html>
