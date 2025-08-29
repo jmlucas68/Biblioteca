@@ -1639,12 +1639,53 @@
         function showBookDetails(bookId) {
             const book = allBooks.find(b => b.id === bookId);
             if (!book) return;
-            
+
             const formats = getBookFormats(bookId);
             const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
             const portadaSrc = resolveCoverThumb(book.url_portada);
             const coverHref = book.url_portada || '#';
-            
+
+            // Buscar subsecciones en las que aparece el libro
+            let subseccionesLibro = [];
+            if (classification && classification.sections) {
+                for (const [sectionKey, section] of Object.entries(classification.sections)) {
+                    for (const [subKey, subsection] of Object.entries(section.subsections)) {
+                        // Si el libro tiene al menos un tag de la subsección
+                        if (
+                            subsection.tags &&
+                            subsection.tags.some(tag =>
+                                genres.map(normalizeString).includes(normalizeString(tag))
+                            )
+                        ) {
+                            subseccionesLibro.push({
+                                section: section.name,
+                                subsection: subsection.name
+                            });
+                        }
+                    }
+                }
+            }
+
+            let subseccionesHtml = '';
+            if (subseccionesLibro.length > 0) {
+                subseccionesHtml = `
+                    <div style="margin: 16px 0 0 0;">
+                        <strong>Subsecciones donde aparece:</strong>
+                        <ul style="margin: 6px 0 0 0; padding-left: 18px;">
+                            ${subseccionesLibro.map(s =>
+                                `<li><span style="color:#2563eb;">${esc(s.section)}</span> / <span style="color:#0369a1;">${esc(s.subsection)}</span></li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                `;
+            } else {
+                subseccionesHtml = `
+                    <div style="margin: 16px 0 0 0; color: #64748b;">
+                        No pertenece a ninguna subsección clasificada.
+                    </div>
+                `;
+            }
+
             const modalHtml = `
                 <div class="modal-book">
                     <div class="modal-cover">
@@ -1660,6 +1701,7 @@
                         ${book.editorial ? `<p><strong>Editorial:</strong> ${esc(book.editorial)}</p>` : ''}
                         ${book.fecha_publicacion ? `<p><strong>Año:</strong> ${esc(book.fecha_publicacion)}</p>` : ''}
                         <p><strong>Géneros:</strong> ${genres.map(g => esc(g)).join(', ') || 'Sin especificar'}</p>
+                        ${subseccionesHtml}
                     </div>
                 </div>
                 ${book.descripcion ? `
