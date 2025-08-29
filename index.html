@@ -1108,23 +1108,26 @@
             }
         }
 
-        // Nueva función CORREGIDA: Procesar libros antes de clasificar (case-insensitive)
+        // FUNCIÓN CORREGIDA: procesarLibrosAntesDeClasificar - ASYNC y usando normalizeTag
         async function procesarLibrosAntesDeClasificar() {
             if (!allBooks.length || !classification) return;
 
             // 1. Obtener todos los tags usados en la clasificación (excluyendo "Sin_clasificar")
-            // CONVERTIR A MINÚSCULAS para comparación case-insensitive
             const allTagsClasificacion = new Set();
             Object.values(classification.sections).forEach(section => {
                 Object.values(section.subsections).forEach(subsec => {
                     (subsec.tags || []).forEach(tag => {
-                        const cleanTag = tag.trim().toLowerCase(); // ← MINÚSCULAS
-                        if (cleanTag !== 'sin_clasificar') { // ← MINÚSCULAS
-                            allTagsClasificacion.add(cleanTag);
+                        const normalizedTag = normalizeTag(tag); // ← USAR normalizeTag()
+                        if (normalizedTag !== 'sin_clasificar') {
+                            allTagsClasificacion.add(normalizedTag);
                         }
                     });
                 });
             });
+
+    // 2. Procesar libros que tienen "Sin_clasificar" pero también otros tags
+    for (const book of allBooks) {
+
 
             // 2. Procesar libros que tienen "Sin_clasificar" pero también otros tags
             for (const book of allBooks) {
@@ -1169,13 +1172,14 @@
             }
         }
 
-        // Función para normalizar tags (eliminar acentos y convertir a minúsculas)
+        // Función para normalizar tags (eliminar acentos y convertir a minúsculas) - CORREGIDA
         function normalizeTag(tag) {
-            return tag.trim()
-                .toLowerCase()
-                .normalize('NFD')           // Descompone los caracteres acentuados
-                .replace(/[\\u0300-\\u036f]/g, '');  // Elimina los diacríticos (acentos)
+        return tag.trim()
+            .toLowerCase()
+            .normalize('NFD')           // Descompone los caracteres acentuados
+            .replace(/[\\u0300-\\u036f]/g, '');  // Elimina los diacríticos (acentos) - ESCAPE CORREGIDO
         }
+
 
 
         // Función CORREGIDA: clasificarLibrosSinClasificar (case-insensitive)
