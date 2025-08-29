@@ -1010,7 +1010,7 @@
         let filteredBooks = [];
         let currentBooks = [];
         let currentEditingBook = null;
-        let classification = null; // Cambia: ahora se cargará desde la base de datos
+        let classification = null; 
 
         // DOM elements
         const elements = {
@@ -1040,8 +1040,8 @@
         document.addEventListener('DOMContentLoaded', async () => {
             await loadData();
             await loadClassification();
-            await procesarLibrosAntesDeClasificar();
-            await clasificarLibrosSinClasificar();
+            // --- LLAMADA A LA NUEVA FUNCIÓN CORREGIDA ---
+            await sincronizarClasificacion();
 
             populateSearchFilters();
             showSections();
@@ -1074,7 +1074,6 @@
                 elements.totalBooks.textContent = allBooks.length;
                 elements.totalFormats.textContent = allFormats.length;
 
-                // Nuevo: total de autores diferentes
                 const uniqueAuthors = new Set(allBooks.map(b => (b.autor || '').trim()).filter(Boolean));
                 const totalAuthors = uniqueAuthors.size;
                 const totalAuthorsElem = document.getElementById('totalAuthors');
@@ -1087,11 +1086,9 @@
             }
         }
 
-        // NUEVA FUNCIÓN: Cargar la clasificación desde la tabla "clasificacion"
         async function loadClassification() {
             try {
                 elements.loading.style.display = 'flex';
-                // Solo hay una fila, selecciona la primera
                 const { data, error } = await supabaseClient
                     .from('clasificacion')
                     .select('data')
@@ -1099,7 +1096,6 @@
                     .single();
 
                 if (error) throw error;
-                // data.data es el JSON de clasificación
                 classification = data.data;
                 elements.loading.style.display = 'none';
             } catch (error) {
@@ -1108,242 +1104,122 @@
             }
         }
 
-        // Función para normalizar tags (eliminar acentos y convertir a minúsculas)
-        function normalizeTag(tag) {
-            return tag.trim()
+        // --- INICIO DEL BLOQUE DE CÓDIGO CORREGIDO ---
+
+        /**
+         * Normaliza un texto para realizar comparaciones, eliminando acentos,
+         * convirtiendo a minúsculas y quitando espacios extra.
+         * @param {string} str - El texto a normalizar.
+         * @returns {string} El texto normalizado.
+         */
+        function normalizeText(str) {
+            if (typeof str !== 'string') return '';
+            return str.trim()
                 .toLowerCase()
-                .normalize('NFD')           
-                .replace(/[\u0300-\u036f]/g, '');  // CORRECCIÓN: Eliminar las barras invertidas incorrectas
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
         }
 
-        async function procesarLibrosAntesDeClasificar() {
-            console.log('🔍 INICIANDO procesarLibrosAntesDeClasificar...');
-            
-            if (!allBooks.length || !classification) {
-                console.log('❌ Datos no disponibles:', { 
-                    allBooks: allBooks?.length || 0, 
-                    classification: !!classification 
-                });
-                return;
-            }
+        /**
+         * Comprueba si un libro pertenece a alguna subsección de la clasificación.
+         * Un libro pertenece si comparte al menos un tag (género) con los tags
+         * definidos en una subsección.
+         * @param {object} book - El objeto del libro.
+         * @param {object} classification - El objeto de clasificación completo.
+         * @returns {boolean} - Devuelve true si el libro encaja en al menos una subsección.
+         */
+        function isBookInAnySubsection(book, classification) {
+            const bookTags = (book.genero || '').split(',').map(normalizeText).filter(Boolean);
+            if (bookTags.length === 0) return false;
 
-            console.log(`📚 Procesando ${allBooks.length} libros`);
+            for (const sectionKey in classification.sections) {
+                const section = classification.sections[sectionKey];
+                for (const subKey in section.subsections) {
+                    const subsection = section.subsections[subKey];
+                    const subsectionTags = (subsection.tags || []).map(normalizeText);
 
-            // 1. Obtener todos los tags usados en la clasificación (excluyendo "Sin_clasificar")
-            const allTagsClasificacion = new Set();
-            Object.values(classification.sections).forEach(section => {
-                Object.values(section.subsections).forEach(subsec => {
-                    (subsec.tags || []).forEach(tag => {
-                        const normalizedTag = normalizeTag(tag);
-                        if (normalizedTag !== 'sin_clasificar') {
-                            allTagsClasificacion.add(normalizedTag);
-                        }
-                    });
-                });
-            });
-
-            console.log('🏷️ Tags de clasificación encontrados:', Array.from(allTagsClasificacion));
-
-            // 2. Procesar libros que tienen "Sin_clasificar" pero también otros tags
-            let librosConSinClasificar = 0;
-            let librosModificados = 0;
-            
-            for (const book of allBooks) {
-                const bookTags = (book.genero || '').split(',').map(t => t.trim()).filter(Boolean);
-                const bookTagsNormalized = bookTags.map(tag => normalizeTag(tag));
-                
-                // Verificar si el libro tiene "Sin_clasificar" (normalizado)
-                const tieneSinClasificar = bookTagsNormalized.includes('sin_clasificar');
-                
-                if (tieneSinClasificar) {
-                    librosConSinClasificar++;
-                    console.log(`📖 Libro con "Sin_clasificar": "${book.titulo}"`, {
-                        tags: bookTags,
-                        normalized: bookTagsNormalized
-                    });
-                    
-                    // Verificar si también tiene otros tags que están en la clasificación
-                    const tieneOtrosTagsClasificados = bookTagsNormalized.some(normalizedTag => {
-                        const hasTag = normalizedTag !== 'sin_clasificar' && allTagsClasificacion.has(normalizedTag);
-                        if (hasTag) {
-                            console.log(`  ✅ Tag clasificado encontrado: "${normalizedTag}"`);
-                        }
-                        return hasTag;
-                    });
-                    
-                    console.log(`  ¿Tiene otros tags clasificados? ${tieneOtrosTagsClasificados}`);
-                    
-                    if (tieneOtrosTagsClasificados) {
-                        // Quitar "Sin_clasificar" de la lista de tags
-                        const nuevosTagsSinClasificar = bookTags.filter(tag => 
-                            normalizeTag(tag) !== 'sin_clasificar'
-                        );
-                        const nuevoGenero = nuevosTagsSinClasificar.join(', ');
-                        
-                        console.log(`  🔄 Removiendo "Sin_clasificar" de "${book.titulo}"`, {
-                            tagsOriginales: bookTags,
-                            nuevosTagsRaw: nuevosTagsSinClasificar,
-                            nuevoGenero: nuevoGenero
-                        });
-                        
-                        try {
-                            // Actualizar en la base de datos
-                            const { error } = await supabaseClient
-                                .from('books')
-                                .update({ genero: nuevoGenero })
-                                .eq('id', book.id);
-                            
-                            if (error) {
-                                console.error(`❌ Error actualizando libro ${book.titulo}:`, error);
-                            } else {
-                                console.log(`✅ Tag "Sin_clasificar" removido del libro: ${book.titulo}`);
-                                // Actualizar en memoria
-                                book.genero = nuevoGenero;
-                                librosModificados++;
-                            }
-                        } catch (error) {
-                            console.error(`❌ Error al procesar libro ${book.titulo}:`, error);
-                        }
-                    } else {
-                        console.log(`  ⭐️ Manteniendo "Sin_clasificar" en "${book.titulo}" (no tiene tags clasificados)`);
+                    // Si hay alguna coincidencia de tags, el libro está clasificado.
+                    if (subsectionTags.some(tag => bookTags.includes(tag))) {
+                        return true;
                     }
                 }
             }
-    
-    console.log(`🏁 RESUMEN procesarLibrosAntesDeClasificar:`, {
-        totalLibros: allBooks.length,
-        librosConSinClasificar,
-        librosModificados,
-        tagsClasificacion: allTagsClasificacion.size
-    });
-}
+            // Si después de revisar todo no encontró coincidencia, no está clasificado.
+            return false;
+        }
 
-        async function clasificarLibrosSinClasificar() {
-            console.log('🔍 INICIANDO clasificarLibrosSinClasificar...');
+        /**
+         * ✨ FUNCIÓN UNIFICADA Y CORREGIDA ✨
+         * Sincroniza el estado de clasificación de todos los libros.
+         * - Añade 'Sin_clasificar' a los libros que no pertenecen a ninguna subsección.
+         * - Elimina 'Sin_clasificar' de los libros que sí pertenecen a una subsección.
+         */
+        async function sincronizarClasificacion() {
+            console.log('🔄 INICIANDO sincronización de clasificación...');
             
             if (!allBooks.length || !classification) {
-                console.log('❌ Datos no disponibles:', { 
-                    allBooks: allBooks?.length || 0, 
-                    classification: !!classification 
-                });
+                console.warn('⚠️ No se puede sincronizar: Faltan libros o datos de clasificación.');
                 return;
             }
 
-            // 1. Obtener todos los tags usados en la clasificación
-            const allTagsClasificacion = new Set();
-            Object.values(classification.sections).forEach(section => {
-                Object.values(section.subsections).forEach(subsec => {
-                    (subsec.tags || []).forEach(tag => {
-                        allTagsClasificacion.add(normalizeTag(tag));
-                    });
-                });
-            });
+            const updates = []; // Almacenaremos aquí las actualizaciones necesarias
 
-            console.log('🏷️ Tags de clasificación encontrados:', Array.from(allTagsClasificacion));
-
-            let librosModificados = 0;
-            let librosSinClasificar = 0;
-            let librosYaClasificados = 0;
-
-            // 2. Recorrer todos los libros y marcar los que no tengan ningún tag de la clasificación
             for (const book of allBooks) {
                 const bookTags = (book.genero || '').split(',').map(t => t.trim()).filter(Boolean);
-                const bookTagsNormalized = bookTags.map(tag => normalizeTag(tag));
+                const normalizedBookTags = bookTags.map(normalizeText);
                 
-                console.log(`📖 Analizando libro: ${book.titulo}`);
-                console.log(`   Tags originales: [${bookTags.join(', ')}]`);
-                console.log(`   Tags normalizados: [${bookTagsNormalized.join(', ')}]`);
+                const tieneTagSinClasificar = normalizedBookTags.includes(normalizeText('Sin_clasificar'));
+                const estaRealmenteClasificado = isBookInAnySubsection(book, classification);
+
+                let nuevoGenero = null;
+
+                // CASO 1: El libro está clasificado pero tiene la etiqueta "Sin_clasificar". Hay que quitarla.
+                if (estaRealmenteClasificado && tieneTagSinClasificar) {
+                    console.log(`👍 Libro "${book.titulo}" ya está clasificado. Eliminando tag sobrante.`);
+                    const tagsFiltrados = bookTags.filter(tag => normalizeText(tag) !== normalizeText('Sin_clasificar'));
+                    nuevoGenero = tagsFiltrados.join(', ');
+                }
                 
-                // Comparar tags normalizados
-                const tieneTagClasificado = bookTagsNormalized.some(normalizedTag => {
-                    const hasTag = allTagsClasificacion.has(normalizedTag);
-                    if (hasTag) {
-                        console.log(`   ✅ Tag clasificado encontrado: "${normalizedTag}"`);
-                    }
-                    return hasTag;
-                });
-                
-                console.log(`   ¿Tiene tag clasificado? ${tieneTagClasificado}`);
-                
-                if (!tieneTagClasificado) {
-                    librosSinClasificar++;
-                    // Verificar si ya tiene "Sin_clasificar"
-                    const tieneSinClasificar = bookTagsNormalized.includes('sin_clasificar');
-                    
-                    if (!tieneSinClasificar) {
-                        console.log(`   🏷️ Añadiendo "Sin_clasificar" al libro: ${book.titulo}`);
-                        const nuevosTags = [...bookTags, 'Sin_clasificar'].filter(Boolean).join(', ');
-                        
-                        try {
-                            // Actualizar en la base de datos
-                            const { error } = await supabaseClient
-                                .from('books')
-                                .update({ genero: nuevosTags })
-                                .eq('id', book.id);
-                            
-                            if (error) {
-                                console.error(`❌ Error clasificando libro ${book.titulo}:`, error);
-                            } else {
-                                console.log(`   ✅ Tag "Sin_clasificar" añadido al libro: ${book.titulo}`);
-                                // Actualizar en memoria
-                                book.genero = nuevosTags;
-                                librosModificados++;
-                            }
-                        } catch (error) {
-                            console.error(`❌ Error al clasificar libro ${book.titulo}:`, error);
-                        }
-                    } else {
-                        console.log(`   ℹ️ El libro ${book.titulo} ya tiene "Sin_clasificar"`);
-                    }
-                } else {
-                    librosYaClasificados++;
-                    console.log(`   ✅ El libro ${book.titulo} SÍ tiene tags clasificados`);
+                // CASO 2: El libro NO está clasificado y NO tiene la etiqueta. Hay que añadirla.
+                else if (!estaRealmenteClasificado && !tieneTagSinClasificar) {
+                    console.log(`👎 Libro "${book.titulo}" no tiene categoría. Añadiendo tag.`);
+                    const tagsNuevos = [...bookTags, 'Sin_clasificar'];
+                    nuevoGenero = tagsNuevos.join(', ');
+                }
+
+                // Si hemos determinado que hay que cambiar el género, preparamos la actualización.
+                if (nuevoGenero !== null) {
+                    updates.push({ id: book.id, genero: nuevoGenero });
+                    // Actualizamos en memoria para que la UI sea consistente de inmediato.
+                    book.genero = nuevoGenero;
                 }
             }
-            
-            console.log(`🏁 RESUMEN clasificarLibrosSinClasificar:`, {
-                totalLibros: allBooks.length,
-                librosSinClasificar,
-                librosYaClasificados,
-                librosModificados,
-                tagsClasificacion: allTagsClasificacion.size
-            });
+
+            if (updates.length > 0) {
+                console.log(`💾 Se van a actualizar ${updates.length} libros en la base de datos.`);
+                try {
+                    // Usamos upsert para actualizar múltiples filas en una sola llamada
+                    const { error } = await supabaseClient.from('books').upsert(updates);
+                    if (error) {
+                        console.error('❌ Error al actualizar libros en Supabase:', error);
+                    } else {
+                        console.log('✅ Sincronización completada con éxito.');
+                    }
+                } catch (err) {
+                     console.error('❌ Error catastrófico durante la actualización:', err);
+                }
+            } else {
+                console.log('✅ No se necesitaron actualizaciones. La biblioteca ya está sincronizada.');
+            }
         }
 
+        // --- FIN DEL BLOQUE DE CÓDIGO CORREGIDO ---
 
 
-            // Solo años (YYYY) para el filtro de año
-            const years = [...new Set(
-                allBooks
-                    .map(book => book.fecha_publicacion)
-                    .filter(Boolean)
-                    .map(date => {
-                        if (typeof date === 'string' && date.length >= 4) {
-                            return date.slice(0, 4);
-                        }
-                        return date;
-                    })
-            )].filter(y => /^\d{4}$/.test(y)).sort().reverse();
-
-            const formats = [...new Set(allBooks.flatMap(book => getBookFormats(book.id).map(f => f.formato)))].sort();
-
-            // Guardar listas originales para filtrado dinámico
-            window._allAuthors = authors;
-            window._allGenres = genres;
-
-            // Inicializar selects completos
-            populateSelect('searchAutor', authors);
-            populateSelect('searchGenero', genres);
-            populateSelect('searchSerie', series);
-            populateSelect('searchEditorial', editorials);
-            populateSelect('searchYear', years);
-            populateSelect('searchFormato', formats);
-
-                // Función para poblar los filtros de búsqueda
+        // Función para poblar los filtros de búsqueda
         function populateSearchFilters() {
             if (!allBooks || allBooks.length === 0) return;
             
-            // Extraer datos únicos de todos los libros
             const authors = [...new Set(allBooks.map(book => book.autor).filter(Boolean))].sort();
             const genres = [...new Set(allBooks.flatMap(book => 
                 (book.genero || '').split(',').map(g => g.trim()).filter(Boolean)
@@ -1351,26 +1227,18 @@
             const series = [...new Set(allBooks.map(book => book.serie).filter(Boolean))].sort();
             const editorials = [...new Set(allBooks.map(book => book.editorial).filter(Boolean))].sort();
             
-            // Solo años (YYYY) para el filtro de año
             const years = [...new Set(
                 allBooks
                     .map(book => book.fecha_publicacion)
                     .filter(Boolean)
-                    .map(date => {
-                        if (typeof date === 'string' && date.length >= 4) {
-                            return date.slice(0, 4);
-                        }
-                        return date;
-                    })
-            )].filter(y => /^\\d{4}$/.test(y)).sort().reverse();
+                    .map(date => (typeof date === 'string' && date.length >= 4) ? date.slice(0, 4) : date)
+            )].filter(y => /^\d{4}$/.test(y)).sort().reverse();
 
             const formats = [...new Set(allFormats.map(f => f.formato))].sort();
 
-            // Guardar listas originales para filtrado dinámico
             window._allAuthors = authors;
             window._allGenres = genres;
 
-            // Inicializar selects completos
             populateSelect('searchAutor', authors);
             populateSelect('searchGenero', genres);
             populateSelect('searchSerie', series);
@@ -1412,12 +1280,12 @@
             document.getElementById('searchYear').value = '';
             document.getElementById('searchFormato').value = '';
             document.getElementById('searchResults').innerHTML = '';
-            // Limpiar también los inputs de filtro dinámico de autor y género
+            
             const autorInput = document.getElementById('searchAutorInput');
             const generoInput = document.getElementById('searchGeneroInput');
             if (autorInput) autorInput.value = '';
             if (generoInput) generoInput.value = '';
-            // Repoblar selects completos
+
             if (window._allAuthors) populateSelect('searchAutor', window._allAuthors);
             if (window._allGenres) populateSelect('searchGenero', window._allGenres);
         }
@@ -1430,77 +1298,34 @@
             const serie = document.getElementById('searchSerie').value;
             const editorial = document.getElementById('searchEditorial').value;
             const year = document.getElementById('searchYear').value;
-            const formato = document.getElementById('searchFormato').value; // Obtener formato
+            const formato = document.getElementById('searchFormato').value;
 
             let results = allBooks.filter(book => {
-                // Text search
                 let matchesText = true;
                 if (query) {
-                    const searchTextNorm = normalizeString(query);
-
-                    // Obtener formatos del libro y unirlos para búsqueda
+                    const searchTextNorm = normalizeText(query);
                     const bookFormats = getBookFormats(book.id).map(f => f.formato).join(' ');
                     
-                    // Base search fields (siempre incluidos)
                     const baseSearchableText = [
-                        book.titulo,
-                        book.autor,
-                        book.genero,
-                        book.serie,
-                        book.editorial,
-                        bookFormats // <-- Añadido: formatos del libro
-                    ].filter(Boolean).map(normalizeString).join(' ');
+                        book.titulo, book.autor, book.genero, book.serie, book.editorial, bookFormats
+                    ].filter(Boolean).map(normalizeText).join(' ');
 
-                    // Check if text matches in base fields
                     matchesText = baseSearchableText.includes(searchTextNorm);
 
-                    // If not found and description is enabled, check description
                     if (!matchesText && includeDescription && book.descripcion) {
-                        matchesText = normalizeString(book.descripcion).includes(searchTextNorm);
+                        matchesText = normalizeText(book.descripcion).includes(searchTextNorm);
                     }
                 }
 
-                // Filter by author
-                let matchesAutor = true;
-                if (autor) {
-                    matchesAutor = book.autor === autor;
-                }
+                const matchesAutor = !autor || book.autor === autor;
+                const matchesGenero = !genero || (book.genero || '').split(',').map(g => g.trim()).includes(genero);
+                const matchesSerie = !serie || book.serie === serie;
+                const matchesEditorial = !editorial || book.editorial === editorial;
+                
+                let bookYear = (book.fecha_publicacion || '').slice(0, 4);
+                const matchesYear = !year || bookYear === year;
 
-                // Filter by genre
-                let matchesGenero = true;
-                if (genero) {
-                    const bookGenres = book.genero ? book.genero.split(',').map(g => g.trim()) : [];
-                    matchesGenero = bookGenres.includes(genero);
-                }
-
-                // Filter by series
-                let matchesSerie = true;
-                if (serie) {
-                    matchesSerie = book.serie === serie;
-                }
-
-                // Filter by editorial
-                let matchesEditorial = true;
-                if (editorial) {
-                    matchesEditorial = book.editorial === editorial;
-                }
-
-                // Filter by year (solo comparar el año, no mes/día)
-                let matchesYear = true;
-                if (year) {
-                    let bookYear = '';
-                    if (book.fecha_publicacion && typeof book.fecha_publicacion === 'string' && book.fecha_publicacion.length >= 4) {
-                        bookYear = book.fecha_publicacion.slice(0, 4);
-                    }
-                    matchesYear = bookYear === year;
-                }
-
-                // Filter by format
-                let matchesFormato = true;
-                if (formato) {
-                    const bookFormats = getBookFormats(book.id).map(f => f.formato);
-                    matchesFormato = bookFormats.includes(formato);
-                }
+                const matchesFormato = !formato || getBookFormats(book.id).some(f => f.formato === formato);
 
                 return matchesText && matchesAutor && matchesGenero && matchesSerie && matchesEditorial && matchesYear && matchesFormato;
             });
@@ -1530,7 +1355,6 @@
                     ${results.map(book => renderBook(book)).join('')}
                 </div>
             `;
-
             container.innerHTML = resultsHtml;
         }
 
@@ -1586,7 +1410,6 @@
                     closeSearchModal();
                 }
                 
-                // Enter to search
                 if (e.key === 'Enter' && elements.searchModal.classList.contains('show')) {
                     performSearch();
                 }
@@ -1603,15 +1426,11 @@
 
             updateBreadcrumb([]);
 
-            // Calcular y ordenar secciones por número de libros (descendente)
             const sectionEntries = Object.entries(classification.sections)
-                .map(([key, section]) => {
-                    const bookCount = countBooksForSection(key);
-                    return { key, section, bookCount };
-                })
+                .map(([key, section]) => ({ key, section, bookCount: countBooksForSection(key) }))
                 .sort((a, b) => b.bookCount - a.bookCount);
 
-            const sectionsHtml = sectionEntries.map(({ key, section, bookCount }) => `
+            elements.sectionsGrid.innerHTML = sectionEntries.map(({ key, section, bookCount }) => `
                 <div class="section-card" onclick="showSubsections('${key}')">
                     <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}" 
                          onerror="this.style.background='#eef2f6'; this.alt='📚';">
@@ -1622,8 +1441,6 @@
                     </div>
                 </div>
             `).join('');
-
-            elements.sectionsGrid.innerHTML = sectionsHtml;
         }
 
         // Show subsections
@@ -1639,15 +1456,11 @@
 
             updateBreadcrumb([section.name]);
 
-            // Calcular y ordenar subsecciones por número de libros (descendente)
             const subsectionEntries = Object.entries(section.subsections)
-                .map(([key, subsection]) => {
-                    const bookCount = countBooksForSubsection(sectionKey, key);
-                    return { key, subsection, bookCount };
-                })
+                .map(([key, subsection]) => ({ key, subsection, bookCount: countBooksForSubsection(sectionKey, key) }))
                 .sort((a, b) => b.bookCount - a.bookCount);
 
-            const subsectionsHtml = subsectionEntries.map(({ key, subsection, bookCount }) => `
+            elements.subsectionsGrid.innerHTML = subsectionEntries.map(({ key, subsection, bookCount }) => `
                 <div class="section-card" onclick="showBooks('${sectionKey}', '${key}')">
                     <img class="section-cover" src="biblioteca.jpg" alt="Subsección ${esc(subsection.name)}" 
                          onerror="this.style.background='#eef2f6'; this.alt='📚';">
@@ -1658,8 +1471,6 @@
                     </div>
                 </div>
             `).join('');
-
-            elements.subsectionsGrid.innerHTML = subsectionsHtml;
         }
 
         // Show books
@@ -1678,65 +1489,52 @@
             
             updateBreadcrumb([section.name, subsection.name]);
 
-            // NUEVO: Mostrar tags de la subsección justo debajo de la ruta, ahora clicables
             let tagsHtml = '';
             if (subsection.tags && subsection.tags.length > 0) {
                 tagsHtml = `
                     <div id="subsectionTags" style="margin: 12px 0 20px 0;">
-                        <strong>Tags de esta subsección:</strong>
+                        <strong>Tags:</strong>
                         ${subsection.tags.map(tag => `
-                            <span 
-                                class="subsection-tag" 
-                                data-tag="${esc(tag)}"
-                                style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;margin-right:6px;font-size:13px;cursor:pointer;transition:background 0.2s;"
-                            >${esc(tag)}</span>
+                            <span class="subsection-tag" data-tag="${esc(tag)}"
+                                  style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;margin-right:6px;font-size:13px;cursor:pointer;transition:all 0.2s;">
+                                ${esc(tag)}
+                            </span>
                         `).join('')}
                     </div>
                 `;
-            } else {
-                tagsHtml = `<div id="subsectionTags" style="margin: 12px 0 20px 0; color: #64748b;">Sin tags en esta subsección.</div>`;
             }
-            // Insertar los tags justo debajo del breadcrumb
+            
             const breadcrumbElem = document.getElementById('breadcrumb');
             if (breadcrumbElem) {
-                // Elimina si ya existe
                 const oldTags = document.getElementById('subsectionTags');
                 if (oldTags) oldTags.remove();
-                // Inserta después del breadcrumb
                 breadcrumbElem.insertAdjacentHTML('afterend', tagsHtml);
             }
 
-            // Estado para tags seleccionados
             window.selectedSubsectionTags = [];
 
-            // Añadir listeners a los tags clicables
             document.querySelectorAll('.subsection-tag').forEach(tagElem => {
                 tagElem.addEventListener('click', function () {
                     const tag = this.getAttribute('data-tag');
-                    // Alternar selección visual y lógica
                     if (window.selectedSubsectionTags.includes(tag)) {
                         window.selectedSubsectionTags = window.selectedSubsectionTags.filter(t => t !== tag);
-                        this.style.background = '#e0f2f6';
+                        this.style.background = '#e0f2fe';
                         this.style.color = '#0369a1';
-                        this.style.fontWeight = 'normal';
                     } else {
                         window.selectedSubsectionTags.push(tag);
                         this.style.background = '#2563eb';
                         this.style.color = '#fff';
-                        this.style.fontWeight = 'bold';
                     }
-                    // Filtrar libros por los tags seleccionados (OR)
-                    if (window.selectedSubsectionTags.length > 0) {
-                        filteredBooks = filterBooksByTagsOR(window.selectedSubsectionTags);
-                    } else {
-                        filteredBooks = filterBooksByTags(subsection.tags);
-                    }
+                    
+                    filteredBooks = (window.selectedSubsectionTags.length > 0)
+                        ? filterBooksByTagsOR(window.selectedSubsectionTags)
+                        : filterBooksByTags(subsection.tags);
+                    
                     currentBooks = [...filteredBooks];
                     renderBooks();
                 });
             });
 
-            // Mostrar todos los libros de la subsección inicialmente
             filteredBooks = filterBooksByTags(subsection.tags);
             currentBooks = [...filteredBooks];
             renderBooks();
@@ -1744,55 +1542,36 @@
 
         // Filtra libros que tengan al menos uno de los tags (OR)
         function filterBooksByTagsOR(tags) {
-            const normalizedTags = tags.map(tag => normalizeString(tag));
+            const normalizedTags = tags.map(normalizeText);
             return allBooks.filter(book => {
                 if (!book.genero) return false;
-                const bookGenres = book.genero.split(',').map(g => normalizeString(g.trim()));
+                const bookGenres = book.genero.split(',').map(g => normalizeText(g.trim()));
                 return normalizedTags.some(tag => bookGenres.includes(tag));
             });
         }
 
         function filterBooksByTags(tags) {
             if (!tags || tags.length === 0) return [];
-            const normalizedTags = tags.map(tag => normalizeString(tag));
+            const normalizedTags = tags.map(normalizeText);
             return allBooks.filter(book => {
                 if (!book.genero) return false;
-                const bookGenres = book.genero.split(',').map(g => normalizeString(g.trim()));
+                const bookGenres = book.genero.split(',').map(g => normalizeText(g.trim()));
                 return normalizedTags.some(tag => bookGenres.includes(tag));
             });
-        }
-        // Normalize string for comparison
-        function normalizeString(str) {
-            return str.toLowerCase()
-                .replace(/[áàäâ]/g, 'a')
-                .replace(/[éèëê]/g, 'e')
-                .replace(/[íìïî]/g, 'i')
-                .replace(/[óòöô]/g, 'o')
-                .replace(/[úùüû]/g, 'u')
-                .replace(/ñ/g, 'n')
-                .replace(/&amp;/g, '&')
-                .trim();
         }
 
         // Filter books by search
         function filterBooks() {
-            const searchTerm = normalizeString(elements.searchInput.value);
+            const searchTerm = normalizeText(elements.searchInput.value);
             
-            if (!searchTerm) {
-                currentBooks = [...filteredBooks];
-            } else {
-                currentBooks = filteredBooks.filter(book => {
+            currentBooks = !searchTerm
+                ? [...filteredBooks]
+                : filteredBooks.filter(book => {
                     const searchableText = [
-                        book.titulo,
-                        book.autor,
-                        book.genero,
-                        book.serie,
-                        book.editorial
-                    ].filter(Boolean).map(normalizeString).join(' ');
-                    
+                        book.titulo, book.autor, book.genero, book.serie, book.editorial
+                    ].filter(Boolean).map(normalizeText).join(' ');
                     return searchableText.includes(searchTerm);
                 });
-            }
             
             sortBooks();
         }
@@ -1803,15 +1582,10 @@
             
             currentBooks.sort((a, b) => {
                 switch (sortBy) {
-                    case 'author':
-                        return (a.autor || '').localeCompare(b.autor || '');
-                    case 'year':
-                        const yearA = parseInt(a.fecha_publicacion) || 0;
-                        const yearB = parseInt(b.fecha_publicacion) || 0;
-                        return yearB - yearA;
+                    case 'author': return (a.autor || '').localeCompare(b.autor || '');
+                    case 'year': return (b.fecha_publicacion || '0').localeCompare(a.fecha_publicacion || '0');
                     case 'title':
-                    default:
-                        return (a.titulo || '').localeCompare(b.titulo || '');
+                    default: return (a.titulo || '').localeCompare(b.titulo || '');
                 }
             });
             
@@ -1831,8 +1605,7 @@
                 return;
             }
             
-            const booksHtml = currentBooks.map(book => renderBook(book)).join('');
-            elements.booksGrid.innerHTML = booksHtml;
+            elements.booksGrid.innerHTML = currentBooks.map(book => renderBook(book)).join('');
         }
 
         // Get book formats
@@ -1840,7 +1613,7 @@
             return allFormats.filter(format => format.book_id === bookId);
         }
 
-        // Show book details - USANDO url_download DIRECTAMENTE
+        // Show book details
         function showBookDetails(bookId) {
             const book = allBooks.find(b => b.id === bookId);
             if (!book) return;
@@ -1850,18 +1623,11 @@
             const portadaSrc = resolveCoverThumb(book.url_portada);
             const coverHref = book.url_portada || '#';
 
-            // Buscar subsecciones en las que aparece el libro
             let subseccionesLibro = [];
             if (classification && classification.sections) {
                 for (const [sectionKey, section] of Object.entries(classification.sections)) {
                     for (const [subKey, subsection] of Object.entries(section.subsections)) {
-                        // Si el libro tiene al menos un tag de la subsección
-                        if (
-                            subsection.tags &&
-                            subsection.tags.some(tag =>
-                                genres.map(normalizeString).includes(normalizeString(tag))
-                            )
-                        ) {
+                        if ((subsection.tags || []).some(tag => genres.map(normalizeText).includes(normalizeText(tag)))) {
                             subseccionesLibro.push({
                                 section: section.name,
                                 subsection: subsection.name,
@@ -1873,30 +1639,23 @@
                 }
             }
 
-            let subseccionesHtml = '';
-            if (subseccionesLibro.length > 0) {
-                subseccionesHtml = `
-                    <div style="margin: 16px 0 0 0;">
-                        <strong>Subsecciones donde aparece:</strong>
-                        <ul style="margin: 6px 0 0 0; padding-left: 18px;">
-                            ${subseccionesLibro.map(s =>
-                                `<li>
-                                    <a href="#" onclick="showSubsections('${s.sectionKey}'); setTimeout(() => showBooks('${s.sectionKey}', '${s.subKey}'), 10); closeModal(); return false;">
-                                        <span style="color:#2563eb;">${esc(s.section)}</span> / <span style="color:#0369a1;">${esc(s.subsection)}</span>
-                                    </a>
-                                </li>`
-                            ).join('')}
-                        </ul>
-                    </div>
-                `;
-            } else {
-                subseccionesHtml = `
-                    <div style="margin: 16px 0 0 0; color: #64748b;">
-                        No pertenece a ninguna subsección clasificada.
-                    </div>
-                `;
-            }
-
+            const subseccionesHtml = subseccionesLibro.length > 0 ? `
+                <div style="margin: 16px 0 0 0;">
+                    <strong>Subsecciones donde aparece:</strong>
+                    <ul style="margin: 6px 0 0 0; padding-left: 18px;">
+                        ${subseccionesLibro.map(s => `
+                            <li>
+                                <a href="#" onclick="showSubsections('${s.sectionKey}'); setTimeout(() => showBooks('${s.sectionKey}', '${s.subKey}'), 10); closeModal(); return false;">
+                                    <span style="color:#2563eb;">${esc(s.section)}</span> / <span style="color:#0369a1;">${esc(s.subsection)}</span>
+                                </a>
+                            </li>`
+                        ).join('')}
+                    </ul>
+                </div>` : `
+                <div style="margin: 16px 0 0 0; color: #64748b;">
+                    No pertenece a ninguna subsección clasificada.
+                </div>`;
+            
             const modalHtml = `
                 <div class="modal-book">
                     <div class="modal-cover">
@@ -1910,36 +1669,26 @@
                         <p><strong>Autor:</strong> ${esc(book.autor || 'Desconocido')}</p>
                         ${book.serie ? `<p><strong>Serie:</strong> ${esc(book.serie)}${book.numero_serie ? ` #${book.numero_serie}` : ''}</p>` : ''}
                         ${book.editorial ? `<p><strong>Editorial:</strong> ${esc(book.editorial)}</p>` : ''}
-                        ${book.fecha_publicacion ? `<p><strong>Año:</strong> ${esc(book.fecha_publicacion)}</p>` : ''}
+                        ${book.fecha_publicacion ? `<p><strong>Año:</strong> ${esc(book.fecha_publicacion.slice(0,4))}</p>` : ''}
                         <p><strong>Géneros:</strong> ${genres.map(g => esc(g)).join(', ') || 'Sin especificar'}</p>
                         ${subseccionesHtml}
                     </div>
                 </div>
-                ${book.descripcion ? `
-                    <div class="modal-description">
-                        <h3>Descripción</h3>
-                        <p>${esc(book.descripcion)}</p>
-                    </div>
-                ` : ''}
+                ${book.descripcion ? `<div class="modal-description"><h3>Descripción</h3><p>${esc(book.descripcion)}</p></div>` : ''}
                 ${formats.length > 0 ? `
                     <div class="modal-formats">
                         ${formats.map(format => {
-                            // USAR url_download DIRECTAMENTE
                             const downloadUrl = format.url_download || format.ruta_archivo || '#';
                             const hasValidUrl = downloadUrl && downloadUrl !== '#';
-                            
                             return `
                                 <a href="${esc(downloadUrl)}" 
                                    class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}" 
-                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault(); alert(\'No hay enlace de descarga disponible para este formato.\');"'}
-                                >
+                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault();"'}>
                                     📄 ${esc(format.formato)}
                                     ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
-                                </a>
-                            `;
+                                </a>`;
                         }).join('')}
-                    </div>
-                ` : '<div class="modal-formats"><p>No hay formatos disponibles para este libro.</p></div>'}
+                    </div>` : ''}
                 <div class="modal-footer">
                     <button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>
                 </div>
@@ -1956,36 +1705,30 @@
             
             currentEditingBook = book;
             
-            // Populate form fields
-            document.getElementById('editTitulo').value = book.titulo || '';
-            document.getElementById('editAutor').value = book.autor || '';
-            document.getElementById('editGenero').value = book.genero || '';
-            document.getElementById('editSerie').value = book.serie || '';
-            document.getElementById('editNumeroSerie').value = book.numero_serie || '';
-            document.getElementById('editEditorial').value = book.editorial || '';
-            document.getElementById('editFechaPublicacion').value = book.fecha_publicacion || '';
-            document.getElementById('editDescripcion').value = book.descripcion || '';
-            document.getElementById('editCarpetaObra').value = book.carpeta_obra || '';
+            const form = document.getElementById('editForm');
+            form.elements.editTitulo.value = book.titulo || '';
+            form.elements.editAutor.value = book.autor || '';
+            form.elements.editGenero.value = book.genero || '';
+            form.elements.editSerie.value = book.serie || '';
+            form.elements.editNumeroSerie.value = book.numero_serie || '';
+            form.elements.editEditorial.value = book.editorial || '';
+            form.elements.editFechaPublicacion.value = book.fecha_publicacion || '';
+            form.elements.editDescripcion.value = book.descripcion || '';
+            form.elements.editCarpetaObra.value = book.carpeta_obra || '';
             
             elements.editModal.classList.add('show');
         }
 
         // Save book changes
         async function saveBookChanges() {
-            if (!currentEditingBook) {
-                alert('Error: No hay libro seleccionado para editar');
-                return;
-            }
+            if (!currentEditingBook) return;
 
-            // Validate required fields
             const titulo = document.getElementById('editTitulo').value.trim();
             if (!titulo) {
                 alert('El título es requerido');
-                document.getElementById('editTitulo').focus();
                 return;
             }
 
-            // Collect all form data
             const updatedData = {
                 titulo: titulo,
                 autor: document.getElementById('editAutor').value.trim() || null,
@@ -1999,37 +1742,27 @@
             };
 
             try {
-                // Update in Supabase
-                const { data, error } = await supabaseClient
+                const { error } = await supabaseClient
                     .from('books')
                     .update(updatedData)
                     .eq('id', currentEditingBook.id);
-
                 if (error) throw error;
 
-                // Update local data
                 const bookIndex = allBooks.findIndex(b => b.id === currentEditingBook.id);
                 if (bookIndex !== -1) {
                     allBooks[bookIndex] = { ...allBooks[bookIndex], ...updatedData };
                 }
 
-                // Update search filters after editing
                 populateSearchFilters();
-
-                alert('✅ Libro actualizado correctamente');
                 closeEditModal();
                 
-                // Refresh the current view
                 if (elements.booksView.classList.contains('active')) {
-                    // Re-filter and render books
-                    const section = classification.sections[currentSection];
-                    const subsection = section.subsections[currentSubsection];
+                    const subsection = classification.sections[currentSection].subsections[currentSubsection];
                     filteredBooks = filterBooksByTags(subsection.tags);
                     currentBooks = [...filteredBooks];
-                    filterBooks(); // Re-apply search if any
+                    filterBooks();
                 }
 
-                // If search modal is open, re-run search
                 if (elements.searchModal.classList.contains('show')) {
                     performSearch();
                 }
@@ -2053,7 +1786,6 @@
 
         // Go back
         function goBack() {
-            // Eliminar la lista de tags de la subsección si existe
             const oldTags = document.getElementById('subsectionTags');
             if (oldTags) oldTags.remove();
 
@@ -2066,9 +1798,7 @@
 
         // Hide all views
         function hideAllViews() {
-            elements.sectionsView.classList.remove('active');
-            elements.subsectionsView.classList.remove('active');
-            elements.booksView.classList.remove('active');
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         }
 
         // Update breadcrumb
@@ -2078,15 +1808,11 @@
                 return;
             }
             
-            const breadcrumbHtml = path.map((item, index) => {
-                if (index === path.length - 1) {
-                    return `<span class="breadcrumb-item">${esc(item)}</span>`;
-                } else {
-                    return `<span class="breadcrumb-item">${esc(item)}</span><span class="breadcrumb-separator"> › </span>`;
-                }
-            }).join('');
-            
-            elements.breadcrumb.innerHTML = breadcrumbHtml;
+            elements.breadcrumb.innerHTML = path.map((item, index) => 
+                (index === path.length - 1)
+                    ? `<span class="breadcrumb-item">${esc(item)}</span>`
+                    : `<span class="breadcrumb-item">${esc(item)}</span><span class="breadcrumb-separator"> › </span>`
+            ).join('');
         }
 
         // Count books for section
@@ -2102,44 +1828,35 @@
             return filterBooksByTags(subsection.tags).length;
         }
 
-        // Añade esto después de populateSearchFilters y antes de setupEventListeners
         document.addEventListener('DOMContentLoaded', () => {
-    // Autor filtrable
-    const autorInput = document.getElementById('searchAutorInput');
-    const autorSelect = document.getElementById('searchAutor');
-    if (autorInput && autorSelect) {
-        autorInput.addEventListener('input', () => {
-            const val = autorInput.value.trim().toLowerCase();
-            const filtered = !val
-                ? (window._allAuthors || [])
-                : (window._allAuthors || []).filter(a => a.toLowerCase().includes(val));
-            // Repoblar el select
-            autorSelect.innerHTML = '<option value="">Todos los autores</option>' +
-                filtered.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
-        });
-        autorSelect.addEventListener('change', () => {
-            autorInput.value = autorSelect.value;
-        });
-    }
+            const autorInput = document.getElementById('searchAutorInput');
+            const autorSelect = document.getElementById('searchAutor');
+            if (autorInput && autorSelect) {
+                autorInput.addEventListener('input', () => {
+                    const val = normalizeText(autorInput.value);
+                    const filtered = !val
+                        ? (window._allAuthors || [])
+                        : (window._allAuthors || []).filter(a => normalizeText(a).includes(val));
+                    autorSelect.innerHTML = '<option value="">Todos los autores</option>' +
+                        filtered.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
+                });
+                autorSelect.addEventListener('change', () => { autorInput.value = autorSelect.value; });
+            }
 
-    // Género filtrable
-    const generoInput = document.getElementById('searchGeneroInput');
-    const generoSelect = document.getElementById('searchGenero');
-    if (generoInput && generoSelect) {
-        generoInput.addEventListener('input', () => {
-            const val = generoInput.value.trim().toLowerCase();
-            const filtered = !val
-                ? (window._allGenres || [])
-                : (window._allGenres || []).filter(g => g.toLowerCase().includes(val));
-            // Repoblar el select
-            generoSelect.innerHTML = '<option value="">Todos los géneros</option>' +
-                filtered.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+            const generoInput = document.getElementById('searchGeneroInput');
+            const generoSelect = document.getElementById('searchGenero');
+            if (generoInput && generoSelect) {
+                generoInput.addEventListener('input', () => {
+                    const val = normalizeText(generoInput.value);
+                    const filtered = !val
+                        ? (window._allGenres || [])
+                        : (window._allGenres || []).filter(g => normalizeText(g).includes(val));
+                    generoSelect.innerHTML = '<option value="">Todos los géneros</option>' +
+                        filtered.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+                });
+                generoSelect.addEventListener('change', () => { generoInput.value = generoSelect.value; });
+            }
         });
-        generoSelect.addEventListener('change', () => {
-            generoInput.value = generoSelect.value;
-        });
-    }
-});
     </script>
 </body>
 </html>
