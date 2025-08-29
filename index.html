@@ -1131,19 +1131,19 @@
                 const bookTags = (book.genero || '').split(',').map(t => t.trim()).filter(Boolean);
                 
                 // Verificar si el libro tiene "Sin_clasificar" (case-insensitive)
-                const tieneSinClasificar = bookTags.some(tag => tag.toLowerCase() === 'sin_clasificar');
+                const tieneSinClasificar = bookTags.some(tag => normalizeTag(tag) === 'sin_clasificar');
                 
                 if (tieneSinClasificar) {
                     // Verificar si también tiene otros tags que están en la clasificación (case-insensitive)
                     const tieneOtrosTagsClasificados = bookTags.some(tag => {
-                        const tagLower = tag.toLowerCase();
+                        const tagLower = normalizeTag(tag);
                         return tagLower !== 'sin_clasificar' && allTagsClasificacion.has(tagLower);
                     });
                     
                     if (tieneOtrosTagsClasificados) {
                         // Quitar "Sin_clasificar" de la lista de tags (preservando case original)
                         const nuevosTagsSinClasificar = bookTags.filter(tag => 
-                            tag.toLowerCase() !== 'sin_clasificar'
+                            normalizeTag(tag) !== 'sin_clasificar'
                         );
                         const nuevoGenero = nuevosTagsSinClasificar.join(', ');
                         
@@ -1169,6 +1169,13 @@
             }
         }
 
+        // Función para normalizar tags (eliminar acentos y convertir a minúsculas)
+        function normalizeTag(tag) {
+            return tag.trim()
+                .toLowerCase()
+                .normalize('NFD')           // Descompone los caracteres acentuados
+                .replace(/[\\u0300-\\u036f]/g, '');  // Elimina los diacríticos (acentos)
+        }
 
 
         // Función CORREGIDA: clasificarLibrosSinClasificar (case-insensitive)
@@ -1192,13 +1199,13 @@
                 
                 // Comparar tags en minúsculas (case-insensitive)
                 const tieneTagClasificado = bookTags.some(tag => 
-                    allTagsClasificacion.has(tag.toLowerCase())
+                    allTagsClasificacion.has(normalizeTag(tag))
                 );
                 
                 if (!tieneTagClasificado) {
                     // Verificar si ya tiene "Sin_clasificar" (case-insensitive)
                     const tieneSinClasificar = bookTags.some(tag => 
-                        tag.toLowerCase() === 'sin_clasificar'
+                        normalizeTag(tag) === 'sin_clasificar'
                     );
                     
                     if (!tieneSinClasificar) {
