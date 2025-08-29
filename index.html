@@ -1116,22 +1116,44 @@
                 .replace(/[\\u0300-\\u036f]/g, '');  // Elimina los diacríticos (acentos)
         }
 
-        // Función: Procesar libros antes de clasificar
-        async function procesarLibrosAntesDeClasificar() {
-            if (!allBooks.length || !classification) return;
+async function procesarLibrosAntesDeClasificar() {
+    console.log('🔍 INICIANDO procesarLibrosAntesDeClasificar...');
+    
+    if (!allBooks.length || !classification) {
+        console.log('❌ Datos no disponibles:', { 
+            allBooks: allBooks?.length || 0, 
+            classification: !!classification 
+        });
+        return;
+    }
 
-            // 1. Obtener todos los tags usados en la clasificación (excluyendo "Sin_clasificar")
-            const allTagsClasificacion = new Set();
-            Object.values(classification.sections).forEach(section => {
-                Object.values(section.subsections).forEach(subsec => {
-                    (subsec.tags || []).forEach(tag => {
-                        const normalizedTag = normalizeTag(tag);
-                        if (normalizedTag !== 'sin_clasificar') {
-                            allTagsClasificacion.add(normalizedTag);
-                        }
-                    });
-                });
+    console.log(`📚 Procesando ${allBooks.length} libros`);
+
+    // 1. Obtener todos los tags usados en la clasificación (excluyendo "Sin_clasificar")
+    const allTagsClasificacion = new Set();
+    Object.values(classification.sections).forEach(section => {
+        Object.values(section.subsections).forEach(subsec => {
+            (subsec.tags || []).forEach(tag => {
+                const normalizedTag = normalizeTag(tag);
+                if (normalizedTag !== 'sin_clasificar') {
+                    allTagsClasificacion.add(normalizedTag);
+                }
             });
+        });
+    });
+
+    console.log('🏷️ Tags de clasificación encontrados:', Array.from(allTagsClasificacion));
+
+    // 2. Procesar libros que tienen "Sin_clasificar" pero también otros tags
+    let librosConSinClasificar = 0;
+    let librosModificados = 0;
+    
+    for (const book of allBooks) {
+        const bookTags = (book.genero || '').split(',').map(t => t.trim()).filter(Boolean);
+        const bookTagsNormalized = bookTags.map(tag => normalizeTag(tag));
+        
+        // Verif
+
 
             // 2. Procesar libros que tienen "Sin_clasificar" pero también otros tags
             for (const book of allBooks) {
