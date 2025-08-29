@@ -1473,13 +1473,19 @@
             
             updateBreadcrumb([section.name, subsection.name]);
 
-            // NUEVO: Mostrar tags de la subsección justo debajo de la ruta
+            // NUEVO: Mostrar tags de la subsección justo debajo de la ruta, ahora clicables
             let tagsHtml = '';
             if (subsection.tags && subsection.tags.length > 0) {
                 tagsHtml = `
                     <div id="subsectionTags" style="margin: 12px 0 20px 0;">
                         <strong>Tags de esta subsección:</strong>
-                        ${subsection.tags.map(tag => `<span style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;margin-right:6px;font-size:13px;">${esc(tag)}</span>`).join('')}
+                        ${subsection.tags.map(tag => `
+                            <span 
+                                class="subsection-tag" 
+                                data-tag="${esc(tag)}"
+                                style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;margin-right:6px;font-size:13px;cursor:pointer;transition:background 0.2s;"
+                            >${esc(tag)}</span>
+                        `).join('')}
                     </div>
                 `;
             } else {
@@ -1495,28 +1501,49 @@
                 breadcrumbElem.insertAdjacentHTML('afterend', tagsHtml);
             }
 
-            // Filter books by tags
+            // Estado para tags seleccionados
+            window.selectedSubsectionTags = [];
+
+            // Añadir listeners a los tags clicables
+            document.querySelectorAll('.subsection-tag').forEach(tagElem => {
+                tagElem.addEventListener('click', function () {
+                    const tag = this.getAttribute('data-tag');
+                    // Alternar selección visual y lógica
+                    if (window.selectedSubsectionTags.includes(tag)) {
+                        window.selectedSubsectionTags = window.selectedSubsectionTags.filter(t => t !== tag);
+                        this.style.background = '#e0f2f6';
+                        this.style.color = '#0369a1';
+                        this.style.fontWeight = 'normal';
+                    } else {
+                        window.selectedSubsectionTags.push(tag);
+                        this.style.background = '#2563eb';
+                        this.style.color = '#fff';
+                        this.style.fontWeight = 'bold';
+                    }
+                    // Filtrar libros por los tags seleccionados (OR)
+                    if (window.selectedSubsectionTags.length > 0) {
+                        filteredBooks = filterBooksByTagsOR(window.selectedSubsectionTags);
+                    } else {
+                        filteredBooks = filterBooksByTags(subsection.tags);
+                    }
+                    currentBooks = [...filteredBooks];
+                    renderBooks();
+                });
+            });
+
+            // Mostrar todos los libros de la subsección inicialmente
             filteredBooks = filterBooksByTags(subsection.tags);
             currentBooks = [...filteredBooks];
-            
             renderBooks();
         }
 
-        // Filter books by tags (EXACTO MATCH)
-        function filterBooksByTags(tags) {
-            // Normalizar los tags de la subsección para comparación exacta
+        // Filtra libros que tengan al menos uno de los tags (OR)
+        function filterBooksByTagsOR(tags) {
             const normalizedTags = tags.map(tag => normalizeString(tag));
-            
             return allBooks.filter(book => {
                 if (!book.genero) return false;
-                
-                // Normalizar los géneros del libro
                 const bookGenres = book.genero.split(',').map(g => normalizeString(g.trim()));
-                
-                // Buscar coincidencia EXACTA entre tags normalizados
-                return normalizedTags.some(tag => 
-                    bookGenres.some(genre => genre === tag)
-                );
+                return normalizedTags.some(tag => bookGenres.includes(tag));
             });
         }
 
