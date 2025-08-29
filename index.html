@@ -1113,7 +1113,7 @@
             return tag.trim()
                 .toLowerCase()
                 .normalize('NFD')           // Descompone los caracteres acentuados
-                .replace(/[\\u0300-\\u036f]/g, '');  // Elimina los diacríticos (acentos)
+                .replace(/[\u0300-\u036f]/g, '');  // Elimina los diacríticos (acentos)
         }
 
         async function procesarLibrosAntesDeClasificar() {
