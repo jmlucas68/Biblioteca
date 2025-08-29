@@ -1116,58 +1116,70 @@
                 .replace(/[\\u0300-\\u036f]/g, '');  // Elimina los diacríticos (acentos)
         }
 
-async function procesarLibrosAntesDeClasificar() {
-    console.log('🔍 INICIANDO procesarLibrosAntesDeClasificar...');
-    
-    if (!allBooks.length || !classification) {
-        console.log('❌ Datos no disponibles:', { 
-            allBooks: allBooks?.length || 0, 
-            classification: !!classification 
-        });
-        return;
-    }
+                // Función para normalizar tags (eliminar acentos y convertir a minúsculas)
+        function normalizeTag(tag) {
+            return tag.trim()
+                .toLowerCase()
+                .normalize('NFD')           // Descompone los caracteres acentuados
+                .replace(/[\\u0300-\\u036f]/g, '');  // Elimina los diacríticos (acentos)
+        }
 
-    console.log(`📚 Procesando ${allBooks.length} libros`);
+        async function procesarLibrosAntesDeClasificar() {
+            console.log('🔍 INICIANDO procesarLibrosAntesDeClasificar...');
+            
+            if (!allBooks.length || !classification) {
+                console.log('❌ Datos no disponibles:', { 
+                    allBooks: allBooks?.length || 0, 
+                    classification: !!classification 
+                });
+                return;
+            }
 
-    // 1. Obtener todos los tags usados en la clasificación (excluyendo "Sin_clasificar")
-    const allTagsClasificacion = new Set();
-    Object.values(classification.sections).forEach(section => {
-        Object.values(section.subsections).forEach(subsec => {
-            (subsec.tags || []).forEach(tag => {
-                const normalizedTag = normalizeTag(tag);
-                if (normalizedTag !== 'sin_clasificar') {
-                    allTagsClasificacion.add(normalizedTag);
-                }
+            console.log(`📚 Procesando ${allBooks.length} libros`);
+
+            // 1. Obtener todos los tags usados en la clasificación (excluyendo "Sin_clasificar")
+            const allTagsClasificacion = new Set();
+            Object.values(classification.sections).forEach(section => {
+                Object.values(section.subsections).forEach(subsec => {
+                    (subsec.tags || []).forEach(tag => {
+                        const normalizedTag = normalizeTag(tag);
+                        if (normalizedTag !== 'sin_clasificar') {
+                            allTagsClasificacion.add(normalizedTag);
+                        }
+                    });
+                });
             });
-        });
-    });
 
-    console.log('🏷️ Tags de clasificación encontrados:', Array.from(allTagsClasificacion));
-
-    // 2. Procesar libros que tienen "Sin_clasificar" pero también otros tags
-    let librosConSinClasificar = 0;
-    let librosModificados = 0;
-    
-    for (const book of allBooks) {
-        const bookTags = (book.genero || '').split(',').map(t => t.trim()).filter(Boolean);
-        const bookTagsNormalized = bookTags.map(tag => normalizeTag(tag));
-        
-        // Verif
-
+            console.log('🏷️ Tags de clasificación encontrados:', Array.from(allTagsClasificacion));
 
             // 2. Procesar libros que tienen "Sin_clasificar" pero también otros tags
+            let librosConSinClasificar = 0;
+            let librosModificados = 0;
+            
             for (const book of allBooks) {
                 const bookTags = (book.genero || '').split(',').map(t => t.trim()).filter(Boolean);
+                const bookTagsNormalized = bookTags.map(tag => normalizeTag(tag));
                 
                 // Verificar si el libro tiene "Sin_clasificar" (normalizado)
-                const tieneSinClasificar = bookTags.some(tag => normalizeTag(tag) === 'sin_clasificar');
+                const tieneSinClasificar = bookTagsNormalized.includes('sin_clasificar');
                 
                 if (tieneSinClasificar) {
-                    // Verificar si también tiene otros tags que están en la clasificación
-                    const tieneOtrosTagsClasificados = bookTags.some(tag => {
-                        const tagNormalized = normalizeTag(tag);
-                        return tagNormalized !== 'sin_clasificar' && allTagsClasificacion.has(tagNormalized);
+                    librosConSinClasificar++;
+                    console.log(`📖 Libro con "Sin_clasificar": "${book.titulo}"`, {
+                        tags: bookTags,
+                        normalized: bookTagsNormalized
                     });
+                    
+                    // Verificar si también tiene otros tags que están en la clasificación
+                    const tieneOtrosTagsClasificados = bookTagsNormalized.some(normalizedTag => {
+                        const hasTag = normalizedTag !== 'sin_clasificar' && allTagsClasificacion.has(normalizedTag);
+                        if (hasTag) {
+                            console.log(`  ✅ Tag clasificado encontrado: "${normalizedTag}"`);
+                        }
+                        return hasTag;
+                    });
+                    
+                    console.log(`  ¿Tiene otros tags clasificados? ${tieneOtrosTagsClasificados}`);
                     
                     if (tieneOtrosTagsClasificados) {
                         // Quitar "Sin_clasificar" de la lista de tags
@@ -1175,6 +1187,12 @@ async function procesarLibrosAntesDeClasificar() {
                             normalizeTag(tag) !== 'sin_clasificar'
                         );
                         const nuevoGenero = nuevosTagsSinClasificar.join(', ');
+                        
+                        console.log(`  🔄 Removiendo "Sin_clasificar" de "${book.titulo}"`, {
+                            tagsOriginales: bookTags,
+                            nuevosTagsRaw: nuevosTagsSinClasificar,
+                            nuevoGenero: nuevoGenero
+                        });
                         
                         try {
                             // Actualizar en la base de datos
@@ -1184,21 +1202,30 @@ async function procesarLibrosAntesDeClasificar() {
                                 .eq('id', book.id);
                             
                             if (error) {
-                                console.error(`Error actualizando libro ${book.titulo}:`, error);
+                                console.error(`❌ Error actualizando libro ${book.titulo}:`, error);
                             } else {
-                                console.log(`Tag "Sin_clasificar" removido del libro: ${book.titulo}`);
+                                console.log(`✅ Tag "Sin_clasificar" removido del libro: ${book.titulo}`);
                                 // Actualizar en memoria
                                 book.genero = nuevoGenero;
+                                librosModificados++;
                             }
                         } catch (error) {
-                            console.error(`Error al procesar libro ${book.titulo}:`, error);
+                            console.error(`❌ Error al procesar libro ${book.titulo}:`, error);
                         }
+                    } else {
+                        console.log(`  ⏭️ Manteniendo "Sin_clasificar" en "${book.titulo}" (no tiene tags clasificados)`);
                     }
                 }
             }
+            
+            console.log(`🏁 RESUMEN procesarLibrosAntesDeClasificar:`, {
+                totalLibros: allBooks.length,
+                librosConSinClasificar,
+                librosModificados,
+                tagsClasificacion: allTagsClasificacion.size
+            });
         }
 
-        // Función: Clasificar libros sin clasificar
         async function clasificarLibrosSinClasificar() {
             if (!allBooks.length || !classification) return;
 
@@ -1261,6 +1288,7 @@ async function procesarLibrosAntesDeClasificar() {
                 }
             }
         }
+
 
 
             // Solo años (YYYY) para el filtro de año
