@@ -1659,7 +1659,9 @@
                         ) {
                             subseccionesLibro.push({
                                 section: section.name,
-                                subsection: subsection.name
+                                subsection: subsection.name,
+                                sectionKey,
+                                subKey
                             });
                         }
                     }
@@ -1673,7 +1675,11 @@
                         <strong>Subsecciones donde aparece:</strong>
                         <ul style="margin: 6px 0 0 0; padding-left: 18px;">
                             ${subseccionesLibro.map(s =>
-                                `<li><span style="color:#2563eb;">${esc(s.section)}</span> / <span style="color:#0369a1;">${esc(s.subsection)}</span></li>`
+                                `<li>
+                                    <a href="#" onclick="showSubsections('${s.sectionKey}'); setTimeout(() => showBooks('${s.sectionKey}', '${s.subKey}'), 10); closeModal(); return false;">
+                                        <span style="color:#2563eb;">${esc(s.section)}</span> / <span style="color:#0369a1;">${esc(s.subsection)}</span>
+                                    </a>
+                                </li>`
                             ).join('')}
                         </ul>
                     </div>
@@ -1720,7 +1726,8 @@
                             return `
                                 <a href="${esc(downloadUrl)}" 
                                    class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}" 
-                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault(); alert(\'No hay enlace de descarga disponible para este formato.\');"'}>
+                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault(); alert(\'No hay enlace de descarga disponible para este formato.\');"'}
+                                >
                                     📄 ${esc(format.formato)}
                                     ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
                                 </a>
