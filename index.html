@@ -710,74 +710,31 @@
 
             .header-content {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
+                gap: 12px;
+            }
+
+            .header-left {
+                width: 100%;
             }
 
             .header-right {
-                align-self: stretch;
-                justify-content: space-between;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                width: 100%;
             }
 
             .stats {
-                gap: 16px;
+                gap: 12px;
+                justify-content: flex-start;
             }
 
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .search-container {
-                min-width: auto;
-            }
-
-            .admin-controls {
+            .header-search-btn,
+            .btn--warning {
+                width: 100%;
                 justify-content: center;
-            }
-
-            .grid--sections {
-                grid-template-columns: 1fr;
-            }
-
-            .grid--books {
-                grid-template-columns: 1fr;
-            }
-
-            .book-card {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .book-cover-wrap {
-                align-self: center;
-            }
-
-            .modal-book {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .modal-cover {
-                align-self: center;
-            }
-
-            .section-cover {
-                height: 150px;
-            }
-
-            .book-actions {
-                position: static;
-                opacity: 1;
-                margin-top: 12px;
-                justify-content: center;
-            }
-
-            .search-filters {
-                grid-template-columns: 1fr;
-            }
-
-            .search-actions {
-                justify-content: center;
+                box-sizing: border-box;
             }
         }
 
