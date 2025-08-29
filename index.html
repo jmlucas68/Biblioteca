@@ -1082,7 +1082,8 @@
         // Initialize app
         document.addEventListener('DOMContentLoaded', async () => {
             await loadData();
-            await loadClassification(); // Cambia: cargar la clasificación desde la base de datos
+            await loadClassification();
+            await clasificarLibrosSinClasificar();
             populateSearchFilters();
             showSections();
             setupEventListeners();
@@ -1145,6 +1146,37 @@
             } catch (error) {
                 console.error('Error loading classification:', error);
                 elements.loading.innerHTML = '❌ Error al cargar la clasificación';
+            }
+        }
+
+        async function clasificarLibrosSinClasificar() {
+            if (!allBooks.length || !classification) return;
+
+            // 1. Obtener todos los tags usados en la clasificación
+            const allTagsClasificacion = new Set();
+            Object.values(classification.sections).forEach(section => {
+                Object.values(section.subsections).forEach(subsec => {
+                    (subsec.tags || []).forEach(tag => allTagsClasificacion.add(tag.trim()));
+                });
+            });
+
+            // 2. Recorrer todos los libros y marcar los que no tengan ningún tag de la clasificación
+            for (const book of allBooks) {
+                const bookTags = (book.genero || '').split(',').map(t => t.trim()).filter(Boolean);
+                const tieneTagClasificado = bookTags.some(tag => allTagsClasificacion.has(tag));
+                if (!tieneTagClasificado) {
+                    // Añadir "Sin_clasificar" si no lo tiene ya
+                    if (!bookTags.includes('Sin_clasificar')) {
+                        const nuevosTags = [...bookTags, 'Sin_clasificar'].filter(Boolean).join(', ');
+                        // Actualizar en la base de datos
+                        await supabaseClient
+                            .from('books')
+                            .update({ genero: nuevosTags })
+                            .eq('id', book.id);
+                        // Actualizar en memoria
+                        book.genero = nuevosTags;
+                    }
+                }
             }
         }
 
