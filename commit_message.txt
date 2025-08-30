@@ -1,7 +1,5 @@
-fix(viewer): Corrige el visor para mostrar ebooks en lugar de descargarlos
+fix(script): Reemplaza script completo para eliminar código duplicado
 
-Se refactoriza la función `openViewer` para que descargue el contenido del libro como un Blob y lo muestre en el `iframe` usando una URL de objeto. Esto evita que el navegador fuerce la descarga debido a las cabeceras `Content-Disposition` del servidor.
+Se reemplaza todo el contenido de la etiqueta <script> para eliminar el código duplicado introducido en una operación anterior, que causaba un error de sintaxis (`Identifier 'allBooks' has already been declared`).
 
-- `openViewer` ahora es una función asíncrona que utiliza `fetch`.
-- Se gestiona el ciclo de vida de la URL del objeto para evitar fugas de memoria.
-- Se añade manejo de errores y un estado de carga.
+Esta corrección restaura la funcionalidad completa de la aplicación, incluyendo el visor de libros que ahora funciona correctamente.

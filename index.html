@@ -1330,7 +1330,7 @@
          * - Añade 'Sin_clasificar' a los libros que no pertenecen a ninguna subsección.
          * - Elimina 'Sin_clasificar' de los libros que sí pertenecen a una subsección.
          */
-        async function sincronizarClasificacion() {
+                async function sincronizarClasificacion() {
             console.log('🔄 INICIANDO sincronización de clasificación...');
             
             if (!allBooks.length || !classification) {
@@ -1350,12 +1350,12 @@
                 let nuevoGenero = null;
 
                 if (estaRealmenteClasificado && tieneTagSinClasificar) {
-                    console.log(`👍 Libro "${book.titulo}" ya está clasificado. Eliminando tag sobrante.`);
+                    console.log(`👍 Libro \"${book.titulo}\" ya está clasificado. Eliminando tag sobrante.`);
                     const tagsFiltrados = bookTags.filter(tag => normalizeText(tag) !== normalizeText('Sin_clasificar'));
                     nuevoGenero = tagsFiltrados.join(', ');
                 }
                 else if (!estaRealmenteClasificado && !tieneTagSinClasificar) {
-                    console.log(`👎 Libro "${book.titulo}" no tiene categoría. Añadiendo tag.`);
+                    console.log(`👎 Libro \"${book.titulo}\" no tiene categoría. Añadiendo tag.`);
                     const tagsNuevos = [...bookTags, 'Sin_clasificar'];
                     nuevoGenero = tagsNuevos.join(', ');
                 }
