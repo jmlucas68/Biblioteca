@@ -6,7 +6,7 @@
 
         // !!! IMPORTANTE: Reemplaza esta URL con la URL de tu propio proxy de Gemini desplegado. !!!
         // Puedes usar un servicio como Vercel para desplegar un proxy simple.
-        const GEMINI_PROXY_URL = 'http://localhost:3000/api/proxy'; 
+        const GEMINI_PROXY_URL = 'https://perplexity-proxy-backend.vercel.app/api/proxy'; 
 
         // Utility functions
         function esc(s) {
