@@ -1,5 +1,0 @@
-fix(script): Reemplaza script completo para eliminar código duplicado
-
-Se reemplaza todo el contenido de la etiqueta <script> para eliminar el código duplicado introducido en una operación anterior, que causaba un error de sintaxis (`Identifier 'allBooks' has already been declared`).
-
-Esta corrección restaura la funcionalidad completa de la aplicación, incluyendo el visor de libros que ahora funciona correctamente.
