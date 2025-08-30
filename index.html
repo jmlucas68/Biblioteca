@@ -746,7 +746,51 @@
         .view.active {
             display: block;
         }
-    </style>
+    
+        /* VISOR EMBEBIDO */
+        #viewerContainer {
+            display: none;
+            flex-direction: column;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 16px;
+            background: white;
+        }
+
+        #viewerHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--color-background);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        #viewerTitle {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--color-text);
+        }
+
+        #viewerActions {
+            display: flex;
+            gap: 8px;
+        }
+
+        #embeddedViewer {
+            width: 100%;
+            height: 60vh;
+            border: 0;
+            background: #f9f9f9;
+        }
+
+        .format-btn-viewer {
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        </style>
 </head>
 <body>
     <div class="container">
@@ -967,7 +1011,21 @@
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
+                
+                    <!-- VISOR EMBEBIDO -->
+                    <div id="viewerContainer" class="viewer" role="region" aria-label="Previsualización de formato">
+                        <div id="viewerHeader">
+                            <div id="viewerTitle">Previsualización</div>
+                            <div id="viewerActions">
+                                <a id="viewerDownload" class="btn btn--primary" href="#" download>📥 Descargar</a>
+                                <button id="viewerClose" class="btn btn--outline" type="button">❌ Cerrar</button>
+                            </div>
+                        </div>
+                        <iframe id="embeddedViewer" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+                    </div>
+                    <!-- /VISOR EMBEBIDO -->
+
+<div class="modal-footer">
                     <button type="button" class="btn btn--outline" onclick="closeEditModal()">Cancelar</button>
                     <button type="button" class="btn btn--success" onclick="saveBookChanges()">💾 Guardar cambios</button>
                 </div>
@@ -1768,15 +1826,13 @@ function filterBooksByTagsAND(tags) {
                 ${formats.length > 0 ? `
                     <div class="modal-formats">
                         ${formats.map(format => {
-                            const downloadUrl = format.url_download || format.ruta_archivo || '#';
-                            const hasValidUrl = downloadUrl && downloadUrl !== '#';
-                            return `
-                                <a href="${esc(downloadUrl)}" 
-                                   class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}" 
-                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault();"'}>
-                                    📄 ${esc(format.formato)}
-                                    ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
-                                </a>`;
+                            const url = format.url_download || format.ruta_archivo || '';
+                            const size = format.tamano_mb ? ` (${format.tamano_mb} MB)` : '';
+                            return `<button class="btn btn--outline format-btn-viewer" 
+                                      onclick="openEmbeddedViewer('${esc(url)}', '${esc(format.formato)}', ${book.id})"
+                                      title="Previsualizar ${esc(format.formato)}">
+                                        📁 ${esc(format.formato)}${size}
+                                    </button>`;
                         }).join('')}
                     </div>` : ''}
                 <div class="modal-footer">
@@ -1947,6 +2003,63 @@ function filterBooksByTagsAND(tags) {
                 generoSelect.addEventListener('change', () => { generoInput.value = generoSelect.value; });
             }
         });
+    
+        // FUNCIONES PARA EL VISOR EMBEBIDO
+        function openEmbeddedViewer(url, format, bookId) {
+            if (!url || url === '#') {
+                alert('URL del formato no disponible');
+                return;
+            }
+
+            const book = allBooks.find(b => b.id === bookId);
+            const viewerTitle = document.getElementById('viewerTitle');
+            const embeddedViewer = document.getElementById('embeddedViewer');
+            const viewerDownload = document.getElementById('viewerDownload');
+            const viewerContainer = document.getElementById('viewerContainer');
+
+            // Configurar título
+            viewerTitle.textContent = `Previsualización: ${book?.titulo || 'Libro'} (${format})`;
+
+            // Cargar en iframe
+            embeddedViewer.src = url;
+
+            // Configurar descarga
+            const safeTitle = (book?.titulo || 'libro').replace(/[\\/:*?"<>|]/g, '_').slice(0, 120);
+            const ext = format.toLowerCase();
+            viewerDownload.href = url;
+            viewerDownload.setAttribute('download', `${safeTitle}.${ext}`);
+
+            // Mostrar visor
+            viewerContainer.style.display = 'flex';
+        }
+
+        function closeEmbeddedViewer() {
+            const embeddedViewer = document.getElementById('embeddedViewer');
+            const viewerContainer = document.getElementById('viewerContainer');
+
+            if (embeddedViewer) {
+                embeddedViewer.src = 'about:blank';
+            }
+            if (viewerContainer) {
+                viewerContainer.style.display = 'none';
+            }
+        }
+
+        // Event listeners para el visor
+        document.addEventListener('DOMContentLoaded', function() {
+            const viewerClose = document.getElementById('viewerClose');
+            if (viewerClose) {
+                viewerClose.addEventListener('click', closeEmbeddedViewer);
+            }
+
+            // Cerrar visor cuando se cierra el modal principal
+            const originalCloseModal = window.closeModal || function() {};
+            window.closeModal = function() {
+                closeEmbeddedViewer();
+                originalCloseModal();
+            };
+        });
+
     </script>
 </body>
 </html>
