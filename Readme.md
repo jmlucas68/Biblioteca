@@ -15,3 +15,5 @@ Busqueda de libros: también por formato de libro
 Filtro por tags dentro de la subsección
 
 Elimina automñaticamente el tag Sin Clasificar
+
+Corrección de alguno errores---
