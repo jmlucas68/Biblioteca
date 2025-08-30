@@ -85,6 +85,13 @@ Aplicación web de biblioteca personal en HTML/JS estático que permite explorar
     - openViewer(event, formatUrl, bookTitle, formatName): Función asíncrona que abre un modal para visualizar documentos. Transforma URLs de Google Drive (drive.google.com/uc?id=...) a un formato incrustable (drive.google.com/file/d/.../preview) para evitar problemas de CORS. Para otras URLs, intenta usar el visor de Google Docs (docs.google.com/viewer).
     - buildPreviewUrl(viewUrl): Función auxiliar que genera la URL de previsualización adecuada para incrustar documentos, priorizando el formato de Google Drive /preview.
     - closeViewer(): Cierra el modal del visor y limpia el iframe.
+
+- **Generación de Descripción con IA:**
+    - `generateAiDescription(title, author)`: Función asíncrona que interactúa con un proxy de Gemini para generar una descripción de libro basada en el título y autor. Construye un prompt en español solicitando una descripción en formato Markdown.
+    - **Proxy de Gemini:** La aplicación se conecta a un proxy (`perplexity-proxy-backend`) desplegado (ej. en Vercel) o ejecutándose localmente (`http://localhost:3000/api/proxy`). Este proxy es el encargado de comunicarse con la API de Gemini, ocultando la clave de API y gestionando las políticas CORS.
+    - **Integración:** El botón "Descripción IA" en el modal de edición de libros (`editModal`) invoca esta función y rellena el campo `editDescripcion` con la respuesta generada.
+    - **Formato de Salida:** La descripción generada se espera en formato Markdown, lo que permite un renderizado enriquecido en la interfaz de usuario.
+
 - Editor de clasificación:
     - loadClassification(): obtiene id y data; currentClassification = data.data.classification || data.data.[^1]
     - showSections/showSubsections/showTags y renders asociados; confirmAdd(): valida claves y unicidad, añade sección/subsección o tags; deleteItem()/confirmDelete() con restricciones jerárquicas; saveChanges() persiste en Supabase.[^1]
@@ -111,6 +118,9 @@ Aplicación web de biblioteca personal en HTML/JS estático que permite explorar
 
 ## Seguridad
 
+- ## Seguridad
+
+- **Proxy de Gemini:** El proxy (`perplexity-proxy-backend`) gestiona la clave de API de Gemini (a través de variables de entorno) y las políticas CORS (`allowedOrigins`) para controlar el acceso a la API de IA.
 - Claves y URL de Supabase inyectadas en cliente; imprescindible configurar RLS en tablas y añadir autenticación (Supabase Auth) para proteger edición y operaciones masivas; considerar mover sincronización y escrituras a edge functions con verificación JWT.[^1][^2]
 - Sanitización: uso de esc(s) en todo render de strings a innerHTML; onerror en imágenes de portada para ocultar fallos.[^2]
 
@@ -134,6 +144,9 @@ Aplicación web de biblioteca personal en HTML/JS estático que permite explorar
 
 ## Roadmap sugerido
 
+## Roadmap sugerido
+
+- **Funcionalidad implementada:** Generación de descripciones de libros con IA (Gemini) a través de un proxy.
 - Seguridad: integrar Auth + RLS; roles mínimos; mover upsert/updates masivos a edge functions RPC.[^1][^2]
 - Escalado: paginación e infinite scroll; FTS para búsquedas; vistas/materialized views para conteos; caché de portadas y carga diferida.[^2]
 - UX: autocompletado real de filtros; edición en masa y asignación asistida de subsecciones; virtualización de grids.[^2]
