@@ -81,6 +81,10 @@ Aplicación web de biblioteca personal en HTML/JS estático que permite explorar
 - Render y navegación:
     - showSections(), showSubsections(sectionKey), showBooks(sectionKey, subsectionKey): pintan grids, breadcrumbs y exponen tags clicables con modo OR/AND para refinar; filterBooksByTags, filterBooksByTagsOR/AND para combinar.[^2]
     - showBookDetails(id): modal con portada, metadatos, formatos descargables y atajos para saltar a subsecciones donde aparece; showEditModal(id) y saveBookChanges() para edición y persistencia.[^2]
+- Visor de Libros:
+    - openViewer(event, formatUrl, bookTitle, formatName): Función asíncrona que abre un modal para visualizar documentos. Transforma URLs de Google Drive (drive.google.com/uc?id=...) a un formato incrustable (drive.google.com/file/d/.../preview) para evitar problemas de CORS. Para otras URLs, intenta usar el visor de Google Docs (docs.google.com/viewer).
+    - buildPreviewUrl(viewUrl): Función auxiliar que genera la URL de previsualización adecuada para incrustar documentos, priorizando el formato de Google Drive /preview.
+    - closeViewer(): Cierra el modal del visor y limpia el iframe.
 - Editor de clasificación:
     - loadClassification(): obtiene id y data; currentClassification = data.data.classification || data.data.[^1]
     - showSections/showSubsections/showTags y renders asociados; confirmAdd(): valida claves y unicidad, añade sección/subsección o tags; deleteItem()/confirmDelete() con restricciones jerárquicas; saveChanges() persiste en Supabase.[^1]
