@@ -1170,7 +1170,7 @@
                 return;
             }
 
-            const updates = []; // Almacenaremos aquí las actualizaciones necesarias
+            const updates = [];
 
             for (const book of allBooks) {
                 const bookTags = (book.genero || '').split(',').map(t => t.trim()).filter(Boolean);
@@ -1181,24 +1181,20 @@
 
                 let nuevoGenero = null;
 
-                // CASO 1: El libro está clasificado pero tiene la etiqueta "Sin_clasificar". Hay que quitarla.
                 if (estaRealmenteClasificado && tieneTagSinClasificar) {
                     console.log(`👍 Libro "${book.titulo}" ya está clasificado. Eliminando tag sobrante.`);
                     const tagsFiltrados = bookTags.filter(tag => normalizeText(tag) !== normalizeText('Sin_clasificar'));
                     nuevoGenero = tagsFiltrados.join(', ');
                 }
-                
-                // CASO 2: El libro NO está clasificado y NO tiene la etiqueta. Hay que añadirla.
                 else if (!estaRealmenteClasificado && !tieneTagSinClasificar) {
                     console.log(`👎 Libro "${book.titulo}" no tiene categoría. Añadiendo tag.`);
                     const tagsNuevos = [...bookTags, 'Sin_clasificar'];
                     nuevoGenero = tagsNuevos.join(', ');
                 }
 
-                // Si hemos determinado que hay que cambiar el género, preparamos la actualización.
                 if (nuevoGenero !== null) {
-                    updates.push({ id: book.id, genero: nuevoGenero });
-                    // Actualizamos en memoria para que la UI sea consistente de inmediato.
+                    const updatedBook = { ...book, genero: nuevoGenero };
+                    updates.push(updatedBook);
                     book.genero = nuevoGenero;
                 }
             }
@@ -1206,15 +1202,16 @@
             if (updates.length > 0) {
                 console.log(`💾 Se van a actualizar ${updates.length} libros en la base de datos.`);
                 try {
-                    // Usamos upsert para actualizar múltiples filas en una sola llamada
                     const { error } = await supabaseClient.from('books').upsert(updates);
                     if (error) {
                         console.error('❌ Error al actualizar libros en Supabase:', error);
+                        alert('Error al actualizar libros en Supabase: ' + JSON.stringify(error));
                     } else {
                         console.log('✅ Sincronización completada con éxito.');
                     }
                 } catch (err) {
                      console.error('❌ Error catastrófico durante la actualización:', err);
+                     alert('Error catastrófico durante la actualización: ' + JSON.stringify(err));
                 }
             } else {
                 console.log('✅ No se necesitaron actualizaciones. La biblioteca ya está sincronizada.');
