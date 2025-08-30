@@ -1021,7 +1021,7 @@
                                 <button id="viewerClose" class="btn btn--outline" type="button">❌ Cerrar</button>
                             </div>
                         </div>
-                        <iframe id="embeddedViewer" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+                        <iframe id="embeddedViewer" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads"></iframe>
                     </div>
                     <!-- /VISOR EMBEBIDO -->
 
@@ -1833,132 +1833,7 @@ function filterBooksByTagsAND(tags) {
                                       title="Previsualizar ${esc(format.formato)}">
                                         📁 ${esc(format.formato)}${size}
                                     </button>`;
-                        }).join('')}
-                    </div>` : ''}
-                <div class="modal-footer">
-                    <button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>
-                </div>
-            `;
-            
-            elements.modalContent.innerHTML = modalHtml;
-            elements.bookModal.classList.add('show');
-        }
-
-        // Show edit modal
-        function showEditModal(bookId) {
-            const book = allBooks.find(b => b.id === bookId);
-            if (!book) return;
-            
-            currentEditingBook = book;
-            
-            const form = document.getElementById('editForm');
-            form.elements.editTitulo.value = book.titulo || '';
-            form.elements.editAutor.value = book.autor || '';
-            form.elements.editGenero.value = book.genero || '';
-            form.elements.editSerie.value = book.serie || '';
-            form.elements.editNumeroSerie.value = book.numero_serie || '';
-            form.elements.editEditorial.value = book.editorial || '';
-            form.elements.editFechaPublicacion.value = book.fecha_publicacion || '';
-            form.elements.editDescripcion.value = book.descripcion || '';
-            form.elements.editCarpetaObra.value = book.carpeta_obra || '';
-            
-            elements.editModal.classList.add('show');
-        }
-
-        // Save book changes
-        async function saveBookChanges() {
-            if (!currentEditingBook) return;
-
-            const titulo = document.getElementById('editTitulo').value.trim();
-            if (!titulo) {
-                alert('El título es requerido');
-                return;
-            }
-
-            const updatedData = {
-                titulo: titulo,
-                autor: document.getElementById('editAutor').value.trim() || null,
-                genero: document.getElementById('editGenero').value.trim() || null,
-                serie: document.getElementById('editSerie').value.trim() || null,
-                numero_serie: document.getElementById('editNumeroSerie').value.trim() || null,
-                editorial: document.getElementById('editEditorial').value.trim() || null,
-                fecha_publicacion: document.getElementById('editFechaPublicacion').value || null,
-                descripcion: document.getElementById('editDescripcion').value.trim() || null,
-                carpeta_obra: document.getElementById('editCarpetaObra').value.trim() || null
-            };
-
-            try {
-                const { error } = await supabaseClient
-                    .from('books')
-                    .update(updatedData)
-                    .eq('id', currentEditingBook.id);
-                if (error) throw error;
-
-                const bookIndex = allBooks.findIndex(b => b.id === currentEditingBook.id);
-                if (bookIndex !== -1) {
-                    allBooks[bookIndex] = { ...allBooks[bookIndex], ...updatedData };
-                }
-
-                populateSearchFilters();
-                closeEditModal();
-                
-                if (elements.booksView.classList.contains('active')) {
-                    const subsection = classification.sections[currentSection].subsections[currentSubsection];
-                    filteredBooks = filterBooksByTags(subsection.tags);
-                    currentBooks = [...filteredBooks];
-                    filterBooks();
-                }
-
-                if (elements.searchModal.classList.contains('show')) {
-                    performSearch();
-                }
-
-            } catch (error) {
-                console.error('Error updating book:', error);
-                alert('❌ Error al actualizar el libro: ' + error.message);
-            }
-        }
-
-        // Close modal
-        function closeModal() {
-            elements.bookModal.classList.remove('show');
-        }
-
-        // Close edit modal
-        function closeEditModal() {
-            elements.editModal.classList.remove('show');
-            currentEditingBook = null;
-        }
-
-        // Go back
-        function goBack() {
-            const oldTags = document.getElementById('subsectionTags');
-            if (oldTags) oldTags.remove();
-
-            if (elements.booksView.classList.contains('active')) {
-                showSubsections(currentSection);
-            } else if (elements.subsectionsView.classList.contains('active')) {
-                showSections();
-            }
-        }
-
-        // Hide all views
-        function hideAllViews() {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        }
-
-        // Update breadcrumb
-        function updateBreadcrumb(path) {
-            if (path.length === 0) {
-                elements.breadcrumb.innerHTML = '';
-                return;
-            }
-            
-            elements.breadcrumb.innerHTML = path.map((item, index) => 
-                (index === path.length - 1)
-                    ? `<span class="breadcrumb-item">${esc(item)}</span>`
-                    : `<span class="breadcrumb-item">${esc(item)}</span><span class="breadcrumb-separator"> › </span>`
-            ).join('');
+                        }).join('');
         }
 
         // Count books for section
@@ -2023,11 +1898,55 @@ function filterBooksByTagsAND(tags) {
             // Cargar en iframe
             embeddedViewer.src = url;
 
-            // Configurar descarga
+            // Configurar descarga con manejo mejorado
             const safeTitle = (book?.titulo || 'libro').replace(/[\\/:*?"<>|]/g, '_').slice(0, 120);
             const ext = format.toLowerCase();
             viewerDownload.href = url;
             viewerDownload.setAttribute('download', `${safeTitle}.${ext}`);
+
+            // Remover listeners anteriores y añadir nuevo manejo de descarga
+            const newDownloadBtn = viewerDownload.cloneNode(true);
+            viewerDownload.parentNode.replaceChild(newDownloadBtn, viewerDownload);
+
+            newDownloadBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                try {
+                    // Método 1: Crear enlace temporal para forzar descarga
+                    const tempLink = document.createElement('a');
+                    tempLink.href = url;
+                    tempLink.download = `${safeTitle}.${ext}`;
+                    tempLink.style.display = 'none';
+                    document.body.appendChild(tempLink);
+                    tempLink.click();
+                    document.body.removeChild(tempLink);
+                    console.log('Descarga iniciada:', `${safeTitle}.${ext}`);
+                } catch (error) {
+                    console.warn('Descarga directa falló, intentando fetch...', error);
+
+                    // Método 2: Usar fetch + blob
+                    fetch(url)
+                        .then(response => response.blob())
+                        .then(blob => {
+                            const blobUrl = window.URL.createObjectURL(blob);
+                            const tempLink = document.createElement('a');
+                            tempLink.href = blobUrl;
+                            tempLink.download = `${safeTitle}.${ext}`;
+                            tempLink.style.display = 'none';
+                            document.body.appendChild(tempLink);
+                            tempLink.click();
+                            document.body.removeChild(tempLink);
+                            window.URL.revokeObjectURL(blobUrl);
+                        })
+                        .catch(fetchError => {
+                            console.warn('Fetch también falló, abriendo en nueva ventana:', fetchError);
+                            window.open(url, '_blank');
+                        });
+                }
+
+                return false;
+            });
 
             // Mostrar visor
             viewerContainer.style.display = 'flex';
@@ -2045,7 +1964,7 @@ function filterBooksByTagsAND(tags) {
             }
         }
 
-        // Event listeners para el visor
+        // Event listeners para el visor - Configuración mejorada
         document.addEventListener('DOMContentLoaded', function() {
             const viewerClose = document.getElementById('viewerClose');
             if (viewerClose) {
@@ -2053,11 +1972,25 @@ function filterBooksByTagsAND(tags) {
             }
 
             // Cerrar visor cuando se cierra el modal principal
-            const originalCloseModal = window.closeModal || function() {};
-            window.closeModal = function() {
-                closeEmbeddedViewer();
-                originalCloseModal();
-            };
+            const closeModalBtn = document.getElementById('closeModal');
+            if (closeModalBtn) {
+                const originalOnClick = closeModalBtn.onclick;
+                closeModalBtn.onclick = function() {
+                    closeEmbeddedViewer();
+                    if (originalOnClick) originalOnClick.call(this);
+                    closeModal();
+                };
+            }
+
+            // Cerrar con ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const viewerContainer = document.getElementById('viewerContainer');
+                    if (viewerContainer && viewerContainer.style.display === 'flex') {
+                        closeEmbeddedViewer();
+                    }
+                }
+            });
         });
 
     </script>
