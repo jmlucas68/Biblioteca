@@ -4,6 +4,10 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
         const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
+        // !!! IMPORTANTE: Reemplaza esta URL con la URL de tu propio proxy de Gemini desplegado. !!!
+        // Puedes usar un servicio como Vercel para desplegar un proxy simple.
+        const GEMINI_PROXY_URL = 'https://your-gemini-proxy-url.vercel.app/api/proxy'; 
+
         // Utility functions
         function esc(s) {
             return String(s || '')
@@ -54,6 +58,7 @@
             modalContent: document.getElementById('modalContent'),
             closeModal: document.getElementById('closeModal'),
             editModal: document.getElementById('editModal'),
+            aiDescriptionButton: document.getElementById('aiDescriptionButton'), // New element reference
             adminControls: document.getElementById('adminControls'),
             searchModal: document.getElementById('searchModal')
         };
@@ -146,6 +151,36 @@
             }
             if (updates.length > 0) {
                 await supabaseClient.from('books').upsert(updates);
+            }
+        }
+
+        // AI Description Function
+        async function generateAiDescription(title, author) {
+            const prompt = `Dame una breve descripción en formato Markdown del libro: "${title}" del autor: "${author}".`;
+            try {
+                const response = await fetch(GEMINI_PROXY_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt: prompt }),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Error del proxy: ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+                    throw new Error('La respuesta de la IA no tiene el formato esperado.');
+                }
+                return data.choices[0].message.content;
+
+            } catch (error) {
+                console.error('Error al generar descripción con IA:', error);
+                alert(`Error al generar descripción con IA: ${error.message}. Asegúrate de que el proxy de Gemini está configurado correctamente.`);
+                return ''; // Return empty string on error
             }
         }
 
