@@ -922,9 +922,17 @@
                 <div class="modal-body">
                     <form id="editForm">
                         <div class="form-group">
-                            <label class="form-label" for="editTitulo">Título *</label>
-                            <input type="text" id="editTitulo" name="titulo" class="form-control" required>
+                            <label for="editTitulo">Título *</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="editTitulo"
+                                name="titulo"
+                                placeholder="Introduce el título"
+                                required
+                            >
                         </div>
+
                         
                         <div class="form-group">
                             <label class="form-label" for="editAutor">Autor</label>
@@ -1792,6 +1800,27 @@ function filterBooksByTagsAND(tags) {
         function showEditModal(bookId) {
             const book = allBooks.find(b => b.id === bookId);
             if (!book) return;
+
+            // Prellenar todos los campos
+            document.getElementById('editTitulo').value = book.titulo || '';
+            document.getElementById('editAutor').value = book.autor || '';
+            document.getElementById('editGenero').value = book.genero || '';
+            document.getElementById('editSerie').value = book.serie || '';
+            document.getElementById('editNumeroSerie').value = book.numeroserie || '';
+            document.getElementById('editEditorial').value = book.editorial || '';
+            document.getElementById('editFechaPublicacion').value = book.fechapublicacion || '';
+            document.getElementById('editDescripcion').value = book.descripcion || '';
+            document.getElementById('editCarpetaObra').value = book.carpetaobra || '';
+
+            // Guardar ID del libro actual para edición
+            currentEditingBook = bookId;
+            
+            // Mostrar modal
+            document.getElementById('editModal').classList.add('show');
+            }
+
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book) return;
             
             currentEditingBook = book;
             
@@ -1810,7 +1839,54 @@ function filterBooksByTagsAND(tags) {
         }
 
         // Save book changes
-        async function saveBookChanges() {
+        async function saveBookChanges(bookId) {
+            try {
+                const updatedData = {
+                titulo: document.getElementById('editTitulo').value,
+                autor: document.getElementById('editAutor').value || null,
+                genero: document.getElementById('editGenero').value || null,
+                serie: document.getElementById('editSerie').value || null,
+                numeroserie: document.getElementById('editNumeroSerie').value || null,
+                editorial: document.getElementById('editEditorial').value || null,
+                fechapublicacion: document.getElementById('editFechaPublicacion').value || null,
+                descripcion: document.getElementById('editDescripcion').value || null,
+                carpetaobra: document.getElementById('editCarpetaObra').value || null
+                };
+
+                // Validar que el título no esté vacío
+                if (!updatedData.titulo || updatedData.titulo.trim() === '') {
+                alert('El título es obligatorio');
+                return;
+                }
+
+                const { error } = await supabaseClient
+                .from('books')
+                .update(updatedData)
+                .eq('id', bookId);
+
+                if (error) {
+                console.error('Error al actualizar libro:', error);
+                alert('Error al guardar los cambios: ' + error.message);
+                return;
+                }
+
+                // Cerrar modal y refrescar datos
+                closeEditModal();
+                await loadData();
+                
+                // Si hay resultados de búsqueda activos, refrescarlos
+                if (document.getElementById('searchResults').innerHTML.trim() !== '') {
+                performSearch();
+                }
+                
+                alert('Libro actualizado correctamente');
+                
+            } catch (error) {
+                console.error('Error inesperado:', error);
+                alert('Error inesperado al guardar');
+            }
+            }
+
             if (!currentEditingBook) return;
 
             const titulo = document.getElementById('editTitulo').value.trim();
