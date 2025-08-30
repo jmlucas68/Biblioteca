@@ -530,7 +530,9 @@
                 embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
                 console.log(`Converted Google Drive URL to embed: ${embedUrl}`);
             } else {
-                console.log(`Not a Google Drive URL or ID not found, attempting direct embed: ${embedUrl}`);
+                // For non-Google Drive URLs, try Google Docs Viewer
+                embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(formatUrl)}&embedded=true`;
+                console.log(`Attempting embed with Google Docs Viewer: ${embedUrl}`);
             }
 
             viewerIframe.src = embedUrl;
