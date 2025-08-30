@@ -216,7 +216,10 @@
 
         function populateDatalist(datalistId, options) {
             const datalist = document.getElementById(datalistId);
-            if (!datalist) return;
+            if (!datalist) {
+                console.warn(`Datalist con ID '${datalistId}' no encontrado.`);
+                return;
+            }
             datalist.innerHTML = ''; // Clear existing options
             options.forEach(option => {
                 const opt = document.createElement('option');
@@ -380,22 +383,83 @@
         function showBookDetails(bookId) {
             const book = allBooks.find(b => b.id === bookId);
             if (!book) return;
+
             const formats = getBookFormats(bookId);
             const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
             const portadaSrc = resolveCoverThumb(book.url_portada);
+            const coverHref = book.url_portada || '#';
+
+            let subseccionesLibro = [];
+            if (classification && classification.sections) {
+                for (const [sectionKey, section] of Object.entries(classification.sections)) {
+                    for (const [subKey, subsection] of Object.entries(section.subsections)) {
+                        if ((subsection.tags || []).some(tag => genres.map(normalizeText).includes(normalizeText(tag)))) {
+                            subseccionesLibro.push({
+                                section: section.name,
+                                subsection: subsection.name,
+                                sectionKey,
+                                subKey
+                            });
+                        }
+                    }
+                }
+            }
+
+            const subseccionesHtml = subseccionesLibro.length > 0 ? `
+                <div style="margin: 16px 0 0 0;">
+                    <strong>Subsecciones donde aparece:</strong>
+                    <ul style="margin: 6px 0 0 0; padding-left: 18px;">
+                        ${subseccionesLibro.map(s => `
+                            <li>
+                                <a href="#" onclick="showSubsections('${s.sectionKey}'); setTimeout(() => showBooks('${s.sectionKey}', '${s.subKey}'), 10); closeModal(); return false;">
+                                    <span style="color:#2563eb;">${esc(s.section)}</span> / <span style="color:#0369a1;">${esc(s.subsection)}</span>
+                                </a>
+                            </li>`
+                        ).join('')}
+                    </ul>
+                </div>` : `
+                <div style="margin: 16px 0 0 0; color: #64748b;">
+                    No pertenece a ninguna subsección clasificada.
+                </div>`;
+            
             const modalHtml = `
                 <div class="modal-book">
-                    <div class="modal-cover"><img src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" onerror="this.style.display='none'; this.parentElement.innerHTML='📖';"></div>
+                    <div class="modal-cover">
+                        <a href="${esc(coverHref)}" target="_blank" rel="noopener">
+                            <img src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" 
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='📖';" />
+                        </a>
+                    </div>
                     <div class="modal-info">
-                        <h2>${esc(book.titulo)}</h2>
-                        <p><strong>Autor:</strong> ${esc(book.autor || 'Desconocido')}</p>
+                        <h2>${esc(book.titulo || 'Sin título')}</h2>
+                        <p><strong>Autor:</strong> ${esc(book.autor || 'Autor desconocido')}</p>
                         ${book.serie ? `<p><strong>Serie:</strong> ${esc(book.serie)}${book.numero_serie ? ` #${book.numero_serie}` : ''}</p>` : ''}
-                        <p><strong>Géneros:</strong> ${genres.join(', ') || 'Sin especificar'}</p>
+                        ${book.editorial ? `<p><strong>Editorial:</strong> ${esc(book.editorial)}</p>` : ''}
+                        ${book.fecha_publicacion ? `<p><strong>Año:</strong> ${esc(book.fecha_publicacion.slice(0,4))}</p>` : ''}
+                        <p><strong>Géneros:</strong> ${genres.map(g => esc(g)).join(', ') || 'Sin especificar'}</p>
+                        ${subseccionesHtml}
                     </div>
                 </div>
-                ${book.descripcion ? `<div class="modal-description"><h3>Descripción</h3><div class="description-content">${marked.parse(book.descripcion || '')}</div></div>` : ''}
-                <div class="modal-formats">${formats.map(f => `<a href="#" onclick="openViewer(event, '${esc(f.url_download || f.ruta_archivo)}', '${esc(book.titulo)}', '${esc(f.formato)}')" class="format-link">📄 ${esc(f.formato)}</a>`).join('')}</div>
-                <div class="modal-footer"><button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button></div>`;
+                ${book.descripcion ? `<div class="modal-description"><h3>Descripción</h3><p>${esc(book.descripcion)}</p></div>` : ''}
+                ${formats.length > 0 ? `
+                    <div class="modal-formats">
+                        ${formats.map(format => {
+                            const downloadUrl = format.url_download || format.ruta_archivo || '#';
+                            const hasValidUrl = downloadUrl && downloadUrl !== '#';
+                            return `
+                                <a href="${esc(downloadUrl)}" 
+                                   class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}" 
+                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault();"'}>
+                                    📄 ${esc(format.formato)}
+                                    ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
+                                </a>`;
+                        }).join('')}
+                    </div>` : ''}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>
+                </div>
+            `;
+            
             elements.modalContent.innerHTML = modalHtml;
             elements.bookModal.classList.add('show');
         }
