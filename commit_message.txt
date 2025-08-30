@@ -1,7 +1,7 @@
-feat(viewer): Implementa visor de libros embebido
+fix(viewer): Corrige el visor para mostrar ebooks en lugar de descargarlos
 
-Se añade la funcionalidad para que los formatos de los libros (como PDF) se abran en un visor modal en lugar de descargarse directamente.
+Se refactoriza la función `openViewer` para que descargue el contenido del libro como un Blob y lo muestre en el `iframe` usando una URL de objeto. Esto evita que el navegador fuerce la descarga debido a las cabeceras `Content-Disposition` del servidor.
 
-- Se ha creado la función `openViewer` que gestiona la apertura del modal y la carga del fichero en un `iframe`.
-- Se ha creado la función `closeViewer` para cerrar el modal.
-- Se ha modificado `showBookDetails` para que los enlaces de los formatos invoquen al nuevo visor.
+- `openViewer` ahora es una función asíncrona que utiliza `fetch`.
+- Se gestiona el ciclo de vida de la URL del objeto para evitar fugas de memoria.
+- Se añade manejo de errores y un estado de carga.
