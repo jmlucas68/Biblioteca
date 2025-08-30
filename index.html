@@ -912,6 +912,22 @@
             </div>
         </div>
 
+        <!-- Visor de Libros -->
+        <div class="modal-backdrop" id="viewerModal" style="z-index: 1010; display: none;">
+             <div class="modal" style="max-width: 90vw; height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="viewerTitle">Visor de Libros</h2>
+                    <a id="viewerDownloadLink" href="#" target="_blank" class="btn btn--primary" style="margin-left: auto; margin-right: 1rem;">
+                        ⬇️ Descargar
+                    </a>
+                    <button class="modal-close" onclick="closeViewer()">×</button>
+                </div>
+                <div class="modal-body" style="flex-grow: 1; padding: 0;">
+                    <iframe id="viewerIframe" style="width: 100%; height: 100%; border: none;"></iframe>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal de edición -->
         <div class="modal-backdrop" id="editModal">
             <div class="modal">
@@ -1712,7 +1728,7 @@
                             return `
                                 <a href="${esc(downloadUrl)}" 
                                    class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}" 
-                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault();"'}">
+                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault();"'}>
                                     📄 ${esc(format.formato)}
                                     ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
                                 </a>`;
