@@ -410,17 +410,28 @@
             viewerIframe.src = 'about:blank';
             viewerModal.style.display = 'flex';
             viewerDownloadLink.href = formatUrl;
-            try {
-                const response = await fetch(formatUrl);
-                if (!response.ok) throw new Error(`Error de red: ${response.status}`)
-                const blob = await response.blob();
-                currentObjectUrl = URL.createObjectURL(blob);
-                viewerTitle.textContent = `${esc(bookTitle)} - ${esc(formatName)}`;
-                viewerIframe.src = currentObjectUrl;
-            } catch (error) {
-                viewerTitle.textContent = `Error al cargar`;
-                viewerIframe.contentWindow.document.body.innerHTML = `Error: ${error.message}`;
+
+            let embedUrl = formatUrl; // Default to original URL
+            const googleDriveIdMatch = formatUrl.match(/id=([a-zA-Z0-9_-]+)/);
+            if (googleDriveIdMatch && formatUrl.includes('drive.google.com')) {
+                const fileId = googleDriveIdMatch[1];
+                embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+                console.log(`Converted Google Drive URL to embed: ${embedUrl}`);
+            } else {
+                console.log(`Not a Google Drive URL or ID not found, attempting direct embed: ${embedUrl}`);
             }
+
+            viewerIframe.src = embedUrl;
+            viewerTitle.textContent = `${esc(bookTitle)} - ${esc(formatName)}`;
+
+            viewerIframe.onerror = () => {
+                viewerTitle.textContent = `Error al cargar ${esc(bookTitle)}`;
+                viewerIframe.contentWindow.document.body.innerHTML = `<div style="padding: 20px; text-align: center; color: #ef4444;">
+                    <h3>No se pudo cargar el libro para visualización</h3>
+                    <p>Puede que el archivo no sea público o que Google Drive no permita la visualización directa.</p>
+                    <p>Puedes intentar <a href="${formatUrl}" target="_blank" rel="noopener" style="color: #2563eb;">descargarlo directamente</a>.</p>
+                </div>`;
+            };
         }
 
         function closeViewer() {
