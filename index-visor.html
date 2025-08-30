@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi Biblioteca Personal</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f5f7fb; margin:0; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 18px; }
+    header { background:#1f2937; color:#fff; padding:18px; border-radius:12px; }
+    header h1 { margin:0 0 6px 0; font-size:22px; }
+    .stats { display:flex; gap:24px; font-size:14px; opacity:.9; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; padding:12px 0; }
+    .controls input, .controls select { padding:10px 12px; border-radius:8px; border:1px solid #cfd8e3; background:#fff; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap:14px; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; display:flex; gap:12px; padding:12px; }
+    .cover-wrap { position: relative; flex:0 0 110px; }
+    .cover { width:110px; height:150px; border-radius:8px; background:#eef2f6; object-fit:cover; cursor:pointer; display:block; }
+    .content { flex:1; display:flex; flex-direction:column; gap:6px; }
+    .title { font-weight:700; color:#111827; line-height:1.2; }
+    .author { color:#6b7280; font-size:14px; }
+    .meta { display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:#374151; }
+    .badge { padding:2px 8px; border-radius:999px; font-weight:600; }
+    .badge.series { background:#eef2ff; color:#4338ca; }
+    .badge.genre { background:#ecfeff; color:#0369a1; }
+    .formats { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+    .format-link { 
+      font-size:12px; border:1px solid #d1d5db; border-radius:8px; padding:4px 8px; 
+      background:#f9fafb; text-decoration:none; color:#374151; cursor:pointer;
+      transition: all 0.2s ease;
+    }
+    .format-link:hover { 
+      background:#2563eb; color:#fff; border-color:#2563eb; 
+      text-decoration:none; transform: translateY(-1px);
+    }
+    .actions { display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap; }
+    .btn { padding:8px 12px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-weight:700; cursor:pointer; font-size:12px; }
+    .btn.secondary { background:#6b7280; }
+    .btn.ghost { background:#eef2f7; color:#1f2937; }
+    .btn.edit { background:#059669; }
+    .btn.edit:hover { background:#047857; }
+    .viewer { margin-top:10px; width:100%; height:360px; border:0; border-radius:8px; background:#f0f2f5; display:none; }
+    .no-results { text-align:center; color:#6b7280; padding:40px 0; }
+    .loading { text-align:center; padding:50px; font-size:18px; color:#6b7280; }
+
+    /* Estilos para vista de secciones */
+    .sections-view { display: none; }
+    .books-view { display: none; }
+    .breadcrumb { 
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 14px; color: #6b7280;
+    }
+    .breadcrumb a { 
+      color: #2563eb; text-decoration: none; cursor: pointer;
+    }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb-separator { margin: 0 4px; }
+
+    /* Tarjetas de secciones */
+    .section-card {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
+      cursor: pointer; transition: all 0.2s ease; position: relative;
+    }
+    .section-card:hover {
+      transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #2563eb;
+    }
+    .section-cover {
+      width: 100%; height: 200px; object-fit: cover; background: #eef2f6;
+    }
+    .section-content {
+      padding: 16px;
+    }
+    .section-title {
+      font-weight: 700; color: #111827; font-size: 18px; margin-bottom: 8px;
+    }
+    .section-count {
+      color: #6b7280; font-size: 14px;
+    }
+    .section-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.7));
+      color: white; padding: 20px 16px 16px; text-align: center;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+    }
+    .modal {
+      width: min(800px, 100%); background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.2);
+      max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-header { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-weight: 700; color: #111827; margin: 0; }
+    .modal-close { background: transparent; border: none; font-size: 22px; line-height: 1; cursor: pointer; color: #6b7280; }
+    .modal-body { padding: 16px; overflow: auto; color: #111827; line-height: 1.6; }
+    .modal-footer { padding: 12px 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* Edit Modal Styles */
+    .form-group { margin-bottom: 12px; }
+    .form-label { display: block; margin-bottom: 4px; font-weight: 600; color: #374151; }
+    .form-control { 
+      width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; 
+      background: #fff; font-size: 14px; box-sizing: border-box;
+    }
+    .form-control:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    .form-control[readonly] { background: #f9fafb; color: #6b7280; }
+    textarea.form-control { min-height: 80px; resize: vertical; }
+    .btn-save { background: #059669; }
+    .btn-save:hover { background: #047857; }
+    .btn-cancel { background: #6b7280; }
+    .btn-cancel:hover { background: #4b5563; }
+
+    @media (max-width: 480px) {
+      .card { flex-direction:column; align-items:center; }
+      .cover-wrap { flex: 0 0 auto; }
+      .cover { width:160px; height:220px; }
+      .content { width:100%; }
+      .section-cover { height: 150px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📚 Mi Biblioteca Personal</h1>
+      <div class="stats">
+        <div>Total obras: <b id="statTotal">-</b></div>
+        <div>Autores: <b id="statAuthors">-</b></div>
+        <div>Secciones: <b id="statSections">-</b></div>
+      </div>
+    </header>
+
+    <!-- Breadcrumb -->
+    <div id="breadcrumb" class="breadcrumb" style="display:none;">
+      <a onclick="showSections()">📚 Inicio</a>
+      <span class="breadcrumb-separator">›</span>
+      <span id="currentSection">Sección</span>
+    </div>
+
+    <!-- Vista de Secciones -->
+    <div id="sectionsView" class="sections-view">
+      <div id="loading" class="loading">
+        📄 Cargando biblioteca desde la base de datos...
+      </div>
+      <div id="sectionsGrid" class="grid" style="display:none;"></div>
+    </div>
+
+    <!-- Vista de Libros -->
+    <div id="booksView" class="books-view">
+      <div class="controls">
+        <input id="q" type="search" placeholder="Buscar por título, autor..." />
+        <select id="author"><option value="">Todos los autores</option></select>
+        <select id="format"><option value="">Todos los formatos</option></select>
+      </div>
+      
+      <div id="booksGrid" class="grid"></div>
+      <div id="noResults" class="no-results" style="display:none;">No se encontraron resultados</div>
+    </div>
+  </div>
+
+  <!-- Modal de descripción -->
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle" class="modal-title">Descripción</h2>
+        <button class="modal-close" aria-label="Cerrar" onclick="closeModal()">×</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de edición -->
+  <div id="editModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="editModalTitle" class="modal-title">✏️ Editar libro</h2>
+        <button class="modal-close" aria-label="Cerrar" onclick="closeEditModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="editForm">
+          <div class="form-group">
+            <label class="form-label" for="editTitulo">Título *</label>
+            <input type="text" id="editTitulo" name="titulo" class="form-control" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editAutor">Autor</label>
+            <input type="text" id="editAutor" name="autor" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editGenero">Género</label>
+            <input type="text" id="editGenero" name="genero" class="form-control" placeholder="Separar múltiples géneros con comas">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editSerie">Serie</label>
+            <input type="text" id="editSerie" name="serie" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editNumeroSerie">Número de serie</label>
+            <input type="text" id="editNumeroSerie" name="numero_serie" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editEditorial">Editorial</label>
+            <input type="text" id="editEditorial" name="editorial" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editFechaPublicacion">Fecha de publicación</label>
+            <input type="date" id="editFechaPublicacion" name="fecha_publicacion" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editDescripcion">Descripción</label>
+            <textarea id="editDescripcion" name="descripcion" class="form-control" rows="4"></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editUrlPortada">URL de portada</label>
+            <input type="url" id="editUrlPortada" name="url_portada" class="form-control" placeholder="https://...">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editCarpetaObra">Carpeta de obra</label>
+            <input type="text" id="editCarpetaObra" name="carpeta_obra" class="form-control">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-cancel" onclick="closeEditModal()">Cancelar</button>
+        <button type="button" class="btn btn-save" onclick="saveBookChanges()">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <script>
+    // ⚠️ CONFIGURAR CON TUS CREDENCIALES DE SUPABASE
+const SUPABASE_URL = 'https://fanyuclarbgwraiwbcmr.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Variables globales para datos en memoria
+    let allBooks = [];
+    let allFormats = [];
+    let books = []; // Array combinado final
+    let sections = []; // Secciones (géneros únicos)
+    let currentSection = null;
+    let filtered = [];
+    let currentEditingBook = null;
+    
+    // Cache de opciones para filtros
+    let cachedAuthors = new Set();
+    let cachedFormats = new Set();
+    let cachedGenres = new Set();
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadAllDataToMemory();
+      showSections();
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeModal();
+          closeEditModal();
+        }
+      });
+      document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'modalBackdrop') closeModal();
+      });
+      document.getElementById('editModalBackdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'editModalBackdrop') closeEditModal();
+      });
+    });
+
+    async function loadAllDataToMemory() {
+      try {
+        console.log('🚀 Iniciando carga completa de datos...');
+        document.getElementById('loading').innerHTML = '📄 Cargando libros...';
+        
+        // Consulta 1: Obtener TODOS los libros
+        console.log('📚 Consultando tabla books...');
+        const { data: booksData, error: booksError } = await supabase
+          .from('books')
+          .select('*')
+          .order('titulo');
+        
+        if (booksError) {
+          console.error('Error en consulta books:', booksError);
+          throw new Error(`Error cargando libros: ${booksError.message}`);
+        }
+        
+        if (!booksData) {
+          throw new Error('No se recibieron datos de libros');
+        }
+        
+        allBooks = [...booksData]; // Crear copia para evitar referencias
+        console.log(`📚 ${allBooks.length} libros cargados en memoria`);
+        
+        document.getElementById('loading').innerHTML = '💿 Cargando formatos...';
+        
+        // Consulta 2: Obtener TODOS los formatos
+        console.log('💿 Consultando tabla book_formats...');
+        const { data: formatsData, error: formatsError } = await supabase
+          .from('book_formats')
+          .select('*');
+        
+        if (formatsError) {
+          console.error('Error en consulta formats:', formatsError);
+          throw new Error(`Error cargando formatos: ${formatsError.message}`);
+        }
+        
+        allFormats = formatsData ? [...formatsData] : []; // Crear copia y manejar null
+        console.log(`💿 ${allFormats.length} formatos cargados en memoria`);
+        
+        document.getElementById('loading').innerHTML = '🔄 Procesando datos...';
+        
+        // Crear índices para búsquedas rápidas
+        const formatsByBookId = new Map();
+        allFormats.forEach(format => {
+          if (format && format.book_id) { // Validar datos
+            if (!formatsByBookId.has(format.book_id)) {
+              formatsByBookId.set(format.book_id, []);
+            }
+            formatsByBookId.get(format.book_id).push({...format}); // Copia del objeto
+          }
+        });
+        
+        // Combinar datos y crear cachés
+        books = allBooks.map(book => {
+          try {
+            const bookFormats = formatsByBookId.get(book.id) || [];
+            const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
+            
+            // Actualizar cachés (validar antes de agregar)
+            if (book.autor) cachedAuthors.add(book.autor);
+            genres.forEach(g => { if (g) cachedGenres.add(g); });
+            bookFormats.forEach(f => { if (f.formato) cachedFormats.add(f.formato); });
+            
+            return {
+              id: book.id,
+              titulo: book.titulo || '',
+              autor: book.autor || '',
+              genero: book.genero || '',
+              serie: book.serie || '',
+              numero_serie: book.numero_serie || '',
+              editorial: book.editorial || '',
+              fecha_publicacion: book.fecha_publicacion || '',
+              descripcion: book.descripcion || '',
+              url_portada: book.url_portada || '',
+              carpeta_obra: book.carpeta_obra || '',
+              formatos: bookFormats,
+              _genres: genres,
+              // Pre-procesar campos para búsqueda más rápida
+              _searchText: [
+                book.titulo,
+                book.autor,
+                book.genero,
+                book.serie,
+                book.editorial
+              ].filter(Boolean).join(' ').toLowerCase()
+            };
+          } catch (bookError) {
+            console.warn('Error procesando libro:', book.id, bookError);
+            return null;
+          }
+        }).filter(Boolean); // Eliminar libros con errores
+        
+        // Crear secciones basadas en géneros
+        const genreCounts = new Map();
+        books.forEach(book => {
+          book._genres.forEach(genre => {
+            if (genre) {
+              genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
+            }
+          });
+        });
+        
+        sections = Array.from(genreCounts.entries())
+          .map(([genre, count]) => ({ name: genre, count: count }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        
+        console.log('✅ Datos combinados y optimizados en memoria');
+        console.log(`📊 Estadísticas: ${books.length} libros, ${cachedAuthors.size} autores, ${cachedFormats.size} formatos, ${sections.length} secciones`);
+        
+        // Actualizar estadísticas UI
+        document.getElementById('statTotal').textContent = books.length;
+        document.getElementById('statAuthors').textContent = cachedAuthors.size;
+        document.getElementById('statSections').textContent = sections.length;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('sectionsGrid').style.display = 'grid';
+        
+      } catch (error) {
+        console.error('❌ Error cargando datos:', error);
+        console.error('Stack trace:', error.stack);
+        
+        // Mostrar error más detallado
+        let errorMessage = error.message;
+        if (error.name === 'DataCloneError') {
+          errorMessage = 'Error de clonación de datos. Reintentando...';
+          // Intentar recargar la página después de un breve delay
+          setTimeout(() => {
+            console.log('🔄 Recargando página...');
+            window.location.reload();
+          }, 2000);
+        }
+        
+        document.getElementById('loading').innerHTML = 
+          `❌ Error: ${errorMessage}<br><small>Revisa consola para más detalles. ${error.name === 'DataCloneError' ? 'Recargando...' : ''}</small>`;
+      }
+    }
+
+    function showSections() {
+      // Ocultar vista de libros y breadcrumb
+      document.getElementById('booksView').style.display = 'none';
+      document.getElementById('breadcrumb').style.display = 'none';
+      
+      // Mostrar vista de secciones
+      document.getElementById('sectionsView').style.display = 'block';
+      
+      // Renderizar secciones
+      const sectionsGrid = document.getElementById('sectionsGrid');
+      sectionsGrid.innerHTML = sections.map(renderSectionCard).join('');
+      
+      currentSection = null;
+    }
+
+    function renderSectionCard(section) {
+      return `
+        <div class="section-card" onclick="showBooksInSection('${esc(section.name)}')">
+          <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}" 
+               onerror="this.style.background='#eef2f6'; this.alt='📚';">
+          <div class="section-content">
+            <div class="section-title">${esc(section.name)}</div>
+            <div class="section-count">${section.count} libro${section.count !== 1 ? 's' : ''}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function showBooksInSection(sectionName) {
+      currentSection = sectionName;
+      
+      // Actualizar breadcrumb
+      document.getElementById('currentSection').textContent = sectionName;
+      document.getElementById('breadcrumb').style.display = 'flex';
+      
+      // Ocultar vista de secciones
+      document.getElementById('sectionsView').style.display = 'none';
+      
+      // Mostrar vista de libros
+      document.getElementById('booksView').style.display = 'block';
+      
+      // Inicializar filtros si no se han inicializado
+      if (cachedAuthors.size > 0 && document.getElementById('author').children.length === 1) {
+        initFilters();
+      }
+      
+      // Filtrar libros por sección
+      applyFilters();
+    }
+
+    function initFilters() {
+      // Llenar filtros usando los cachés
+      fillSelect('author', [...cachedAuthors].sort());
+      fillSelect('format', [...cachedFormats].sort());
+
+      // Event listeners para filtros
+      document.getElementById('q').addEventListener('input', applyFilters);
+      document.getElementById('author').addEventListener('change', applyFilters);
+      document.getElementById('format').addEventListener('change', applyFilters);
+    }
+
+    function fillSelect(id, values) {
+      const sel = document.getElementById(id);
+      // Limpiar opciones existentes (excepto la primera)
+      while (sel.children.length > 1) {
+        sel.removeChild(sel.lastChild);
+      }
+      
+      values.forEach(v => {
+        if (v) { // Solo agregar valores no vacíos
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          sel.appendChild(opt);
+        }
+      });
+    }
+
+    function applyFilters() {
+      const startTime = performance.now();
+      
+      const q = document.getElementById('q').value.toLowerCase().trim();
+      const a = document.getElementById('author').value;
+      const f = document.getElementById('format').value;
+
+      // Filtrado optimizado usando el texto pre-procesado
+      filtered = books.filter(book => {
+        // Filtro por sección actual (obligatorio)
+        if (currentSection && !book._genres.includes(currentSection)) {
+          return false;
+        }
+        
+        // Búsqueda por texto (más rápida usando _searchText)
+        if (q && !book._searchText.includes(q)) {
+          return false;
+        }
+        
+        // Filtro por autor
+        if (a && book.autor !== a) {
+          return false;
+        }
+        
+        // Filtro por formato (usando some para eficiencia)
+        if (f && !book.formatos.some(format => format.formato === f)) {
+          return false;
+        }
+        
+        return true;
+      });
+
+      const endTime = performance.now();
+      console.log(`🔍 Filtrado completado en ${(endTime - startTime).toFixed(2)}ms - ${filtered.length} resultados`);
+
+      renderBooks();
+    }
+
+    function renderBooks() {
+      const grid = document.getElementById('booksGrid');
+      const empty = document.getElementById('noResults');
+      
+      if (!filtered.length) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      
+      empty.style.display = 'none';
+      
+      const startTime = performance.now();
+      grid.innerHTML = filtered.map(renderCard).join('');
+      const endTime = performance.now();
+      
+      console.log(`🎨 Renderizado completado en ${(endTime - startTime).toFixed(2)}ms`);
+    }
+
+    function renderCard(b) {
+      const viewerId = 'viewer_' + hash(b.titulo + '|' + b.autor + '|' + (b.carpeta_obra || ''));
+      const portadaSrc = resolveCoverThumb(b.url_portada);
+      const coverHref = b.url_portada || '#';
+      const series = b.serie ? `<span class="badge series">${esc(b.serie)}${b.numero_serie ? ' #' + esc(b.numero_serie) : ''}</span>` : '';
+      const genres = b._genres.slice(0, 3).map(g => `<span class="badge genre">${esc(g)}</span>`).join(' ');
+      const year = safeYear(b.fecha_publicacion);
+
+      // Enlaces directos por formato
+      const formatLinks = (b.formatos || []).map(f => {
+        const text = f.tamanio ? `${f.formato} · ${f.tamanio}` : f.formato;
+        return `<a href="${esc(f.url)}" target="_blank" rel="noopener" class="format-link" title="Abrir ${f.formato}">${esc(text)}</a>`;
+      }).join('');
+
+      // Botón de descripción solo si hay descripción
+      const hasDesc = !!stripHtml(b.descripcion || '').trim();
+      const descButton = hasDesc
+        ? `<button class="btn ghost" onclick="openDescription('${esc(b.titulo)}','${esc(b.autor || '')}', \`${escMultiline(stripHtml(b.descripcion))}\`)">📄 Descripción</button>`
+        : '';
+
+      // Botón de visor (usa el primer formato disponible)
+      const firstFormat = (b.formatos || [])[0];
+      const viewerButton = firstFormat
+        ? `<button class="btn secondary" onclick="toggleViewer('${viewerId}', '${esc(firstFormat.url)}')">👁️ Visor</button>`
+        : '';
+
+      // Botón de editar
+      const editButton = `<button class="btn edit" onclick="openEditModal(${b.id})">✏️ Editar</button>`;
+
+      return `
+        <div class="card">
+          <div class="cover-wrap">
+            <a href="${esc(coverHref)}" target="_blank" rel="noopener">
+              <img class="cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(b.titulo)}"
+                onerror="this.style.display='none';"/>
+            </a>
+          </div>
+          <div class="content">
+            <div class="title">${esc(b.titulo)}</div>
+            <div class="author">por ${esc(b.autor || 'Autor desconocido')}</div>
+            <div class="meta">
+              ${year ? `<span>Año: ${year}</span>` : ''}
+              ${b.editorial ? `<span>Editorial: ${esc(b.editorial)}</span>` : ''}
+              ${series}
+            </div>
+            <div class="meta">${genres}</div>
+
+            <div class="formats">${formatLinks}</div>
+
+            <div class="actions">
+              ${viewerButton}
+              ${descButton}
+              ${editButton}
+            </div>
+
+            <iframe id="${viewerId}" class="viewer" loading="lazy"></iframe>
+          </div>
+        </div>
+      `;
+    }
+
+    // Modal de descripción (existente)
+    function openDescription(title, author, description) {
+      const backdrop = document.getElementById('modalBackdrop');
+      const titleEl = document.getElementById('modalTitle');
+      const bodyEl = document.getElementById('modalBody');
+
+      titleEl.textContent = author ? `${title} — ${author}` : title;
+      bodyEl.textContent = description || '(Sin descripción)';
+      backdrop.style.display = 'flex';
+      setTimeout(() => {
+        const closeBtn = backdrop.querySelector('.modal-close');
+        if (closeBtn) closeBtn.focus();
+      }, 0);
+    }
+
+    function closeModal() {
+      const backdrop = document.getElementById('modalBackdrop');
+      backdrop.style.display = 'none';
+    }
+
+    // Modal de edición
+    function openEditModal(bookId) {
+      const book = books.find(b => b.id === bookId);
+      if (!book) {
+        alert('Error: Libro no encontrado');
+        return;
+      }
+
+      currentEditingBook = book;
+      const backdrop = document.getElementById('editModalBackdrop');
+      
+      // Llenar el formulario con los datos actuales
+      document.getElementById('editTitulo').value = book.titulo || '';
+      document.getElementById('editAutor').value = book.autor || '';
+      document.getElementById('editGenero').value = book.genero || '';
+      document.getElementById('editSerie').value = book.serie || '';
+      document.getElementById('editNumeroSerie').value = book.numero_serie || '';
+      document.getElementById('editEditorial').value = book.editorial || '';
+      document.getElementById('editFechaPublicacion').value = book.fecha_publicacion || '';
+      document.getElementById('editDescripcion').value = stripHtml(book.descripcion || '');
+      document.getElementById('editUrlPortada').value = book.url_portada || '';
+      document.getElementById('editCarpetaObra').value = book.carpeta_obra || '';
+
+      backdrop.style.display = 'flex';
+      setTimeout(() => {
+        document.getElementById('editTitulo').focus();
+      }, 0);
+    }
+
+    function closeEditModal() {
+      const backdrop = document.getElementById('editModalBackdrop');
+      backdrop.style.display = 'none';
+      currentEditingBook = null;
+    }
+
+    async function saveBookChanges() {
+      if (!currentEditingBook) {
+        alert('Error: No hay libro seleccionado para editar');
+        return;
+      }
+
+      // Validar campos requeridos
+      const titulo = document.getElementById('editTitulo').value.trim();
+      if (!titulo) {
+        alert('El título es requerido');
+        document.getElementById('editTitulo').focus();
+        return;
+      }
+
+      // Validar URL de portada si se proporciona
+      const urlPortada = document.getElementById('editUrlPortada').value.trim();
+      if (urlPortada && !isValidUrl(urlPortada)) {
+        alert('Por favor, ingresa una URL de portada válida');
+        document.getElementById('editUrlPortada').focus();
+        return;
+      }
+
+      // Recopilar todos los datos del formulario
+      const updatedData = {
+        titulo: titulo,
+        autor: document.getElementById('editAutor').value.trim(),
+        genero: document.getElementById('editGenero').value.trim(),
+        serie: document.getElementById('editSerie').value.trim() || null,
+        numero_serie: document.getElementById('editNumeroSerie').value.trim() || null,
+        editorial: document.getElementById('editEditorial').value.trim(),
+        fecha_publicacion: document.getElementById('editFechaPublicacion').value || null,
+        descripcion: document.getElementById('editDescripcion').value.trim(),
+        url_portada: urlPortada,
+        carpeta_obra: document.getElementById('editCarpetaObra').value.trim()
+      };
+
+      try {
+        console.log('💾 Guardando cambios del libro...', updatedData);
+        
+        // Actualizar en Supabase
+        const { data, error } = await supabase
+          .from('books')
+          .update(updatedData)
+          .eq('id', currentEditingBook.id)
+          .select();
+
+        if (error) {
+          console.error('Error actualizando libro:', error);
+          alert(`Error al guardar los cambios: ${error.message}`);
+          return;
+        }
+
+        console.log('✅ Libro actualizado exitosamente:', data);
+        
+        // Actualizar los datos en memoria
+        const bookIndex = books.findIndex(b => b.id === currentEditingBook.id);
+        if (bookIndex !== -1) {
+          // Actualizar el libro en memoria preservando los formatos
+          books[bookIndex] = {
+            ...books[bookIndex],
+            ...updatedData,
+            _genres: (updatedData.genero || '').split(',').map(g => g.trim()).filter(Boolean),
+            _searchText: [
+              updatedData.titulo,
+              updatedData.autor,
+              updatedData.genero,
+              updatedData.serie,
+              updatedData.editorial
+            ].filter(Boolean).join(' ').toLowerCase()
+          };
+        }
+
+        // Actualizar también en allBooks
+        const allBookIndex = allBooks.findIndex(b => b.id === currentEditingBook.id);
+        if (allBookIndex !== -1) {
+          allBooks[allBookIndex] = { ...allBooks[allBookIndex], ...updatedData };
+        }
+
+        // Actualizar cachés si es necesario
+        if (updatedData.autor) cachedAuthors.add(updatedData.autor);
+        const newGenres = (updatedData.genero || '').split(',').map(g => g.trim()).filter(Boolean);
+        newGenres.forEach(g => { if (g) cachedGenres.add(g); });
+
+        // Cerrar modal
+        closeEditModal();
+        
+        // Re-renderizar la vista actual
+        if (currentSection) {
+          applyFilters();
+        } else {
+          // Si estamos en vista de secciones, recalcular secciones
+          const genreCounts = new Map();
+          books.forEach(book => {
+            book._genres.forEach(genre => {
+              if (genre) {
+                genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
+              }
+            });
+          });
+          
+          sections = Array.from(genreCounts.entries())
+            .map(([genre, count]) => ({ name: genre, count: count }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+          
+          document.getElementById('statSections').textContent = sections.length;
+          showSections();
+        }
+        
+        // Mostrar mensaje de éxito
+        alert('✅ Los cambios se han guardado exitosamente');
+
+      } catch (error) {
+        console.error('Error inesperado:', error);
+        alert(`Error inesperado al guardar: ${error.message}`);
+      }
+    }
+
+    // Función auxiliar para validar URLs
+    function isValidUrl(string) {
+      try {
+        const url = new URL(string);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+      } catch (_) {
+        return false;
+      }
+    }
+
+    // Visor embebido
+    function buildPreviewUrl(viewUrl) {
+      const m = String(viewUrl || '').match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/i);
+      if (m && m[1]) {
+        const id = m[1];
+        return `https://drive.google.com/file/d/${id}/preview`;
+      }
+      return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(viewUrl || '')}`;
+    }
+
+    function toggleViewer(viewerId, formatUrl) {
+      const iframe = document.getElementById(viewerId);
+      if (!iframe) return;
+      
+      if (iframe.style.display === 'none' || !iframe.style.display) {
+        const previewUrl = buildPreviewUrl(formatUrl);
+        if (!previewUrl) {
+          iframe.style.display = 'none';
+          return;
+        }
+        iframe.style.display = 'block';
+        iframe.onerror = () => { iframe.style.display = 'none'; };
+        iframe.src = previewUrl;
+      } else {
+        iframe.style.display = 'none';
+        iframe.removeAttribute('src');
+      }
+    }
+
+    // Thumbnail de portada (Drive)
+    function resolveCoverThumb(urlPortada) {
+      if (!urlPortada) return '';
+      const m = urlPortada.match(/\/d\/([^/]+)\//);
+      const id = m ? m[1] : null;
+      if (!id) return urlPortada;
+      return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
+    }
+
+    // Utils
+    function safeYear(dateStr) {
+      if (!dateStr || dateStr.startsWith('0101')) return '';
+      const d = new Date(dateStr);
+      const y = d.getFullYear();
+      return isNaN(y) ? '' : String(y);
+    }
+    function stripHtml(s){ return String(s || '').replace(/<[^>]+>/g,''); }
+    function esc(s){
+      return String(s || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+    function escMultiline(s) {
+      return String(s || '').replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g,'\\$').replace(/\r?\n/g, '\\n');
+    }
+    function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i); h|=0;} return String(Math.abs(h)); }
+  </script>
+</body>
+</html>
