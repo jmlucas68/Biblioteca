@@ -346,7 +346,7 @@
                         <p><strong>Géneros:</strong> ${genres.join(', ') || 'Sin especificar'}</p>
                     </div>
                 </div>
-                ${book.descripcion ? `<div class="modal-description"><h3>Descripción</h3><p>${esc(book.descripcion)}</p></div>` : ''}
+                ${book.descripcion ? `<div class="modal-description"><h3>Descripción</h3><div class="description-content">${marked.parse(book.descripcion || '')}</div></div>` : ''}
                 <div class="modal-formats">${formats.map(f => `<a href="#" onclick="openViewer(event, '${esc(f.url_download || f.ruta_archivo)}', '${esc(book.titulo)}', '${esc(f.formato)}')" class="format-link">📄 ${esc(f.formato)}</a>`).join('')}</div>
                 <div class="modal-footer"><button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button></div>`;
             elements.modalContent.innerHTML = modalHtml;
