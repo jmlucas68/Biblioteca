@@ -6,7 +6,7 @@
 
         // !!! IMPORTANTE: Reemplaza esta URL con la URL de tu propio proxy de Gemini desplegado. !!!
         // Puedes usar un servicio como Vercel para desplegar un proxy simple.
-        const GEMINI_PROXY_URL = 'https://your-gemini-proxy-url.vercel.app/api/proxy'; 
+        const GEMINI_PROXY_URL = 'http://localhost:3000/api/proxy'; 
 
         // Utility functions
         function esc(s) {
@@ -543,4 +543,14 @@
                 });
                 generoSelect.addEventListener('change', () => { generoInput.value = generoSelect.value; });
             }
+            elements.aiDescriptionButton.addEventListener('click', async () => {
+                if (currentEditingBook) {
+                    const description = await generateAiDescription(currentEditingBook.titulo, currentEditingBook.autor);
+                    if (description) {
+                        document.getElementById('editDescripcion').value = description;
+                    }
+                } else {
+                    alert('No hay un libro seleccionado para generar descripción.');
+                }
+            });
         }
