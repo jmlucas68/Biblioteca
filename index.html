@@ -1725,10 +1725,13 @@
                         ${formats.map(format => {
                             const downloadUrl = format.url_download || format.ruta_archivo || '#';
                             const hasValidUrl = downloadUrl && downloadUrl !== '#';
+                            const onclickAction = hasValidUrl 
+                                ? `openViewer(event, '${esc(downloadUrl)}', '${esc(book.titulo)}', '${esc(format.formato)}')`
+                                : 'event.preventDefault();';
                             return `
-                                <a href="${esc(downloadUrl)}" 
-                                   class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}" 
-                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault();"'}>
+                                <a href="#" 
+                                   onclick="${onclickAction}"
+                                   class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}">
                                     📄 ${esc(format.formato)}
                                     ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
                                 </a>`;
@@ -1741,6 +1744,116 @@
             
             elements.modalContent.innerHTML = modalHtml;
             elements.bookModal.classList.add('show');
+        }
+
+        // Show edit modal
+        function showEditModal(bookId) {
+            const book = allBooks.find(b => b.id === bookId);
+            if (!book) return;
+            
+            currentEditingBook = book;
+            
+            const form = document.getElementById('editForm');
+            form.elements.editTitulo.value = book.titulo || '';
+            form.elements.editAutor.value = book.autor || '';
+            form.elements.editGenero.value = book.genero || '';
+            form.elements.editSerie.value = book.serie || '';
+            form.elements.editNumeroSerie.value = book.numero_serie || '';
+            form.elements.editEditorial.value = book.editorial || '';
+            form.elements.editFechaPublicacion.value = book.fecha_publicacion || '';
+            form.elements.editDescripcion.value = book.descripcion || '';
+            form.elements.editCarpetaObra.value = book.carpeta_obra || '';
+            
+            elements.editModal.classList.add('show');
+        }
+
+        // Save book changes
+        async function saveBookChanges() {
+            if (!currentEditingBook) return;
+
+            const titulo = document.getElementById('editTitulo').value.trim();
+            if (!titulo) {
+                alert('El título es requerido');
+                return;
+            }
+
+            const updatedData = {
+                titulo: titulo,
+                autor: document.getElementById('editAutor').value.trim() || null,
+                genero: document.getElementById('editGenero').value.trim() || null,
+                serie: document.getElementById('editSerie').value.trim() || null,
+                numero_serie: document.getElementById('editNumeroSerie').value.trim() || null,
+                editorial: document.getElementById('editEditorial').value.trim() || null,
+                fecha_publicacion: document.getElementById('editFechaPublicacion').value || null,
+                descripcion: document.getElementById('editDescripcion').value.trim() || null,
+                carpeta_obra: document.getElementById('editCarpetaObra').value.trim() || null
+            };
+
+            try {
+                const { error } = await supabaseClient
+                    .from('books')
+                    .update(updatedData)
+                    .eq('id', currentEditingBook.id);
+                if (error) throw error;
+
+                const bookIndex = allBooks.findIndex(b => b.id === currentEditingBook.id);
+                if (bookIndex !== -1) {
+                    allBooks[bookIndex] = { ...allBooks[bookIndex], ...updatedData };
+                }
+
+                populateSearchFilters();
+                closeEditModal();
+                
+                if (elements.booksView.classList.contains('active')) {
+                    const subsection = classification.sections[currentSection].subsections[currentSubsection];
+                    filteredBooks = filterBooksByTags(subsection.tags);
+                    currentBooks = [...filteredBooks];
+                    filterBooks();
+                }
+
+                if (elements.searchModal.classList.contains('show')) {
+                    performSearch();
+                }
+
+            } catch (error) {
+                console.error('Error updating book:', error);
+                alert('❌ Error al actualizar el libro: ' + error.message);
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            elements.bookModal.classList.remove('show');
+        }
+
+        // Close edit modal
+        function closeEditModal() {
+            elements.editModal.classList.remove('show');
+            currentEditingBook = null;
+        }
+
+        // Viewer Functions
+        function openViewer(event, formatUrl, bookTitle, formatName) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const viewerModal = document.getElementById('viewerModal');
+            const viewerIframe = document.getElementById('viewerIframe');
+            const viewerTitle = document.getElementById('viewerTitle');
+            const viewerDownloadLink = document.getElementById('viewerDownloadLink');
+
+            viewerTitle.textContent = `${esc(bookTitle)} - ${esc(formatName)}`;
+            viewerIframe.src = formatUrl;
+            viewerDownloadLink.href = formatUrl;
+
+            viewerModal.style.display = 'flex';
+        }
+
+        function closeViewer() {
+            const viewerModal = document.getElementById('viewerModal');
+            const viewerIframe = document.getElementById('viewerIframe');
+            viewerModal.style.display = 'none';
+            viewerIframe.src = 'about:blank'; // Detiene la carga
         }
 
         // Show edit modal

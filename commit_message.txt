@@ -1,0 +1,7 @@
+feat(viewer): Implementa visor de libros embebido
+
+Se añade la funcionalidad para que los formatos de los libros (como PDF) se abran en un visor modal en lugar de descargarse directamente.
+
+- Se ha creado la función `openViewer` que gestiona la apertura del modal y la carga del fichero en un `iframe`.
+- Se ha creado la función `closeViewer` para cerrar el modal.
+- Se ha modificado `showBookDetails` para que los enlaces de los formatos invoquen al nuevo visor.
