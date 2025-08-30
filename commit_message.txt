@@ -1,0 +1,9 @@
+refactor(app): Separa HTML, CSS y JavaScript en ficheros distintos
+
+Se refactoriza la aplicación para separar la estructura (HTML), los estilos (CSS) y la lógica (JavaScript) en ficheros independientes.
+
+- `index.html` ahora solo contiene la estructura del DOM.
+- Se ha creado `style.css` para alojar todas las reglas de estilo.
+- Se ha creado `script.js` para alojar todo el código JavaScript.
+
+Este cambio soluciona el error persistente de sintaxis (`Identifier 'allBooks' has already been declared`) y mejora radicalmente la mantenibilidad del proyecto.
