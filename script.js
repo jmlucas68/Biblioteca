@@ -201,6 +201,7 @@
             populateSelect('searchEditorial', editorials);
             populateSelect('searchYear', years);
             populateSelect('searchFormato', formats);
+            populateDatalist('genreSuggestions', genres);
         }
 
         function populateSelect(selectId, options) {
@@ -210,6 +211,17 @@
                 const opt = document.createElement('option');
                 opt.value = opt.textContent = option;
                 select.appendChild(opt);
+            });
+        }
+
+        function populateDatalist(datalistId, options) {
+            const datalist = document.getElementById(datalistId);
+            if (!datalist) return;
+            datalist.innerHTML = ''; // Clear existing options
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                datalist.appendChild(opt);
             });
         }
 
