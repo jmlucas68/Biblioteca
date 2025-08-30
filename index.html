@@ -1482,97 +1482,7 @@
         }
 
         // Show books
-        // Show books
-function showBooks(sectionKey, subsectionKey) {
-    currentSection = sectionKey;
-    currentSubsection = subsectionKey;
-    
-    const section = classification.sections[sectionKey];
-    const subsection = section.subsections[subsectionKey];
-    
-    hideAllViews();
-    elements.booksView.classList.add('active');
-    elements.backButton.style.display = 'block';
-    elements.searchContainer.style.display = 'flex';
-    elements.adminControls.style.display = 'none';
-    
-    updateBreadcrumb([section.name, subsection.name]);
-
-    let tagsHtml = '';
-    if (subsection.tags && subsection.tags.length > 0) {
-        tagsHtml = `
-            <div id="subsectionTags" style="margin: 12px 0 20px 0;">
-                <strong>Tags:</strong>
-                ${subsection.tags.map(tag => `
-                    <span class="subsection-tag" data-tag="${esc(tag)}"
-                          style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;margin-right:6px;font-size:13px;cursor:pointer;transition:all 0.2s;">
-                        ${esc(tag)}
-                    </span>
-                `).join('')}
-                <div id="tagFilterMode" style="margin-top:10px;">
-                    <label>
-                        <input type="radio" name="filterMode" value="OR" checked> OR
-                    </label>
-                    <label style="margin-left:10px;">
-                        <input type="radio" name="filterMode" value="AND"> AND
-                    </label>
-                </div>
-            </div>
-        `;
-    }
-    
-    const breadcrumbElem = document.getElementById('breadcrumb');
-    if (breadcrumbElem) {
-        const oldTags = document.getElementById('subsectionTags');
-        if (oldTags) oldTags.remove();
-        breadcrumbElem.insertAdjacentHTML('afterend', tagsHtml);
-    }
-
-    window.selectedSubsectionTags = [];
-
-    document.querySelectorAll('.subsection-tag').forEach(tagElem => {
-        tagElem.addEventListener('click', function () {
-            const tag = this.getAttribute('data-tag');
-            if (window.selectedSubsectionTags.includes(tag)) {
-                window.selectedSubsectionTags = window.selectedSubsectionTags.filter(t => t !== tag);
-                this.style.background = '#e0f2fe';
-                this.style.color = '#0369a1';
-            } else {
-                window.selectedSubsectionTags.push(tag);
-                this.style.background = '#2563eb';
-                this.style.color = '#fff';
-            }
-
-            const filterMode = document.querySelector('input[name="filterMode"]:checked').value;
-
-            if (window.selectedSubsectionTags.length > 0) {
-                filteredBooks = (filterMode === "AND")
-                    ? filterBooksByTagsAND(window.selectedSubsectionTags)
-                    : filterBooksByTagsOR(window.selectedSubsectionTags);
-            } else {
-                filteredBooks = filterBooksByTags(subsection.tags);
-            }
-
-            currentBooks = [...filteredBooks];
-            renderBooks();
-        });
-    });
-
-    filteredBooks = filterBooksByTags(subsection.tags);
-    currentBooks = [...filteredBooks];
-    renderBooks();
-}
-
-// Filtra libros que tengan TODOS los tags seleccionados (AND)
-function filterBooksByTagsAND(tags) {
-    const normalizedTags = tags.map(normalizeText);
-    return allBooks.filter(book => {
-        if (!book.genero) return false;
-        const bookGenres = book.genero.split(',').map(g => normalizeText(g.trim()));
-        return normalizedTags.every(tag => bookGenres.includes(tag));
-    });
-}
-
+        function showBooks(sectionKey, subsectionKey) {
             currentSection = sectionKey;
             currentSubsection = subsectionKey;
             
@@ -1598,6 +1508,14 @@ function filterBooksByTagsAND(tags) {
                                 ${esc(tag)}
                             </span>
                         `).join('')}
+                        <div id="tagFilterMode" style="margin-top:10px;">
+                            <label>
+                                <input type="radio" name="filterMode" value="OR" checked> OR
+                            </label>
+                            <label style="margin-left:10px;">
+                                <input type="radio" name="filterMode" value="AND"> AND
+                            </label>
+                        </div>
                     </div>
                 `;
             }
@@ -1623,11 +1541,17 @@ function filterBooksByTagsAND(tags) {
                         this.style.background = '#2563eb';
                         this.style.color = '#fff';
                     }
-                    
-                    filteredBooks = (window.selectedSubsectionTags.length > 0)
-                        ? filterBooksByTagsOR(window.selectedSubsectionTags)
-                        : filterBooksByTags(subsection.tags);
-                    
+
+                    const filterMode = document.querySelector('input[name="filterMode"]:checked').value;
+
+                    if (window.selectedSubsectionTags.length > 0) {
+                        filteredBooks = (filterMode === "AND")
+                            ? filterBooksByTagsAND(window.selectedSubsectionTags)
+                            : filterBooksByTagsOR(window.selectedSubsectionTags);
+                    } else {
+                        filteredBooks = filterBooksByTags(subsection.tags);
+                    }
+
                     currentBooks = [...filteredBooks];
                     renderBooks();
                 });
@@ -1636,7 +1560,17 @@ function filterBooksByTagsAND(tags) {
             filteredBooks = filterBooksByTags(subsection.tags);
             currentBooks = [...filteredBooks];
             renderBooks();
-        
+        }
+
+        // Filtra libros que tengan TODOS los tags seleccionados (AND)
+        function filterBooksByTagsAND(tags) {
+            const normalizedTags = tags.map(normalizeText);
+            return allBooks.filter(book => {
+                if (!book.genero) return false;
+                const bookGenres = book.genero.split(',').map(g => normalizeText(g.trim()));
+                return normalizedTags.every(tag => bookGenres.includes(tag));
+            });
+        }
 
         // Filtra libros que tengan al menos uno de los tags (OR)
         function filterBooksByTagsOR(tags) {
@@ -1781,7 +1715,7 @@ function filterBooksByTagsAND(tags) {
                             return `
                                 <a href="${esc(downloadUrl)}" 
                                    class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}" 
-                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault();"'}>
+                                   ${hasValidUrl ? 'target="_blank" rel="noopener"' : 'onclick="event.preventDefault();"'}">
                                     📄 ${esc(format.formato)}
                                     ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
                                 </a>`;
@@ -1798,27 +1732,6 @@ function filterBooksByTagsAND(tags) {
 
         // Show edit modal
         function showEditModal(bookId) {
-            const book = allBooks.find(b => b.id === bookId);
-            if (!book) return;
-
-            // Prellenar todos los campos
-            document.getElementById('editTitulo').value = book.titulo || '';
-            document.getElementById('editAutor').value = book.autor || '';
-            document.getElementById('editGenero').value = book.genero || '';
-            document.getElementById('editSerie').value = book.serie || '';
-            document.getElementById('editNumeroSerie').value = book.numeroserie || '';
-            document.getElementById('editEditorial').value = book.editorial || '';
-            document.getElementById('editFechaPublicacion').value = book.fechapublicacion || '';
-            document.getElementById('editDescripcion').value = book.descripcion || '';
-            document.getElementById('editCarpetaObra').value = book.carpetaobra || '';
-
-            // Guardar ID del libro actual para edición
-            currentEditingBook = bookId;
-            
-            // Mostrar modal
-            document.getElementById('editModal').classList.add('show');
-            }
-
             const book = allBooks.find(b => b.id === bookId);
             if (!book) return;
             
@@ -1839,54 +1752,7 @@ function filterBooksByTagsAND(tags) {
         }
 
         // Save book changes
-        async function saveBookChanges(bookId) {
-            try {
-                const updatedData = {
-                titulo: document.getElementById('editTitulo').value,
-                autor: document.getElementById('editAutor').value || null,
-                genero: document.getElementById('editGenero').value || null,
-                serie: document.getElementById('editSerie').value || null,
-                numeroserie: document.getElementById('editNumeroSerie').value || null,
-                editorial: document.getElementById('editEditorial').value || null,
-                fechapublicacion: document.getElementById('editFechaPublicacion').value || null,
-                descripcion: document.getElementById('editDescripcion').value || null,
-                carpetaobra: document.getElementById('editCarpetaObra').value || null
-                };
-
-                // Validar que el título no esté vacío
-                if (!updatedData.titulo || updatedData.titulo.trim() === '') {
-                alert('El título es obligatorio');
-                return;
-                }
-
-                const { error } = await supabaseClient
-                .from('books')
-                .update(updatedData)
-                .eq('id', bookId);
-
-                if (error) {
-                console.error('Error al actualizar libro:', error);
-                alert('Error al guardar los cambios: ' + error.message);
-                return;
-                }
-
-                // Cerrar modal y refrescar datos
-                closeEditModal();
-                await loadData();
-                
-                // Si hay resultados de búsqueda activos, refrescarlos
-                if (document.getElementById('searchResults').innerHTML.trim() !== '') {
-                performSearch();
-                }
-                
-                alert('Libro actualizado correctamente');
-                
-            } catch (error) {
-                console.error('Error inesperado:', error);
-                alert('Error inesperado al guardar');
-            }
-            }
-
+        async function saveBookChanges() {
             if (!currentEditingBook) return;
 
             const titulo = document.getElementById('editTitulo').value.trim();
