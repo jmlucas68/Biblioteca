@@ -201,7 +201,7 @@
             populateSelect('searchEditorial', editorials);
             populateSelect('searchYear', years);
             populateSelect('searchFormato', formats);
-            populateDatalist('genreSuggestions', genres);
+            populateDatalist('genreSuggestions', window._allGenres);
         }
 
         function populateSelect(selectId, options) {
