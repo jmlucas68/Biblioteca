@@ -414,6 +414,7 @@
             form.elements.editFechaPublicacion.value = book.fecha_publicacion || '';
             form.elements.editDescripcion.value = book.descripcion || '';
             form.elements.editCarpetaObra.value = book.carpeta_obra || '';
+            populateDatalist('genreSuggestions', window._allGenres); // Repopulate datalist when modal opens
             elements.editModal.classList.add('show');
         }
 
