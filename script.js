@@ -164,7 +164,7 @@ async function sincronizarClasificacion() {
 
 // AI Description Function
 async function generateAiDescription(title, author) {
-    const prompt = `Dame una breve descripción en formato Markdown del libro: "${title}" del autor: "${author}".`;
+    const prompt = `Dame un resumen detallado de la obra "${title}" del autor "${author}", incluyendo los puntos clave de la trama, los temas principales y el estilo literario. Además, proporciona enlaces a 3 reseñas destacadas del libro en formato Markdown.`;
     try {
         const response = await fetch(GEMINI_PROXY_URL, {
             method: 'POST',
