@@ -773,6 +773,17 @@ function filterBooksByTags(tags) {
     });
 }
 
+function showRandomBookDetails() {
+    if (allBooks.length === 0) {
+        alert('No hay libros en la biblioteca para seleccionar uno aleatorio.');
+        return;
+    }
+    const randomIndex = Math.floor(Math.random() * allBooks.length);
+    const randomBook = allBooks[randomIndex];
+    closeSearchModal(); // Cerrar el modal de búsqueda
+    showBookDetails(randomBook.id); // Mostrar los detalles del libro aleatorio
+}
+
 // Event Listeners
 function setupEventListeners() {
     elements.backButton.addEventListener('click', goBack);
