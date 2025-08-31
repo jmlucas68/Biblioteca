@@ -574,7 +574,7 @@ function showBookDetails(bookId) {
             </div>
             <div class="modal-info">
                 <h2>${esc(book.titulo || 'Sin título')}</h2>
-                <p><strong>Autor:</strong> ${esc(book.autor || 'Autor desconocido')}</p>
+                <p><strong>Autor:</strong> ${book.autor ? `<a href="#" onclick="searchByAuthor('${esc(book.autor)}'); return false;">${esc(book.autor)}</a>` : 'Autor desconocido'}</p>
                 ${book.serie ? `<p><strong>Serie:</strong> ${esc(book.serie)}${book.numero_serie ? ` #${book.numero_serie}` : ''}</p>` : ''}
                 ${book.editorial ? `<p><strong>Editorial:</strong> ${esc(book.editorial)}</p>` : ''}
                 ${book.fecha_publicacion ? `<p><strong>Año:</strong> ${esc(book.fecha_publicacion.slice(0,4))}</p>` : ''}
@@ -802,6 +802,13 @@ function countBooksForSubsection(sectionKey, subsectionKey) {
 }
 
 
+
+function searchByAuthor(authorName) {
+    document.getElementById('searchAutorInput').value = authorName;
+    document.getElementById('searchAutor').value = authorName; // Also update the select element
+    openSearchModal();
+    performSearch();
+}
 
 function showRandomBookDetails() {
     if (allBooks.length === 0) {
