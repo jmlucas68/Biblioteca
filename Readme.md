@@ -21,3 +21,5 @@ Corrección de alguno errores---
 Corregida incidencia: no salían tags en subsecciones
 
 Elimino ficheros innecesarios
+
+Corregida incidencia: boton de limpiar en búsqueda no funcionaba
