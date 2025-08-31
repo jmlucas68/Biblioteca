@@ -505,6 +505,8 @@ function filterBooksByTagsAND(tags) {
 function goBack() {
     const oldTags = document.getElementById('subsectionTags');
     if (oldTags) oldTags.remove();
+    const tagFilterOptions = document.getElementById('tagFilterOptions');
+    if (tagFilterOptions) tagFilterOptions.remove();
 
     // Reset tag filter logic to default (OR) and update UI
     tagFilterLogic = 'OR';
