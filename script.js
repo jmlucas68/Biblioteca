@@ -29,6 +29,12 @@ function openClassificationEditor() {
     window.open('editor-clasificacion-visual.html', '_blank');
 }
 
+function isHTML(str) {
+    if (!str) return false;
+    const doc = new DOMParser().parseFromString(str, "text/html");
+    return Array.from(doc.body.childNodes).some(node => node.nodeType === 1);
+}
+
 // Global variables
 let allBooks = [];
 let allFormats = [];
@@ -563,7 +569,12 @@ function showBookDetails(bookId) {
     
     elements.modalContent.innerHTML = modalHtml;
     if (book.descripcion) {
-        document.getElementById('description-content').innerHTML = marked.parse(book.descripcion);
+        const descriptionContainer = document.getElementById('description-content');
+        if (isHTML(book.descripcion)) {
+            descriptionContainer.innerHTML = book.descripcion;
+        } else {
+            descriptionContainer.innerHTML = marked.parse(book.descripcion);
+        }
     }
     elements.bookModal.classList.add('show');
 }
