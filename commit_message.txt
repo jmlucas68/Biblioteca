@@ -1,4 +1,3 @@
-feat: Añade botón de libro aleatorio en el diálogo de búsqueda
+feat: Mejora la generación de descripción con IA
 
-- Se añade un botón "Libro Aleatorio" en el modal de búsqueda.
-- Al hacer clic, se selecciona un libro al azar de la biblioteca y se muestran sus detalles.
+- Modifica el prompt enviado a Gemini para solicitar un resumen detallado de la obra y enlaces a reseñas.
