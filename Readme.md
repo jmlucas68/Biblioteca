@@ -29,3 +29,5 @@ Corregida incidencia: visor embebido
 Nueva funcionalidad: busca tags en edicion de Genero de libros
 
 Nueva funcionalidad: admite descripcón libros en HTML
+
+Nueva funcionalidad: libro aleatorio en buscar libro
