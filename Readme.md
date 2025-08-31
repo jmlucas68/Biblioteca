@@ -33,3 +33,5 @@ Nueva funcionalidad: admite descripcón libros en HTML
 Nueva funcionalidad: libro aleatorio en buscar libro
 
 Nueva funcionalidad: búsqueda de libros del autor
+
+Corregida incidencia: AND OR no se borran al volver
