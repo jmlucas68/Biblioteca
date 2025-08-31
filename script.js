@@ -506,6 +506,14 @@ function goBack() {
     const oldTags = document.getElementById('subsectionTags');
     if (oldTags) oldTags.remove();
 
+    // Reset tag filter logic to default (OR) and update UI
+    tagFilterLogic = 'OR';
+    const orRadio = document.querySelector('input[name="tagLogic"][value="OR"]');
+    if (orRadio) {
+        orRadio.checked = true;
+    }
+    console.log('tagFilterLogic reset to:', tagFilterLogic);
+
     if (elements.booksView.classList.contains('active')) {
         showSubsections(currentSection);
     } else if (elements.subsectionsView.classList.contains('active')) {
