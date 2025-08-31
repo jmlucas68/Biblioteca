@@ -45,6 +45,7 @@ let currentBooks = [];
 let currentEditingBook = null;
 let classification = null; 
 let currentObjectUrl = null; // For the book viewer
+let tagFilterLogic = 'OR'; // New global variable for tag filtering logic
 
 // DOM elements
 const elements = {
@@ -164,7 +165,7 @@ async function sincronizarClasificacion() {
 
 // AI Description Function
 async function generateAiDescription(title, author) {
-    const prompt = `Dame un resumen detallado de la obra "${title}" del autor "${author}", incluyendo los puntos clave de la trama, los temas principales y el estilo literario. Además, proporciona enlaces a 3 reseñas destacadas del libro en formato Markdown.`;
+    const prompt = `Dame un resumen detallado de la obra "${title}" del autor "${author}" en formato Markdown, incluyendo los puntos clave de la trama, los temas principales y el estilo literario.`;
     try {
         const response = await fetch(GEMINI_PROXY_URL, {
             method: 'POST',
@@ -416,6 +417,16 @@ function showBooks(sectionKey, subsectionKey) {
                     </span>
                 `).join('')}
             </div>
+            <div class="tag-filter-options" style="margin-bottom: 20px;">
+                <label style="margin-right: 15px;">
+                    <input type="radio" name="tagLogic" value="OR" ${tagFilterLogic === 'OR' ? 'checked' : ''}>
+                    Cualquiera (OR)
+                </label>
+                <label>
+                    <input type="radio" name="tagLogic" value="AND" ${tagFilterLogic === 'AND' ? 'checked' : ''}>
+                    Todos (AND)
+                </label>
+            </div>
         `;
     }
     
@@ -427,6 +438,14 @@ function showBooks(sectionKey, subsectionKey) {
     }
 
     window.selectedSubsectionTags = [];
+
+    // Add event listeners for radio buttons
+    document.querySelectorAll('input[name="tagLogic"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            tagFilterLogic = this.value;
+            applyTagFilters(subsection.tags);
+        });
+    });
 
     document.querySelectorAll('.subsection-tag').forEach(tagElem => {
         tagElem.addEventListener('click', function () {
@@ -440,28 +459,46 @@ function showBooks(sectionKey, subsectionKey) {
                 this.style.background = '#2563eb';
                 this.style.color = '#fff';
             }
-            
-            filteredBooks = (window.selectedSubsectionTags.length > 0)
-                ? filterBooksByTagsOR(window.selectedSubsectionTags)
-                : filterBooksByTags(subsection.tags);
-            
-            currentBooks = [...filteredBooks];
-            renderBooks();
+            applyTagFilters(subsection.tags);
         });
     });
 
-    filteredBooks = filterBooksByTags(subsection.tags);
+    applyTagFilters(subsection.tags);
+}
+
+function applyTagFilters(defaultTags) {
+    const tagsToFilter = window.selectedSubsectionTags.length > 0 ? window.selectedSubsectionTags : defaultTags;
+    
+    if (tagFilterLogic === 'AND') {
+        filteredBooks = filterBooksByTagsAND(tagsToFilter);
+    } else { // Default to OR
+        filteredBooks = filterBooksByTagsOR(tagsToFilter);
+    }
+    
     currentBooks = [...filteredBooks];
     renderBooks();
 }
 
 // Filtra libros que tengan al menos uno de los tags (OR)
 function filterBooksByTagsOR(tags) {
+    if (!tags || tags.length === 0) return [];
     const normalizedTags = tags.map(normalizeText);
     return allBooks.filter(book => {
         if (!book.genero) return false;
         const bookGenres = book.genero.split(',').map(g => normalizeText(g.trim()));
         return normalizedTags.some(tag => bookGenres.includes(tag));
+    });
+}
+
+// Filtra libros que tengan TODOS los tags seleccionados (AND)
+function filterBooksByTagsAND(tags) {
+    if (!tags || tags.length === 0) return [];
+    const normalizedTags = tags.map(normalizeText);
+    return allBooks.filter(book => {
+        if (!book.genero) return false;
+        const bookGenres = book.genero.split(',').map(g => normalizeText(g.trim()));
+        // Check if all normalizedTags are present in bookGenres
+        return normalizedTags.every(tag => bookGenres.includes(tag));
     });
 }
 
@@ -757,21 +794,14 @@ function getBookFormats(bookId) {
 
 function countBooksForSection(sectionKey) {
     const allTags = Object.values(classification.sections[sectionKey].subsections).flatMap(s => s.tags);
-    return filterBooksByTags(allTags).length;
+    return filterBooksByTagsOR(allTags).length;
 }
 
 function countBooksForSubsection(sectionKey, subsectionKey) {
-    return filterBooksByTags(classification.sections[sectionKey].subsections[subsectionKey].tags).length;
+    return filterBooksByTagsOR(classification.sections[sectionKey].subsections[subsectionKey].tags).length;
 }
 
-function filterBooksByTags(tags) {
-    if (!tags || tags.length === 0) return [];
-    const normalizedTags = tags.map(normalizeText);
-    return allBooks.filter(book => {
-        const bookGenres = (book.genero || '').split(',').map(g => normalizeText(g.trim()));
-        return normalizedTags.some(tag => bookGenres.includes(tag));
-    });
-}
+
 
 function showRandomBookDetails() {
     if (allBooks.length === 0) {
