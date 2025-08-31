@@ -25,3 +25,5 @@ Elimino ficheros innecesarios
 Corregida incidencia: boton de limpiar en búsqueda no funcionaba
 
 Corregida incidencia: visor embebido
+
+Nueva funcionalidad: busca tags en edicion de Genero de libros
