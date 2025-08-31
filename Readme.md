@@ -19,3 +19,5 @@ Elimina automñaticamente el tag Sin Clasificar
 Corrección de alguno errores---
 
 Corregida incidencia: no salían tags en subsecciones
+
+Elimino ficheros innecesarios

@@ -230,6 +230,26 @@
             });
         }
 
+        function clearSearch() {
+            document.getElementById('searchQuery').value = '';
+            document.getElementById('includeDescription').checked = false;
+            document.getElementById('searchAutor').value = '';
+            document.getElementById('searchGenero').value = '';
+            document.getElementById('searchSerie').value = '';
+            document.getElementById('searchEditorial').value = '';
+            document.getElementById('searchYear').value = '';
+            document.getElementById('searchFormato').value = '';
+            document.getElementById('searchResults').innerHTML = '';
+            
+            const autorInput = document.getElementById('searchAutorInput');
+            const generoInput = document.getElementById('searchGeneroInput');
+            if (autorInput) autorInput.value = '';
+            if (generoInput) generoInput.value = '';
+
+            if (window._allAuthors) populateSelect('searchAutor', window._allAuthors);
+            if (window._allGenres) populateSelect('searchGenero', window._allGenres);
+        }
+
         function performSearch() {
             const query = normalizeText(document.getElementById('searchQuery').value);
             const includeDescription = document.getElementById('includeDescription').checked;
