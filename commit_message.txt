@@ -1,9 +1,4 @@
-refactor(app): Separa HTML, CSS y JavaScript en ficheros distintos
+feat: Añade botón de libro aleatorio en el diálogo de búsqueda
 
-Se refactoriza la aplicación para separar la estructura (HTML), los estilos (CSS) y la lógica (JavaScript) en ficheros independientes.
-
-- `index.html` ahora solo contiene la estructura del DOM.
-- Se ha creado `style.css` para alojar todas las reglas de estilo.
-- Se ha creado `script.js` para alojar todo el código JavaScript.
-
-Este cambio soluciona el error persistente de sintaxis (`Identifier 'allBooks' has already been declared`) y mejora radicalmente la mantenibilidad del proyecto.
+- Se añade un botón "Libro Aleatorio" en el modal de búsqueda.
+- Al hacer clic, se selecciona un libro al azar de la biblioteca y se muestran sus detalles.
