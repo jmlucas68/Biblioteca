@@ -15,6 +15,8 @@
                 .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
         }
 
+        function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i); h|=0;} return String(Math.abs(h)); }
+
         function resolveCoverThumb(urlPortada) {
             if (!urlPortada) return '';
             const m = urlPortada.match(/\/d\/([^/]+)\//);
@@ -291,10 +293,24 @@
             const formats = getBookFormats(book.id);
             const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
             const portadaSrc = resolveCoverThumb(book.url_portada);
+            const coverHref = book.url_portada || '#';
+
+            const viewerId = 'viewer_' + hash(book.titulo + '|' + book.autor + '|' + (book.carpeta_obra || ''));
+            const firstFormat = formats.length > 0 ? formats[0] : null;
+            const viewerButton = firstFormat
+                ? `<button class="btn secondary" onclick="toggleViewer('${viewerId}', '${esc(firstFormat.url_download || firstFormat.ruta_archivo)}')">👁️ Visor</button>`
+                : '';
+
+            const formatLinks = formats.map(f => {
+                const downloadUrl = f.url_download || f.ruta_archivo || '#';
+                const hasValidUrl = downloadUrl && downloadUrl !== '#';
+                return `<a href="${esc(downloadUrl)}" target="_blank" rel="noopener" class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}" ${!hasValidUrl ? 'onclick="event.preventDefault();"' : ''}>${esc(f.formato)}</a>`;
+            }).join('');
+
             return `
                 <div class="book-card" onclick="showBookDetails(${book.id})">
                     <div class="book-cover-wrap">
-                        <a href="${esc(book.url_portada || '#')}" target="_blank" rel="noopener" onclick="event.stopPropagation();">
+                        <a href="${esc(coverHref)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">
                             <img class="book-cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" onerror="this.style.display='none'; this.parentElement.innerHTML='📖';" />
                         </a>
                     </div>
@@ -305,8 +321,13 @@
                             ${book.serie ? `<span class="book-badge book-badge--series">${esc(book.serie)}${book.numero_serie ? ` #${book.numero_serie}` : ''}</span>` : ''}
                             ${genres.slice(0, 2).map(genre => `<span class="book-badge book-badge--genre">${esc(genre)}</span>`).join('')}
                         </div>
-                        <div class="book-formats">${formats.map(f => `<span class="format-badge">${esc(f.formato)}</span>`).join('')}</div>
+                        <div class="book-formats">${formatLinks}</div>
+                        <div class="book-actions">
+                            ${viewerButton}
+                            <button type="button" class="btn edit" onclick="showEditModal(${book.id})">✏️ Editar</button>
+                        </div>
                     </div>
+                    <iframe id="${viewerId}" class="viewer" loading="lazy" style="display:none;"></iframe>
                 </div>`;
         }
 
@@ -510,6 +531,35 @@
         function openSearchModal() { elements.searchModal.classList.add('show'); }
         function closeSearchModal() { elements.searchModal.classList.remove('show'); }
         
+        // Visor embebido
+        function buildPreviewUrl(viewUrl) {
+            const m = String(viewUrl || '').match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/i);
+            if (m && m[1]) {
+                const id = m[1];
+                return `https://drive.google.com/file/d/${id}/preview`;
+            }
+            return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(viewUrl || '')}`;
+        }
+
+        function toggleViewer(viewerId, formatUrl) {
+            const iframe = document.getElementById(viewerId);
+            if (!iframe) return;
+            
+            if (iframe.style.display === 'none' || !iframe.style.display) {
+                const previewUrl = buildPreviewUrl(formatUrl);
+                if (!previewUrl) {
+                    iframe.style.display = 'none';
+                    return;
+                }
+                iframe.style.display = 'block';
+                iframe.onerror = () => { iframe.style.display = 'none'; };
+                iframe.src = previewUrl;
+            } else {
+                iframe.style.display = 'none';
+                iframe.removeAttribute('src');
+            }
+        }
+
         async function openViewer(event, formatUrl, bookTitle, formatName) {
             event.preventDefault();
             event.stopPropagation();
