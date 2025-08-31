@@ -417,7 +417,7 @@ function showBooks(sectionKey, subsectionKey) {
                     </span>
                 `).join('')}
             </div>
-            <div class="tag-filter-options" style="margin-bottom: 20px;">
+            <div id="tagFilterOptions" class="tag-filter-options" style="margin-bottom: 20px;">
                 <label style="margin-right: 15px;">
                     <input type="radio" name="tagLogic" value="OR" ${tagFilterLogic === 'OR' ? 'checked' : ''}>
                     Cualquiera (OR)
