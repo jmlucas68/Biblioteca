@@ -582,31 +582,73 @@
             form.elements.editDescripcion.value = book.descripcion || '';
             form.elements.editCarpetaObra.value = book.carpeta_obra || '';
 
-            const generoContainer = document.getElementById('editGenero-container');
-            generoContainer.innerHTML = '';
-            const bookGenres = (book.genero || '').split(',').map(g => g.trim());
-            window._allGenres.forEach(genre => {
-                const isChecked = bookGenres.includes(genre);
-                const checkboxId = `genre-${genre.replace(/\s+/g, '-')}`;
-                const checkbox = `
-                    <div class="checkbox-label">
-                        <input type="checkbox" id="${checkboxId}" value="${esc(genre)}" ${isChecked ? 'checked' : ''}>
-                        <label for="${checkboxId}">${esc(genre)}</label>
-                    </div>
-                `;
-                generoContainer.innerHTML += checkbox;
-            });
+            setupGenreInput(book.genero);
             elements.editModal.classList.add('show');
+        }
+
+        function setupGenreInput(genres) {
+            const container = document.getElementById('genre-tags-container');
+            const input = document.getElementById('genre-input');
+            container.innerHTML = '';
+            const genreArray = genres ? genres.split(',').map(g => g.trim()) : [];
+
+            const renderTags = () => {
+                container.innerHTML = '';
+                genreArray.forEach(genre => {
+                    const tag = document.createElement('span');
+                    tag.className = 'genre-tag';
+                    tag.textContent = genre;
+                    const removeBtn = document.createElement('span');
+                    removeBtn.className = 'remove-tag';
+                    removeBtn.textContent = 'x';
+                    removeBtn.onclick = () => {
+                        const index = genreArray.indexOf(genre);
+                        if (index > -1) {
+                            genreArray.splice(index, 1);
+                        }
+                        renderTags();
+                    };
+                    tag.appendChild(removeBtn);
+                    container.appendChild(tag);
+                });
+            };
+
+            renderTags();
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    const newGenre = input.value.trim();
+                    if (newGenre && !genreArray.includes(newGenre)) {
+                        genreArray.push(newGenre);
+                        renderTags();
+                    }
+                    input.value = '';
+                }
+            });
+
+            input.addEventListener('input', () => {
+                const existingGenre = window._allGenres.find(g => g.toLowerCase() === input.value.toLowerCase());
+                if (existingGenre) {
+                    if (!genreArray.includes(existingGenre)) {
+                        genreArray.push(existingGenre);
+                        renderTags();
+                    }
+                    input.value = '';
+                }
+            });
         }
 
         async function saveBookChanges() {
             if (!currentEditingBook) return;
             const form = document.getElementById('editForm');
-            const selectedGenres = Array.from(form.querySelectorAll('#editGenero-container input[type="checkbox"]:checked')).map(cb => cb.value);
+            const genreTags = Array.from(document.querySelectorAll('#genre-tags-container .genre-tag'));
+            const genres = genreTags.map(tag => tag.firstChild.textContent).join(', ');
+
             const updatedData = {
                 titulo: form.elements.editTitulo.value.trim(),
                 autor: form.elements.editAutor.value.trim() || null,
-                genero: selectedGenres.join(', '),
+                genero: genres,
                 serie: form.elements.editSerie.value.trim() || null,
                 numero_serie: form.elements.editNumeroSerie.value.trim() || null,
                 editorial: form.elements.editEditorial.value.trim() || null,
