@@ -373,18 +373,82 @@
         function showBooks(sectionKey, subsectionKey) {
             currentSection = sectionKey;
             currentSubsection = subsectionKey;
-            const subsection = classification.sections[sectionKey].subsections[subsectionKey];
+            
+            const section = classification.sections[sectionKey];
+            const subsection = section.subsections[subsectionKey];
+            
             hideAllViews();
             elements.booksView.classList.add('active');
             elements.backButton.style.display = 'block';
             elements.searchContainer.style.display = 'flex';
-            updateBreadcrumb([classification.sections[sectionKey].name, subsection.name]);
+            
+            updateBreadcrumb([section.name, subsection.name]);
+
+            let tagsHtml = '';
+            if (subsection.tags && subsection.tags.length > 0) {
+                tagsHtml = `
+                    <div id="subsectionTags" style="margin: 12px 0 20px 0;">
+                        <strong>Tags:</strong>
+                        ${subsection.tags.map(tag => `
+                            <span class="subsection-tag" data-tag="${esc(tag)}"
+                                  style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;margin-right:6px;font-size:13px;cursor:pointer;transition:all 0.2s;">
+                                ${esc(tag)}
+                            </span>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            const breadcrumbElem = document.getElementById('breadcrumb');
+            if (breadcrumbElem) {
+                const oldTags = document.getElementById('subsectionTags');
+                if (oldTags) oldTags.remove();
+                breadcrumbElem.insertAdjacentHTML('afterend', tagsHtml);
+            }
+
+            window.selectedSubsectionTags = [];
+
+            document.querySelectorAll('.subsection-tag').forEach(tagElem => {
+                tagElem.addEventListener('click', function () {
+                    const tag = this.getAttribute('data-tag');
+                    if (window.selectedSubsectionTags.includes(tag)) {
+                        window.selectedSubsectionTags = window.selectedSubsectionTags.filter(t => t !== tag);
+                        this.style.background = '#e0f2fe';
+                        this.style.color = '#0369a1';
+                    } else {
+                        window.selectedSubsectionTags.push(tag);
+                        this.style.background = '#2563eb';
+                        this.style.color = '#fff';
+                    }
+                    
+                    filteredBooks = (window.selectedSubsectionTags.length > 0)
+                        ? filterBooksByTagsOR(window.selectedSubsectionTags)
+                        : filterBooksByTags(subsection.tags);
+                    
+                    currentBooks = [...filteredBooks];
+                    renderBooks();
+                });
+            });
+
             filteredBooks = filterBooksByTags(subsection.tags);
             currentBooks = [...filteredBooks];
             renderBooks();
         }
 
+        // Filtra libros que tengan al menos uno de los tags (OR)
+        function filterBooksByTagsOR(tags) {
+            const normalizedTags = tags.map(normalizeText);
+            return allBooks.filter(book => {
+                if (!book.genero) return false;
+                const bookGenres = book.genero.split(',').map(g => normalizeText(g.trim()));
+                return normalizedTags.some(tag => bookGenres.includes(tag));
+            });
+        }
+
         function goBack() {
+            const oldTags = document.getElementById('subsectionTags');
+            if (oldTags) oldTags.remove();
+
             if (elements.booksView.classList.contains('active')) {
                 showSubsections(currentSection);
             } else if (elements.subsectionsView.classList.contains('active')) {
