@@ -35,7 +35,73 @@ function isHTML(str) {
     return Array.from(doc.body.childNodes).some(node => node.nodeType === 1);
 }
 
+async function enterReadOnlyMode() {
+    isAdmin = false;
+    document.getElementById('securityModal').style.display = 'none';
+    disableAdminFeatures();
+    await loadInitialData();
+}
+
+async function validatePassword() {
+    const password = document.getElementById('passwordInput').value;
+    try {
+        const response = await fetch(GEMINI_PROXY_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'validate_password',
+                password: password
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error del proxy: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.isValid) {
+            isAdmin = true;
+            document.getElementById('securityModal').style.display = 'none';
+            enableAdminFeatures();
+            await loadInitialData();
+        } else {
+            alert('Contraseña incorrecta');
+        }
+    } catch (error) {
+        console.error('Error validating password:', error);
+        alert('Error al validar la contraseña. Por favor, inténtalo de nuevo.');
+    }
+}
+
+function disableAdminFeatures() {
+    document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
+        button.style.display = 'none';
+    });
+}
+
+function enableAdminFeatures() {
+    // This function is not strictly necessary if the buttons are visible by default,
+    // but it's good practice to have it.
+    document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
+        button.style.display = 'inline-flex';
+    });
+}
+
+async function loadInitialData() {
+    await loadData();
+    await loadClassification();
+    await sincronizarClasificacion();
+    populateSearchFilters();
+    showSections();
+    setupEventListeners();
+}
+
 // Global variables
+let isAdmin = false;
 let allBooks = [];
 let allFormats = [];
 let currentSection = null;
@@ -74,12 +140,7 @@ const elements = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadData();
-    await loadClassification();
-    await sincronizarClasificacion();
-    populateSearchFilters();
-    showSections();
-    setupEventListeners();
+    // Don't load data initially. It will be loaded after password validation.
 });
 
 // Data loading
@@ -346,7 +407,7 @@ function renderBook(book) {
                 </div>
                 <div class="book-formats">${formatLinks}</div>
                 <div class="book-actions">
-                    <button type="button" class="btn edit" onclick="showEditModal(${book.id})">✏️ Editar</button>
+                    ${isAdmin ? `<button type="button" class="btn edit" onclick="showEditModal(${book.id})">✏️ Editar</button>` : ''}
                 </div>
             </div>
         </div>`;
@@ -611,7 +672,7 @@ function showBookDetails(bookId) {
                 }).join('')}
             </div>` : ''}
         <div class="modal-footer">
-            <button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>
+            ${isAdmin ? `<button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>` : ''}
         </div>
     `;
     

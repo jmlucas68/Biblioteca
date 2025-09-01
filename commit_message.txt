@@ -1,1 +1,1 @@
-nueva funcionalidad en Biblioteca. En el detalle del libro si el campo Serie tiene valor y se pincha en el, se va al diálogo de búsqueda de libro con la serie rellana y relizada la búsqueda, igual que se hace con el autor.
+Refactor: Use Gemini proxy for password validation

@@ -9,6 +9,23 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="modal-backdrop" id="securityModal" style="display: flex;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Acceso de Administrador</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="passwordInput">Contraseña:</label>
+                    <input type="password" id="passwordInput" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn--outline" onclick="enterReadOnlyMode()">Cancelar</button>
+                <button type="button" class="btn btn--primary" onclick="validatePassword()">Aceptar</button>
+            </div>
+        </div>
+    </div>
     <div class="container">
         <!-- Header -->
         <header class="header">
@@ -19,7 +36,7 @@
                 </div>
                 <div class="header-right">
                     <!-- Botón Editar Clasificación a la izquierda del de Buscar Libros -->
-                    <button class="btn btn--warning" style="margin-right: 0;" onclick="openClassificationEditor()" title="Editar la estructura de clasificación de secciones y tags">
+                    <button class="btn btn--warning" style="margin-right: 0; display: none;" onclick="openClassificationEditor()" title="Editar la estructura de clasificación de secciones y tags">
                         ⚙️ Editar Clasificación
                     </button>
                     <button class="header-search-btn" onclick="openSearchModal()">
