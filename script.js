@@ -586,7 +586,7 @@ function showBookDetails(bookId) {
             <div class="modal-info">
                 <h2>${esc(book.titulo || 'Sin título')}</h2>
                 <p><strong>Autor:</strong> ${book.autor ? `<a href="#" onclick="searchByAuthor('${esc(book.autor)}'); return false;">${esc(book.autor)}</a>` : 'Autor desconocido'}</p>
-                ${book.serie ? `<p><strong>Serie:</strong> ${esc(book.serie)}${book.numero_serie ? ` #${book.numero_serie}` : ''}</p>` : ''}
+                ${book.serie ? `<p><strong>Serie:</strong> <a href="#" onclick="searchBySerie('${esc(book.serie)}'); return false;">${esc(book.serie)}</a>${book.numero_serie ? ` #${book.numero_serie}` : ''}</p>` : ''}
                 ${book.editorial ? `<p><strong>Editorial:</strong> ${esc(book.editorial)}</p>` : ''}
                 ${book.fecha_publicacion ? `<p><strong>Año:</strong> ${esc(book.fecha_publicacion.slice(0,4))}</p>` : ''}
                 <p><strong>Géneros:</strong> ${genres.map(g => esc(g)).join(', ') || 'Sin especificar'}</p>
@@ -817,6 +817,12 @@ function countBooksForSubsection(sectionKey, subsectionKey) {
 function searchByAuthor(authorName) {
     document.getElementById('searchAutorInput').value = authorName;
     document.getElementById('searchAutor').value = authorName; // Also update the select element
+    openSearchModal();
+    performSearch();
+}
+
+function searchBySerie(serieName) {
+    document.getElementById('searchSerie').value = serieName;
     openSearchModal();
     performSearch();
 }
