@@ -517,8 +517,6 @@ function goBack() {
     console.log('tagFilterLogic reset to:', tagFilterLogic);
 
     if (elements.booksView.classList.contains('active')) {
-        if (searchInput) searchInput.remove();
-        if (sortSelect) sortSelect.remove();
         showSubsections(currentSection);
     } else if (elements.subsectionsView.classList.contains('active')) {
         showSections();
