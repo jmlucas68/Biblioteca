@@ -1,1 +1,1 @@
-Control de seguridad: lo primero que se hace en la aplición es pedir una clave y poner boton Aceptar o Cancelar. Si se pulsa cancelar, se deshabilita la posibilidad de hacer cualquier modificación, solo se puede ver los libros, pero no cambiar sus detalles, no modificar la clasificación. Si se pone la clave se valida contra la variable de entorno de Vercel que se llama BIBLIOTECA_ADMIN.
+Fix: Uncaught TypeError: Cannot read properties of null (reading 'sections')

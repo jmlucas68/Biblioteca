@@ -35,11 +35,11 @@ function isHTML(str) {
     return Array.from(doc.body.childNodes).some(node => node.nodeType === 1);
 }
 
-function enterReadOnlyMode() {
+async function enterReadOnlyMode() {
     isAdmin = false;
     document.getElementById('securityModal').style.display = 'none';
     disableAdminFeatures();
-    loadInitialData();
+    await loadInitialData();
 }
 
 async function validatePassword() {
@@ -57,7 +57,7 @@ async function validatePassword() {
             isAdmin = true;
             document.getElementById('securityModal').style.display = 'none';
             enableAdminFeatures();
-            loadInitialData();
+            await loadInitialData();
         } else {
             alert('Contraseña incorrecta');
         }
@@ -81,10 +81,10 @@ function enableAdminFeatures() {
     });
 }
 
-function loadInitialData() {
-    loadData();
-    loadClassification();
-    sincronizarClasificacion();
+async function loadInitialData() {
+    await loadData();
+    await loadClassification();
+    await sincronizarClasificacion();
     populateSearchFilters();
     showSections();
     setupEventListeners();
