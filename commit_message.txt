@@ -1,1 +1,1 @@
-Debug: Log error from Supabase function in validatePassword
+Refactor: Use Gemini proxy for password validation
