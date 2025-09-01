@@ -354,26 +354,6 @@ function renderBook(book) {
 
 // UI Navigation
 function showSections() {
-
-    // Ocultar controles de búsqueda y ordenación
-    const searchContainer = document.getElementById('searchContainer');
-    const sortSelect = document.getElementById('sortSelect');
-    
-    if (searchContainer) searchContainer.style.display = 'none';
-    if (sortSelect) sortSelect.style.display = 'none';
-    
-    // Limpiar filtros de búsqueda
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) searchInput.value = '';
-    
-    // Mostrar vista de secciones
-    document.getElementById('sectionsView').classList.add('active');
-    document.getElementById('subsectionsView').classList.remove('active');
-    document.getElementById('booksView').classList.remove('active');
-    
-    // Actualizar breadcrumb
-    document.getElementById('breadcrumb').innerHTML = '<span>📚 Mi Biblioteca Personal</span>';
-
     hideAllViews();
     elements.sectionsView.classList.add('active');
     elements.backButton.style.display = 'none';
@@ -393,23 +373,6 @@ function showSections() {
 }
 
 function showSubsections(sectionKey) {
-
-    // Ocultar controles de búsqueda y ordenación
-    const searchContainer = document.getElementById('searchContainer');
-    const sortSelect = document.getElementById('sortSelect');
-    
-    if (searchContainer) searchContainer.style.display = 'none';
-    if (sortSelect) sortSelect.style.display = 'none';
-    
-    // Limpiar filtros de búsqueda
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) searchInput.value = '';
-    
-    // Mostrar vista de subsecciones
-    document.getElementById('sectionsView').classList.remove('active');
-    document.getElementById('subsectionsView').classList.add('active');
-    document.getElementById('booksView').classList.remove('active');
-
     currentSection = sectionKey;
     const section = classification.sections[sectionKey];
     hideAllViews();
@@ -429,19 +392,6 @@ function showSubsections(sectionKey) {
 }
 
 function showBooks(sectionKey, subsectionKey) {
-
-    // Mostrar controles de búsqueda y ordenación SOLO en la vista de libros
-    const searchContainer = document.getElementById('searchContainer');
-    const sortSelect = document.getElementById('sortSelect');
-    
-    if (searchContainer) searchContainer.style.display = 'block';
-    if (sortSelect) sortSelect.style.display = 'block';
-    
-    // Mostrar vista de libros
-    document.getElementById('sectionsView').classList.remove('active');
-    document.getElementById('subsectionsView').classList.remove('active');
-    document.getElementById('booksView').classList.add('active');
-
     currentSection = sectionKey;
     currentSubsection = subsectionKey;
     
@@ -883,29 +833,7 @@ function showRandomBookDetails() {
 
 // Event Listeners
 function setupEventListeners() {
-    elements.backButton.addEventListener('click',  () => {
-            // 🚨 AÑADIR ESTAS LÍNEAS AL PRINCIPIO 🚨
-            // Ocultar inmediatamente los controles de búsqueda y ordenación
-            const searchContainer = document.getElementById('searchContainer');
-            const sortSelect = document.getElementById('sortSelect');
-            
-            if (searchContainer) searchContainer.style.display = 'none';
-            if (sortSelect) sortSelect.style.display = 'none';
-            
-            // Limpiar filtros de búsqueda
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) searchInput.value = '';
-            
-            // 🚨 MANTENER LA LÓGICA EXISTENTE DESPUÉS 🚨
-            // (aquí va el código que ya tenías para la navegación)
-            if (currentSubsection) {
-                currentSubsection = null;
-                showSubsections(currentSection);
-            } else if (currentSection) {
-                currentSection = null;
-                showSections();
-            }
-        });
+    elements.backButton.addEventListener('click', goBack);
     elements.searchInput.addEventListener('input', filterBooks);
     elements.sortSelect.addEventListener('change', sortBooks);
     elements.closeModal.addEventListener('click', closeModal);
