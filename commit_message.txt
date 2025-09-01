@@ -1,3 +1,0 @@
-feat: Mejora la generación de descripción con IA
-
-- Modifica el prompt enviado a Gemini para solicitar un resumen detallado de la obra y enlaces a reseñas.
