@@ -1,1 +1,1 @@
-Fix: Uncaught TypeError: Cannot read properties of null (reading 'sections')
+Debug: Log error from Supabase function in validatePassword

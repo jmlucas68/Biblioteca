@@ -51,7 +51,10 @@ async function validatePassword() {
             body: JSON.stringify({ password: password })
         });
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error from Supabase function:', error);
+            throw error;
+        }
 
         if (data.isValid) {
             isAdmin = true;
