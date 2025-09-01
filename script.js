@@ -378,6 +378,7 @@ function showSubsections(sectionKey) {
     hideAllViews();
     elements.subsectionsView.classList.add('active');
     elements.backButton.style.display = 'block';
+    elements.searchContainer.style.display = 'none';
     updateBreadcrumb([section.name]);
     const subsectionEntries = Object.entries(section.subsections).map(([key, subsection]) => ({ key, subsection, bookCount: countBooksForSubsection(sectionKey, key) })).sort((a, b) => b.bookCount - a.bookCount);
     elements.subsectionsGrid.innerHTML = subsectionEntries.map(({ key, subsection, bookCount }) => `
