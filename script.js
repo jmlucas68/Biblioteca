@@ -801,9 +801,24 @@ function showEditModal(bookId) {
 
     searchInput.addEventListener('input', () => {
         const searchTerm = searchInput.value;
-        const filteredGenres = window._allGenres.filter(g => normalizeText(g).includes(normalizeText(searchTerm)));
+        const normalizedSearchTerm = normalizeText(searchTerm);
+        const searchResults = document.getElementById('genre-search-results');
+        
         searchResults.innerHTML = '';
+
+        if (!searchTerm.trim()) {
+            return;
+        }
+
+        const filteredGenres = window._allGenres.filter(g => normalizeText(g).includes(normalizedSearchTerm));
+
+        const newGenreText = searchTerm.trim();
+        let newGenreAlreadyExists = false;
+
         filteredGenres.forEach(genre => {
+            if (normalizeText(genre) === normalizedSearchTerm) {
+                newGenreAlreadyExists = true;
+            }
             const item = document.createElement('div');
             item.className = 'search-result-item';
             item.textContent = genre;
@@ -814,6 +829,18 @@ function showEditModal(bookId) {
             });
             searchResults.appendChild(item);
         });
+
+        if (newGenreText && !newGenreAlreadyExists) {
+            const item = document.createElement('div');
+            item.className = 'search-result-item new-genre';
+            item.textContent = `Crear: "${newGenreText}"`;
+            item.addEventListener('dblclick', () => {
+                addGenreToBook(newGenreText);
+                searchInput.value = '';
+                searchResults.innerHTML = '';
+            });
+            searchResults.insertBefore(item, searchResults.firstChild);
+        }
     });
 
     searchInput.addEventListener('keydown', (e) => {
