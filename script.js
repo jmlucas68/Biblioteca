@@ -993,6 +993,7 @@ function countBooksForSubsection(sectionKey, subsectionKey) {
 
 
 function searchByAuthor(authorName) {
+    closeModal();
     clearSearch();
     document.getElementById('searchAutorInput').value = authorName;
     document.getElementById('searchAutor').value = authorName; // Also update the select element
@@ -1001,6 +1002,7 @@ function searchByAuthor(authorName) {
 }
 
 function searchBySerie(serieName) {
+    closeModal();
     clearSearch();
     document.getElementById('searchSerie').value = serieName;
     openSearchModal();
