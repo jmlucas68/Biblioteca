@@ -58,7 +58,7 @@ function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt
 
 function resolveCoverThumb(urlPortada) {
     if (!urlPortada) return '';
-    const m = urlPortada.match(/\/d\/([^/]+)\//);
+    const m = urlPortada.match(/\/d\/([^/]+)\/i);
     const id = m ? m[1] : null;
     if (!id) return urlPortada;
     return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
@@ -212,6 +212,16 @@ const elements = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
+    const passwordInput = document.getElementById('passwordInput');
+    if (passwordInput) {
+        passwordInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent any default action
+                validatePassword();
+            }
+        });
+    }
+
     const isAdminCookie = getCookie('isAdmin');
     if (isAdminCookie === 'true') {
         await enterAdminMode();
