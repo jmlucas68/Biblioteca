@@ -586,6 +586,8 @@ function showBooks(sectionKey, subsectionKey) {
     if (breadcrumbElem) {
         const oldTags = document.getElementById('subsectionTags');
         if (oldTags) oldTags.remove();
+        const oldTagOptions = document.getElementById('tagFilterOptions');
+        if (oldTagOptions) oldTagOptions.remove();
         breadcrumbElem.insertAdjacentHTML('afterend', tagsHtml);
     }
 
