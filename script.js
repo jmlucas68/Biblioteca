@@ -189,6 +189,9 @@ function isBookInAnySubsection(book, classification) {
         const section = classification.sections[sectionKey];
         for (const subKey in section.subsections) {
             const subsection = section.subsections[subKey];
+            if (normalizeText(subsection.name) === normalizeText('Sin clasificar')) {
+                continue;
+            }
             const subsectionTags = (subsection.tags || []).map(normalizeText);
             if (subsectionTags.some(tag => bookTags.includes(tag))) {
                 return true;
