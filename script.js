@@ -212,6 +212,16 @@ const elements = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
+    const passwordInput = document.getElementById('passwordInput');
+    if (passwordInput) {
+        passwordInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent any default action
+                validatePassword();
+            }
+        });
+    }
+
     const isAdminCookie = getCookie('isAdmin');
     if (isAdminCookie === 'true') {
         await enterAdminMode();
