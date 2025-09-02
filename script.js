@@ -58,7 +58,7 @@ function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt
 
 function resolveCoverThumb(urlPortada) {
     if (!urlPortada) return '';
-    const m = urlPortada.match(/\/d\/([^/]+)\/i);
+    const m = urlPortada.match(/\/d\/([^/]+)\/i/);
     const id = m ? m[1] : null;
     if (!id) return urlPortada;
     return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
@@ -132,24 +132,30 @@ async function validatePassword() {
 }
 
 function disableAdminFeatures() {
+    // Hide all admin-only buttons and controls
     document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
         button.style.display = 'none';
     });
+
+    // Configure the auth button for "Login"
     const authButton = document.getElementById('authButton');
     if (authButton) {
-        authButton.textContent = '🔒 Login';
+        authButton.innerHTML = '🔒 Login';
         authButton.onclick = showLoginModal;
         authButton.style.display = 'inline-flex';
     }
 }
 
 function enableAdminFeatures() {
+    // Show all admin-only buttons and controls
     document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
         button.style.display = 'inline-flex';
     });
+
+    // Configure the auth button for "Logoff"
     const authButton = document.getElementById('authButton');
     if (authButton) {
-        authButton.textContent = '🔒 Logoff';
+        authButton.innerHTML = '🔒 Logoff';
         authButton.onclick = logoff;
         authButton.style.display = 'inline-flex';
     }
@@ -307,9 +313,7 @@ async function generateAiDescription(title, author) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                prompt: prompt
-            }),
+            body: JSON.stringify({ prompt: prompt }),
         });
 
         if (!response.ok) {
