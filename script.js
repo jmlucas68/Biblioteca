@@ -30,6 +30,10 @@ function getCookie(name) {
     return null;
 }
 
+function deleteCookie(name) {
+    document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+}
+
 // Utility functions
 function esc(s) {
     return String(s || '')
@@ -45,11 +49,16 @@ function closeLoginModal() {
     document.getElementById('securityModal').style.display = 'none';
 }
 
+function logoff() {
+    deleteCookie('isAdmin');
+    location.reload();
+}
+
 function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i); h|=0;} return String(Math.abs(h)); }
 
 function resolveCoverThumb(urlPortada) {
     if (!urlPortada) return '';
-    const m = urlPortada.match(/\/d\/([^/]+)\//);
+    const m = urlPortada.match(/\/d\/([^/]+)\/i);
     const id = m ? m[1] : null;
     if (!id) return urlPortada;
     return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
@@ -126,9 +135,11 @@ function disableAdminFeatures() {
     document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
         button.style.display = 'none';
     });
-    const loginButton = document.getElementById('loginButton');
-    if (loginButton) {
-        loginButton.style.display = 'inline-flex';
+    const authButton = document.getElementById('authButton');
+    if (authButton) {
+        authButton.textContent = '🔒 Login';
+        authButton.onclick = showLoginModal;
+        authButton.style.display = 'inline-flex';
     }
 }
 
@@ -136,9 +147,11 @@ function enableAdminFeatures() {
     document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
         button.style.display = 'inline-flex';
     });
-    const loginButton = document.getElementById('loginButton');
-    if (loginButton) {
-        loginButton.style.display = 'none';
+    const authButton = document.getElementById('authButton');
+    if (authButton) {
+        authButton.textContent = '🔒 Logoff';
+        authButton.onclick = logoff;
+        authButton.style.display = 'inline-flex';
     }
 }
 
@@ -294,7 +307,9 @@ async function generateAiDescription(title, author) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ prompt: prompt }),
+            body: JSON.stringify({
+                prompt: prompt
+            }),
         });
 
         if (!response.ok) {
