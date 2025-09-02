@@ -41,3 +41,5 @@ Nueva funcionalidad: Botón de LogOff
 Nueva funcionalidad: Intro al meter clave
 
 Nueva funcionalidad: En edición de detalles crear tag nuevo
+
+Corrección: busquedas desde el detalle de libro, cierre el diálogo del detalle del libro.
