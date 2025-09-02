@@ -39,3 +39,5 @@ Corregida incidencia: AND OR no se borran al volver
 Nueva funcionalidad: Botón de LogOff
 
 Nueva funcionalidad: Intro al meter clave
+
+Nueva funcionalidad: En edición de detalles crear tag nuevo
