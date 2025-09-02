@@ -15,11 +15,19 @@ function esc(s) {
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
+function showLoginModal() {
+    document.getElementById('securityModal').style.display = 'flex';
+}
+
+function closeLoginModal() {
+    document.getElementById('securityModal').style.display = 'none';
+}
+
 function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i); h|=0;} return String(Math.abs(h)); }
 
 function resolveCoverThumb(urlPortada) {
     if (!urlPortada) return '';
-    const m = urlPortada.match(/\/d\/([^/]+)\//);
+    const m = urlPortada.match(/\/d\/([^/]+)\/\//);
     const id = m ? m[1] : null;
     if (!id) return urlPortada;
     return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
@@ -37,7 +45,6 @@ function isHTML(str) {
 
 async function enterReadOnlyMode() {
     isAdmin = false;
-    document.getElementById('securityModal').style.display = 'none';
     disableAdminFeatures();
     await loadInitialData();
 }
@@ -65,9 +72,18 @@ async function validatePassword() {
 
         if (data.isValid) {
             isAdmin = true;
-            document.getElementById('securityModal').style.display = 'none';
+            closeLoginModal();
             enableAdminFeatures();
-            await loadInitialData();
+            
+            // Re-render current view to show admin controls
+            if (elements.booksView.classList.contains('active')) {
+                renderBooks();
+            } else if (elements.subsectionsView.classList.contains('active')) {
+                showSubsections(currentSection);
+            } else if (elements.sectionsView.classList.contains('active')) {
+                showSections();
+            }
+
         } else {
             alert('Contraseña incorrecta');
         }
@@ -81,20 +97,28 @@ function disableAdminFeatures() {
     document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
         button.style.display = 'none';
     });
+    const loginButton = document.getElementById('loginButton');
+    if (loginButton) {
+        loginButton.style.display = 'inline-flex';
+    }
 }
 
 function enableAdminFeatures() {
-    // This function is not strictly necessary if the buttons are visible by default,
-    // but it's good practice to have it.
     document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
         button.style.display = 'inline-flex';
     });
+    const loginButton = document.getElementById('loginButton');
+    if (loginButton) {
+        loginButton.style.display = 'none';
+    }
 }
 
 async function loadInitialData() {
     await loadData();
     await loadClassification();
-    await sincronizarClasificacion();
+    if(isAdmin) {
+        await sincronizarClasificacion();
+    }
     populateSearchFilters();
     showSections();
     setupEventListeners();
@@ -140,7 +164,7 @@ const elements = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
-    // Don't load data initially. It will be loaded after password validation.
+    await enterReadOnlyMode();
 });
 
 // Data loading
@@ -229,7 +253,7 @@ async function sincronizarClasificacion() {
 
 // AI Description Function
 async function generateAiDescription(title, author) {
-    const prompt = `Dame un resumen detallado de la obra "${title}" del autor "${author}" en formato Markdown, incluyendo los puntos clave de la trama, los temas principales y el estilo literario.`;
+    const prompt = `Dame un resumen detallado de la obra \"${title}\" del autor \"${author}\" en formato Markdown, incluyendo los puntos clave de la trama, los temas principales y el estilo literario.`;
     try {
         const response = await fetch(GEMINI_PROXY_URL, {
             method: 'POST',
@@ -279,7 +303,7 @@ function populateSearchFilters() {
 
 function populateSelect(selectId, options) {
     const select = document.getElementById(selectId);
-    select.innerHTML = '<option value="">Todos</option>';
+    select.innerHTML = '<option value=\"\">Todos</option>';
     options.forEach(option => {
         const opt = document.createElement('option');
         opt.value = opt.textContent = option;
@@ -368,16 +392,16 @@ function sortBooks() {
 
 // Rendering
 function renderBooks() {
-    elements.booksGrid.innerHTML = currentBooks.length > 0 ? currentBooks.map(renderBook).join('') : '<div class="empty-state"><h3>No se encontraron libros</h3></div>';
+    elements.booksGrid.innerHTML = currentBooks.length > 0 ? currentBooks.map(renderBook).join('') : '<div class=\"empty-state\"><h3>No se encontraron libros</h3></div>';
 }
 
 function renderSearchResults(results) {
     const container = document.getElementById('searchResults');
     if (results.length === 0) {
-        container.innerHTML = '<div class="empty-state"><h3>No se encontraron libros</h3></div>';
+        container.innerHTML = '<div class=\"empty-state\"><h3>No se encontraron libros</h3></div>';
         return;
     }
-    container.innerHTML = `<h3 style="margin-bottom: 16px;">${results.length} libro(s) encontrado(s)</h3><div class="grid grid--books">${results.map(renderBook).join('')}</div>`;
+    container.innerHTML = `<h3 style=\"margin-bottom: 16px;\">${results.length} libro(s) encontrado(s)</h3><div class=\"grid grid--books\">${results.map(renderBook).join('')}</div>`;
 }
 
 function renderBook(book) {
@@ -391,26 +415,26 @@ function renderBook(book) {
         const hasValidUrl = downloadUrl && downloadUrl !== '#';
         const formatName = esc(f.formato);
         const bookTitle = esc(book.titulo);
-        return `<a href="#" onclick="openViewer(event, '${esc(downloadUrl)}', '${bookTitle}', '${formatName}')" class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}">${formatName}</a>`;
+        return `<a href=\"#\" onclick=\"openViewer(event, '${esc(downloadUrl)}', '${bookTitle}', '${formatName}')\" class=\"format-link${!hasValidUrl ? ' format-link--disabled' : ''}\">${formatName}</a>`;
     }).join('');
 
     return `
-        <div class="book-card" onclick="showBookDetails(${book.id})">
-            <div class="book-cover-wrap">
-                <a href="${esc(coverHref)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">
-                    <img class="book-cover" src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" onerror="this.style.display='none'; this.parentElement.innerHTML='📖';" />
+        <div class=\"book-card\" onclick=\"showBookDetails(${book.id})\">
+            <div class=\"book-cover-wrap\">
+                <a href=\"${esc(coverHref)}\" target=\"_blank\" rel=\"noopener\" onclick=\"event.stopPropagation();\">
+                    <img class=\"book-cover\" src=\"${esc(portadaSrc)}\" alt=\"Portada de ${esc(book.titulo)}\" onerror=\"this.style.display='none'; this.parentElement.innerHTML='📖';\" />
                 </a>
             </div>
-            <div class="book-info">
-                <div class="book-title">${esc(book.titulo)}</div>
-                <div class="book-author">por ${esc(book.autor || 'Desconocido')}</div>
-                <div class="book-meta">
-                    ${book.serie ? `<span class="book-badge book-badge--series">${esc(book.serie)}${book.numero_serie ? ` #${book.numero_serie}` : ''}</span>` : ''}
-                    ${genres.slice(0, 2).map(genre => `<span class="book-badge book-badge--genre">${esc(genre)}</span>`).join('')}
+            <div class=\"book-info\">
+                <div class=\"book-title\">${esc(book.titulo)}</div>
+                <div class=\"book-author\">por ${esc(book.autor || 'Desconocido')}</div>
+                <div class=\"book-meta\">
+                    ${book.serie ? `<span class=\"book-badge book-badge--series\">${esc(book.serie)}${book.numero_serie ? ` #${book.numero_serie}` : ''}</span>` : ''}
+                    ${genres.slice(0, 2).map(genre => `<span class=\"book-badge book-badge--genre\">${esc(genre)}</span>`).join('')}
                 </div>
-                <div class="book-formats">${formatLinks}</div>
-                <div class="book-actions">
-                    ${isAdmin ? `<button type="button" class="btn edit" onclick="showEditModal(${book.id})">✏️ Editar</button>` : ''}
+                <div class=\"book-formats\">${formatLinks}</div>
+                <div class=\"book-actions\">
+                    ${isAdmin ? `<button type=\"button\" class=\"btn edit\" onclick=\"showEditModal(${book.id})\">✏️ Editar</button>` : ''}
                 </div>
             </div>
         </div>`;
@@ -426,12 +450,12 @@ function showSections() {
     updateBreadcrumb([]);
     const sectionEntries = Object.entries(classification.sections).map(([key, section]) => ({ key, section, bookCount: countBooksForSection(key) })).sort((a, b) => b.bookCount - a.bookCount);
     elements.sectionsGrid.innerHTML = sectionEntries.map(({ key, section, bookCount }) => `
-        <div class="section-card" onclick="showSubsections('${key}')">
-            <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}">
-            <div class="section-content">
-                <div class="section-title">${esc(section.name)}</div>
-                <div class="section-count">${bookCount} libro(s)</div>
-                <div class="section-subtitle">${Object.keys(section.subsections).length} subsecciones</div>
+        <div class=\"section-card\" onclick=\"showSubsections('${key}')\">
+            <img class=\"section-cover\" src=\"biblioteca.jpg\" alt=\"Sección ${esc(section.name)}\">
+            <div class=\"section-content\">
+                <div class=\"section-title\">${esc(section.name)}</div>
+                <div class=\"section-count\">${bookCount} libro(s)</div>
+                <div class=\"section-subtitle\">${Object.keys(section.subsections).length} subsecciones</div>
             </div>
         </div>`).join('');
 }
@@ -446,12 +470,12 @@ function showSubsections(sectionKey) {
     updateBreadcrumb([section.name]);
     const subsectionEntries = Object.entries(section.subsections).map(([key, subsection]) => ({ key, subsection, bookCount: countBooksForSubsection(sectionKey, key) })).sort((a, b) => b.bookCount - a.bookCount);
     elements.subsectionsGrid.innerHTML = subsectionEntries.map(({ key, subsection, bookCount }) => `
-        <div class="section-card" onclick="showBooks('${sectionKey}', '${key}')">
-             <img class="section-cover" src="biblioteca.jpg" alt="Subsección ${esc(subsection.name)}">
-            <div class="section-content">
-                <div class="section-title">${esc(subsection.name)}</div>
-                <div class="section-count">${bookCount} libro(s)</div>
-                <div class="section-subtitle">${subsection.tags.slice(0, 3).map(tag => esc(tag)).join(', ')}...</div>
+        <div class=\"section-card\" onclick=\"showBooks('${sectionKey}', '${key}')\">
+             <img class=\"section-cover\" src=\"biblioteca.jpg\" alt=\"Subsección ${esc(subsection.name)}\">
+            <div class=\"section-content\">
+                <div class=\"section-title\">${esc(subsection.name)}</div>
+                <div class=\"section-count\">${bookCount} libro(s)</div>
+                <div class=\"section-subtitle\">${subsection.tags.slice(0, 3).map(tag => esc(tag)).join(', ')}...</div>
             </div>
         </div>`).join('');
 }
@@ -473,22 +497,22 @@ function showBooks(sectionKey, subsectionKey) {
     let tagsHtml = '';
     if (subsection.tags && subsection.tags.length > 0) {
         tagsHtml = `
-            <div id="subsectionTags" style="margin: 12px 0 20px 0;">
+            <div id=\"subsectionTags\" style=\"margin: 12px 0 20px 0;\">
                 <strong>Tags:</strong>
                 ${subsection.tags.map(tag => `
-                    <span class="subsection-tag" data-tag="${esc(tag)}"
-                          style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;margin-right:6px;font-size:13px;cursor:pointer;transition:all 0.2s;">
+                    <span class=\"subsection-tag\" data-tag=\"${esc(tag)}\"
+                          style=\"display:inline-block;background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;margin-right:6px;font-size:13px;cursor:pointer;transition:all 0.2s;\">
                         ${esc(tag)}
                     </span>
                 `).join('')}
             </div>
-            <div id="tagFilterOptions" class="tag-filter-options" style="margin-bottom: 20px;">
-                <label style="margin-right: 15px;">
-                    <input type="radio" name="tagLogic" value="OR" ${tagFilterLogic === 'OR' ? 'checked' : ''}>
+            <div id=\"tagFilterOptions\" class=\"tag-filter-options\" style=\"margin-bottom: 20px;\">
+                <label style=\"margin-right: 15px;\">
+                    <input type=\"radio\" name=\"tagLogic\" value=\"OR\" ${tagFilterLogic === 'OR' ? 'checked' : ''}>
                     Cualquiera (OR)
                 </label>
                 <label>
-                    <input type="radio" name="tagLogic" value="AND" ${tagFilterLogic === 'AND' ? 'checked' : ''}>
+                    <input type=\"radio\" name=\"tagLogic\" value=\"AND\" ${tagFilterLogic === 'AND' ? 'checked' : ''}>
                     Todos (AND)
                 </label>
             </div>
@@ -505,7 +529,7 @@ function showBooks(sectionKey, subsectionKey) {
     window.selectedSubsectionTags = [];
 
     // Add event listeners for radio buttons
-    document.querySelectorAll('input[name="tagLogic"]').forEach(radio => {
+    document.querySelectorAll('input[name=\"tagLogic\"]').forEach(radio => {
         radio.addEventListener('change', function() {
             tagFilterLogic = this.value;
             applyTagFilters(subsection.tags);
@@ -575,7 +599,7 @@ function goBack() {
 
     // Reset tag filter logic to default (OR) and update UI
     tagFilterLogic = 'OR';
-    const orRadio = document.querySelector('input[name="tagLogic"][value="OR"]');
+    const orRadio = document.querySelector('input[name=\"tagLogic\"][value=\"OR\"]');
     if (orRadio) {
         orRadio.checked = true;
     }
@@ -593,7 +617,7 @@ function hideAllViews() {
 }
 
 function updateBreadcrumb(path) {
-    elements.breadcrumb.innerHTML = path.length === 0 ? '' : path.map((item, index) => `<span class="breadcrumb-item">${esc(item)}</span>`).join('<span class="breadcrumb-separator"> › </span>');
+    elements.breadcrumb.innerHTML = path.length === 0 ? '' : path.map((item, index) => `<span class=\"breadcrumb-item\">${esc(item)}</span>`).join('<span class=\"breadcrumb-separator\"> › </span>');
 }
 
 // Modal Handling
@@ -623,59 +647,59 @@ function showBookDetails(bookId) {
     }
 
     const subseccionesHtml = subseccionesLibro.length > 0 ? `
-        <div style="margin: 16px 0 0 0;">
+        <div style=\"margin: 16px 0 0 0;\">
             <strong>Subsecciones donde aparece:</strong>
-            <ul style="margin: 6px 0 0 0; padding-left: 18px;">
+            <ul style=\"margin: 6px 0 0 0; padding-left: 18px;\">
                 ${subseccionesLibro.map(s => `
                     <li>
-                        <a href="#" onclick="showSubsections('${s.sectionKey}'); setTimeout(() => showBooks('${s.sectionKey}', '${s.subKey}'), 10); closeModal(); return false;">
-                            <span style="color:#2563eb;">${esc(s.section)}</span> / <span style="color:#0369a1;">${esc(s.subsection)}</span>
+                        <a href=\"#\" onclick=\"showSubsections('${s.sectionKey}'); setTimeout(() => showBooks('${s.sectionKey}', '${s.subKey}'), 10); closeModal(); return false;\">
+                            <span style=\"color:#2563eb;\">${esc(s.section)}</span> / <span style=\"color:#0369a1;\">${esc(s.subsection)}</span>
                         </a>
                     </li>`
                 ).join('')}
             </ul>
         </div>` : `
-        <div style="margin: 16px 0 0 0; color: #64748b;">
+        <div style=\"margin: 16px 0 0 0; color: #64748b;\">
             No pertenece a ninguna subsección clasificada.
         </div>`;
     
     const modalHtml = `
-        <div class="modal-book">
-            <div class="modal-cover">
-                <a href="${esc(coverHref)}" target="_blank" rel="noopener">
-                    <img src="${esc(portadaSrc)}" alt="Portada de ${esc(book.titulo)}" 
-                         onerror="this.style.display='none'; this.parentElement.innerHTML='📖';" />
+        <div class=\"modal-book\">
+            <div class=\"modal-cover\">
+                <a href=\"${esc(coverHref)}\" target=\"_blank\" rel=\"noopener\">
+                    <img src=\"${esc(portadaSrc)}\" alt=\"Portada de ${esc(book.titulo)}\" 
+                         onerror=\"this.style.display='none'; this.parentElement.innerHTML='📖';\" />
                 </a>
             </div>
-            <div class="modal-info">
+            <div class=\"modal-info\">
                 <h2>${esc(book.titulo || 'Sin título')}</h2>
-                <p><strong>Autor:</strong> ${book.autor ? `<a href="#" onclick="searchByAuthor('${esc(book.autor)}'); return false;">${esc(book.autor)}</a>` : 'Autor desconocido'}</p>
-                ${book.serie ? `<p><strong>Serie:</strong> <a href="#" onclick="searchBySerie('${esc(book.serie)}'); return false;">${esc(book.serie)}</a>${book.numero_serie ? ` #${book.numero_serie}` : ''}</p>` : ''}
+                <p><strong>Autor:</strong> ${book.autor ? `<a href=\"#\" onclick=\"searchByAuthor('${esc(book.autor)}'); return false;\">${esc(book.autor)}</a>` : 'Autor desconocido'}</p>
+                ${book.serie ? `<p><strong>Serie:</strong> <a href=\"#\" onclick=\"searchBySerie('${esc(book.serie)}'); return false;\">${esc(book.serie)}</a>${book.numero_serie ? ` #${book.numero_serie}` : ''}</p>` : ''}
                 ${book.editorial ? `<p><strong>Editorial:</strong> ${esc(book.editorial)}</p>` : ''}
                 ${book.fecha_publicacion ? `<p><strong>Año:</strong> ${esc(book.fecha_publicacion.slice(0,4))}</p>` : ''}
                 <p><strong>Géneros:</strong> ${genres.map(g => esc(g)).join(', ') || 'Sin especificar'}</p>
                 ${subseccionesHtml}
             </div>
         </div>
-        ${book.descripcion ? `<div class="modal-description"><h3>Descripción</h3><div id="description-content"></div></div>` : ''}
+        ${book.descripcion ? `<div class=\"modal-description\"><h3>Descripción</h3><div id=\"description-content\"></div></div>` : ''}
         ${formats.length > 0 ? `
-            <div class="modal-formats">
+            <div class=\"modal-formats\">
                 ${formats.map(format => {
                     const downloadUrl = format.url_download || format.ruta_archivo || '#';
                     const hasValidUrl = downloadUrl && downloadUrl !== '#';
                     const formatName = esc(format.formato);
                     const bookTitle = esc(book.titulo);
                     return `
-                        <a href="#" 
-                           onclick="openViewer(event, '${esc(downloadUrl)}', '${bookTitle}', '${formatName}')"
-                           class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}">
+                        <a href=\"#\" 
+                           onclick=\"openViewer(event, '${esc(downloadUrl)}', '${bookTitle}', '${formatName}')\"
+                           class=\"format-link${!hasValidUrl ? ' format-link--disabled' : ''}\">
                             📄 ${formatName}
                             ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
                         </a>`;
                 }).join('')}
             </div>` : ''}
-        <div class="modal-footer">
-            ${isAdmin ? `<button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>` : ''}
+        <div class=\"modal-footer\">
+            ${isAdmin ? `<button type=\"button\" class=\"btn btn--success\" onclick=\"showEditModal(${book.id})\">✏️ Editar</button>` : ''}
         </div>
     `;
     
@@ -846,10 +870,10 @@ async function openViewer(event, formatUrl, bookTitle, formatName) {
 
     viewerIframe.onerror = () => {
         viewerTitle.textContent = `Error al cargar ${esc(bookTitle)}`;
-        viewerIframe.contentWindow.document.body.innerHTML = `<div style="padding: 20px; text-align: center; color: #ef4444;">
+        viewerIframe.contentWindow.document.body.innerHTML = `<div style=\"padding: 20px; text-align: center; color: #ef4444;\">
             <h3>No se pudo cargar el libro para visualización</h3>
             <p>Puede que el archivo no sea público o que Google Drive no permita la visualización directa.</p>
-            <p>Puedes intentar <a href="${formatUrl}" target="_blank" rel="noopener" style="color: #2563eb;">descargarlo directamente</a>.</p>
+            <p>Puedes intentar <a href=\"${formatUrl}\" target=\"_blank\" rel=\"noopener\" style=\"color: #2563eb;\">descargarlo directamente</a>.</p>
         </div>`;
     };
 }
@@ -931,7 +955,7 @@ function setupEventListeners() {
         autorInput.addEventListener('input', () => {
             const val = normalizeText(autorInput.value);
             const filtered = !val ? (window._allAuthors || []) : (window._allAuthors || []).filter(a => normalizeText(a).includes(val));
-            autorSelect.innerHTML = '<option value="">Todos los autores</option>' + filtered.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
+            autorSelect.innerHTML = '<option value=\"\">Todos los autores</option>' + filtered.map(a => `<option value=\"${esc(a)}\">${esc(a)}</option>`).join('');
         });
         autorSelect.addEventListener('change', () => { autorInput.value = autorSelect.value; });
     }
@@ -941,7 +965,7 @@ function setupEventListeners() {
         generoInput.addEventListener('input', () => {
             const val = normalizeText(generoInput.value);
             const filtered = !val ? (window._allGenres || []) : (window._allGenres || []).filter(g => normalizeText(g).includes(val));
-            generoSelect.innerHTML = '<option value="">Todos los géneros</option>' + filtered.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+            generoSelect.innerHTML = '<option value=\"\">Todos los géneros</option>' + filtered.map(g => `<option value=\"${esc(g)}\">${esc(g)}</option>`).join('');
         });
         generoSelect.addEventListener('change', () => { generoInput.value = generoSelect.value; });
     }
