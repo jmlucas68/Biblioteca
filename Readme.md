@@ -35,3 +35,5 @@ Nueva funcionalidad: libro aleatorio en buscar libro
 Nueva funcionalidad: búsqueda de libros del autor
 
 Corregida incidencia: AND OR no se borran al volver
+
+Nueva funcionalidad: Botón de LogOff
