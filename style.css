@@ -72,7 +72,7 @@ body {
 }
 
 .header-logo {
-    height: 120px;
+    height: max-height;
     width: auto;
     margin-bottom: 8px;
 }
