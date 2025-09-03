@@ -253,6 +253,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Data loading
+function updateStats(books) {
+    const bookIds = new Set(books.map(b => b.id));
+    const relevantFormats = allFormats.filter(f => bookIds.has(f.book_id));
+    const uniqueAuthors = new Set(books.map(b => (b.autor || '').trim()).filter(Boolean));
+
+    elements.totalBooks.textContent = books.length;
+    elements.totalFormats.textContent = relevantFormats.length;
+    document.getElementById('totalAuthors').textContent = uniqueAuthors.size;
+}
+
+function updateGlobalStats() {
+    updateStats(allBooks);
+}
+
+function getBooksForSection(sectionKey) {
+    const section = classification.sections[sectionKey];
+    if (!section) return [];
+    const allTagsInSection = Object.values(section.subsections).flatMap(sub => sub.tags);
+    const uniqueTags = [...new Set(allTagsInSection)];
+    return filterBooksByTagsOR(uniqueTags);
+}
+
 async function loadData() {
     try {
         elements.loading.style.display = 'flex';
@@ -264,10 +286,7 @@ async function loadData() {
         if (formatsError) throw formatsError;
         allFormats = formatsData || [];
 
-        elements.totalBooks.textContent = allBooks.length;
-        elements.totalFormats.textContent = allFormats.length;
-        const uniqueAuthors = new Set(allBooks.map(b => (b.autor || '').trim()).filter(Boolean));
-        document.getElementById('totalAuthors').textContent = uniqueAuthors.size;
+        updateGlobalStats();
         elements.loading.style.display = 'none';
     } catch (error) {
         console.error('Error loading data:', error);
@@ -527,6 +546,7 @@ function renderBook(book) {
 
 // UI Navigation
 function showSections() {
+    updateGlobalStats();
     hideAllViews();
     elements.sectionsView.classList.add('active');
     elements.backButton.style.display = 'none';
@@ -550,6 +570,9 @@ function showSections() {
 }
 
 function showSubsections(sectionKey) {
+    const booksInSection = getBooksForSection(sectionKey);
+    updateStats(booksInSection);
+
     currentSection = sectionKey;
     const section = classification.sections[sectionKey];
     hideAllViews();
@@ -576,6 +599,9 @@ function showBooks(sectionKey, subsectionKey) {
     const section = classification.sections[sectionKey];
     const subsection = section.subsections[subsectionKey];
     
+    const booksInSubsection = filterBooksByTagsOR(subsection.tags);
+    updateStats(booksInSubsection);
+
     hideAllViews();
     elements.booksView.classList.add('active');
     elements.backButton.style.display = 'block';
@@ -656,6 +682,7 @@ function applyTagFilters(defaultTags) {
     }
     
     currentBooks = [...filteredBooks];
+    updateStats(currentBooks);
     renderBooks();
 }
 
