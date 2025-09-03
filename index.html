@@ -42,8 +42,11 @@
                         🔒 Login
                     </button>
                     <!-- Botón Editar Clasificación a la izquierda del de Buscar Libros -->
-                    <button class="btn btn--warning" style="margin-right: 0; display: none;" onclick="openClassificationEditor()" title="Editar la estructura de clasificación de secciones y tags">
+                    <button class="btn btn--warning admin-control" style="margin-right: 1rem; display: none;" onclick="openClassificationEditor()" title="Editar la estructura de clasificación de secciones y tags">
                         ⚙️ Editar Clasificación
+                    </button>
+                    <button id="importButton" class="btn btn--primary admin-control" style="display: none; margin-right: 1rem;" title="Importar nuevos libros desde archivos">
+                        📥 Importar Libros
                     </button>
                                         <div class="theme-switch-wrapper">
                         <label class="theme-switch" for="darkModeToggle">
@@ -297,6 +300,10 @@
             </div>
         </div>
     </div>
+
+    <!-- Elementos para la importación de archivos -->
+    <input type="file" id="ebookImporter" accept=".epub,.mobi,.pdf,.azw3" style="display:none;" multiple>
+    <div id="uploadStatus" class="upload-status"></div>
 
     <script src="script.js" defer></script>
 </body>

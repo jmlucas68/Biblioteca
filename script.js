@@ -4,9 +4,10 @@ const supabaseUrl = 'https://fanyuclarbgwraiwbcmr.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
 const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-// !!! IMPORTANTE: Reemplaza esta URL con la URL de tu propio proxy de Gemini desplegado. !!!
-// Puedes usar un servicio como Vercel para desplegar un proxy simple.
-const GEMINI_PROXY_URL = 'https://perplexity-proxy-backend.vercel.app/api/proxy'; 
+// Proxy URL configuration
+const PROXY_BASE_URL = 'https://perplexity-proxy-backend.vercel.app'; 
+const GEMINI_PROXY_URL = `${PROXY_BASE_URL}/api/proxy`;
+const UPLOAD_URL = `${PROXY_BASE_URL}/api/upload`;
 
 // --- Cookie Functions ---
 function setCookie(name, value, days) {
@@ -58,7 +59,7 @@ function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt
 
 function resolveCoverThumb(urlPortada) {
     if (!urlPortada) return '';
-    const m = urlPortada.match(/\/d\/([^/]+)\//);
+    const m = urlPortada.match(/\/d\/([^/]+)\/g);
     const id = m ? m[1] : null;
     if (!id) return urlPortada;
     return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
@@ -100,14 +101,9 @@ async function validatePassword() {
             }),
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Error del proxy: ${response.status} - ${errorText}`);
-        }
-
         const data = await response.json();
 
-        if (data.isValid) {
+        if (response.ok && data.success) {
             setCookie('isAdmin', 'true', 7); // Set cookie for 7 days
             isAdmin = true;
             closeLoginModal();
@@ -132,12 +128,10 @@ async function validatePassword() {
 }
 
 function disableAdminFeatures() {
-    // Hide all admin-only buttons and controls
-    document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
-        button.style.display = 'none';
+    document.querySelectorAll('.admin-control').forEach(control => {
+        control.style.display = 'none';
     });
 
-    // Configure the auth button for "Login"
     const authButton = document.getElementById('authButton');
     if (authButton) {
         authButton.innerHTML = '🔒 Login';
@@ -147,12 +141,10 @@ function disableAdminFeatures() {
 }
 
 function enableAdminFeatures() {
-    // Show all admin-only buttons and controls
-    document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
-        button.style.display = 'inline-flex';
+    document.querySelectorAll('.admin-control').forEach(control => {
+        control.style.display = 'inline-flex';
     });
 
-    // Configure the auth button for "Logoff"
     const authButton = document.getElementById('authButton');
     if (authButton) {
         authButton.innerHTML = '🔒 Logoff';
@@ -207,7 +199,10 @@ const elements = {
     editModal: document.getElementById('editModal'),
     aiDescriptionButton: document.getElementById('aiDescriptionButton'),
     adminControls: document.getElementById('adminControls'),
-    searchModal: document.getElementById('searchModal')
+    searchModal: document.getElementById('searchModal'),
+    importButton: document.getElementById('importButton'),
+    ebookImporter: document.getElementById('ebookImporter'),
+    uploadStatus: document.getElementById('uploadStatus')
 };
 
 // Initialize app
@@ -302,6 +297,51 @@ async function loadClassification() {
     } catch (error) {
         console.error('Error loading classification:', error);
     }
+}
+
+// --- File Import ---
+async function handleFileUpload(event) {
+    const files = event.target.files;
+    if (!files.length) {
+        return;
+    }
+
+    const statusDiv = elements.uploadStatus;
+    statusDiv.innerHTML = ''; // Clear previous statuses
+    statusDiv.style.display = 'block';
+
+    for (const file of files) {
+        const formData = new FormData();
+        formData.append('ebook', file);
+
+        const fileStatus = document.createElement('div');
+        fileStatus.className = 'upload-status-item';
+        fileStatus.textContent = `Subiendo ${file.name}... `;
+        statusDiv.appendChild(fileStatus);
+
+        try {
+            const response = await fetch(UPLOAD_URL, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                fileStatus.innerHTML += '✅ ¡Éxito!';
+            } else {
+                throw new Error(result.details || result.error || 'Error desconocido del servidor');
+            }
+        } catch (error) {
+            fileStatus.innerHTML += `❌ Error: ${error.message}`;
+        }
+    }
+    
+    elements.ebookImporter.value = ''; 
+    setTimeout(() => {
+        statusDiv.style.display = 'none';
+        statusDiv.innerHTML = '';
+    }, 15000); // Hide after 15 seconds
 }
 
 // Business Logic
@@ -538,7 +578,7 @@ function renderBook(book) {
                 </div>
                 <div class="book-formats">${formatLinks}</div>
                 <div class="book-actions">
-                    ${isAdmin ? `<button type="button" class="btn edit" onclick="showEditModal(${book.id})">✏️ Editar</button>` : ''}
+                    ${isAdmin ? `<button type="button" class="btn edit admin-control" onclick="showEditModal(${book.id})">✏️ Editar</button>` : ''}
                 </div>
             </div>
         </div>`;
@@ -817,7 +857,7 @@ function showBookDetails(bookId) {
                 }).join('')}
             </div>` : ''}
         <div class="modal-footer">
-            ${isAdmin ? `<button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>` : ''}
+            ${isAdmin ? `<button type="button" class="btn btn--success admin-control" onclick="showEditModal(${book.id})">✏️ Editar</button>` : ''}
         </div>
     `;
     
@@ -1090,6 +1130,8 @@ function setupEventListeners() {
     elements.searchModal.addEventListener('click', (e) => {
         if (e.target === elements.searchModal) closeSearchModal();
     });
+    elements.importButton.addEventListener('click', () => elements.ebookImporter.click());
+    elements.ebookImporter.addEventListener('change', handleFileUpload);
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeModal();
