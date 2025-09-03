@@ -47,3 +47,5 @@ Corrección: busquedas desde el detalle de libro, cierre el diálogo del detalle
 Añado logo y modo oscuro
 
 Nueva funcionalidad: Actualizacion dinámica de la estadísta por sección y subsección
+
+Corrección sacar portada entera en móviles
