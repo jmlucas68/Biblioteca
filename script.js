@@ -504,6 +504,17 @@ function renderBook(book) {
 }
 
 // UI Navigation
+function getSectionImageFilename(sectionName) {
+    if (sectionName === "Política e Historia") {
+        return "POLITICA_SOCIEDAD.jpg";
+    }
+    const normalizedName = sectionName
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/\s+/g, '_');
+    return `${normalizedName}.jpg`;
+}
+
 function showSections() {
     hideAllViews();
     elements.sectionsView.classList.add('active');
@@ -512,15 +523,20 @@ function showSections() {
     elements.adminControls.style.display = 'flex';
     updateBreadcrumb([]);
     const sectionEntries = Object.entries(classification.sections).map(([key, section]) => ({ key, section, bookCount: countBooksForSection(key) })).sort((a, b) => b.bookCount - a.bookCount);
-    elements.sectionsGrid.innerHTML = sectionEntries.map(({ key, section, bookCount }) => `
+    elements.sectionsGrid.innerHTML = sectionEntries.map(({ key, section, bookCount }) => {
+        const sectionImageFilename = getSectionImageFilename(section.name);
+        const sectionImagePath = `images/${sectionImageFilename}`;
+        const defaultImagePath = 'images/biblioteca.jpg';
+        return `
         <div class="section-card" onclick="showSubsections('${key}')">
-            <img class="section-cover" src="biblioteca.jpg" alt="Sección ${esc(section.name)}">
+            <img class="section-cover" src="${sectionImagePath}" onerror="this.onerror=null;this.src='${defaultImagePath}';" alt="Sección ${esc(section.name)}">
             <div class="section-content">
                 <div class="section-title">${esc(section.name)}</div>
                 <div class="section-count">${bookCount} libro(s)</div>
                 <div class="section-subtitle">${Object.keys(section.subsections).length} subsecciones</div>
             </div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 
 function showSubsections(sectionKey) {
@@ -534,7 +550,7 @@ function showSubsections(sectionKey) {
     const subsectionEntries = Object.entries(section.subsections).map(([key, subsection]) => ({ key, subsection, bookCount: countBooksForSubsection(sectionKey, key) })).sort((a, b) => b.bookCount - a.bookCount);
     elements.subsectionsGrid.innerHTML = subsectionEntries.map(({ key, subsection, bookCount }) => `
         <div class="section-card" onclick="showBooks('${sectionKey}', '${key}')">
-             <img class="section-cover" src="biblioteca.jpg" alt="Subsección ${esc(subsection.name)}">
+             <img class="section-cover" src="images/biblioteca.jpg" alt="Subsección ${esc(subsection.name)}">
             <div class="section-content">
                 <div class="section-title">${esc(subsection.name)}</div>
                 <div class="section-count">${bookCount} libro(s)</div>
