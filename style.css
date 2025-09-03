@@ -52,8 +52,6 @@ body {
     padding: 24px;
     margin-bottom: 32px;
     border: 1px solid var(--color-border);
-    position: sticky;
-    top: 24px;
     z-index: 100;
     box-shadow: var(--shadow-lg);
 }
@@ -724,12 +722,16 @@ textarea.form-control {
 }
 
 /* Responsive */
+@media (min-width: 769px) {
+    .header {
+        position: sticky;
+        top: 24px;
+    }
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 16px;
-    }
-    .header {
-        top: 16px;
     }
     .header-content, .header-right {
         flex-direction: column;
