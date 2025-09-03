@@ -253,14 +253,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Data loading
+function animateCounter(element, targetValue) {
+    const startValue = parseInt(element.textContent, 10) || 0;
+    if (startValue === targetValue) return;
+    const duration = 1000; // 1 second for the animation
+    const startTime = performance.now();
+
+    function update(currentTime) {
+        const elapsedTime = currentTime - startTime;
+        const progress = Math.min(elapsedTime / duration, 1);
+        const currentValue = Math.floor(startValue + (targetValue - startValue) * progress);
+        element.textContent = currentValue;
+
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        }
+    }
+
+    requestAnimationFrame(update);
+}
+
 function updateStats(books) {
     const bookIds = new Set(books.map(b => b.id));
     const relevantFormats = allFormats.filter(f => bookIds.has(f.book_id));
     const uniqueAuthors = new Set(books.map(b => (b.autor || '').trim()).filter(Boolean));
 
-    elements.totalBooks.textContent = books.length;
-    elements.totalFormats.textContent = relevantFormats.length;
-    document.getElementById('totalAuthors').textContent = uniqueAuthors.size;
+    animateCounter(elements.totalBooks, books.length);
+    animateCounter(document.getElementById('totalAuthors'), uniqueAuthors.size);
+    animateCounter(elements.totalFormats, relevantFormats.length);
 }
 
 function updateGlobalStats() {
