@@ -72,7 +72,7 @@ body {
 }
 
 .header-logo {
-    height: 140px;
+    height: 130px;
     width: auto;
     margin-bottom: 8px;
 }
@@ -748,6 +748,8 @@ textarea.form-control {
         border-left: none;
         padding-left: 0;
         justify-content: space-around;
+        flex-wrap: wrap;
+        gap: 16px;
     }
     .modal-book {
         flex-direction: column;
