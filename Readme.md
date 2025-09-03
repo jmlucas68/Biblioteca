@@ -45,3 +45,5 @@ Nueva funcionalidad: En edición de detalles crear tag nuevo
 Corrección: busquedas desde el detalle de libro, cierre el diálogo del detalle del libro.
 
 Añado logo y modo oscuro
+
+Nueva funcionalidad: Actualizacion dinámica de la estadísta por sección y subsección
