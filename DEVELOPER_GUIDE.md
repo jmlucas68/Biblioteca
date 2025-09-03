@@ -118,11 +118,21 @@ Aplicación web de biblioteca personal en HTML/JS estático que permite explorar
 
 ## Seguridad
 
-- ## Seguridad
+### Modo Administrador
+
+Se ha implementado un sistema de "Modo Administrador" para proteger las funcionalidades de edición, incluyendo la modificación de la clasificación y la edición de los metadatos de los libros.
+
+- **Activación:** El acceso al modo administrador se controla mediante una contraseña. Al hacer clic en el botón "Login", se muestra un modal donde el usuario debe introducir la contraseña.
+- **Validación de Contraseña:** La contraseña se valida enviándola a un endpoint específico (`action: 'validate_password'`) del proxy de Gemini. El proxy compara la contraseña recibida con una variable de entorno segura (`ADMIN_PASSWORD`).
+- **Gestión de Estado:** Una vez validada la contraseña, se crea una cookie llamada `isAdmin` con el valor `true`. Esta cookie se utiliza para mantener el estado de administrador entre sesiones. Al recargar la página, si la cookie `isAdmin` existe y es válida, la aplicación entra directamente en modo administrador.
+- **Controles de UI:** Los botones y controles de edición (ej. "Editar Clasificación", "Editar" en las tarjetas de libro, "Guardar cambios") solo son visibles y funcionales cuando la aplicación está en modo administrador. La función `enableAdminFeatures()` se encarga de mostrar estos controles, mientras que `disableAdminFeatures()` los oculta.
+- **Cierre de Sesión:** El botón "Logoff" elimina la cookie `isAdmin` y recarga la página, volviendo al modo de solo lectura.
+
+### Otros Aspectos de Seguridad
 
 - **Proxy de Gemini:** El proxy (`perplexity-proxy-backend`) gestiona la clave de API de Gemini (a través de variables de entorno) y las políticas CORS (`allowedOrigins`) para controlar el acceso a la API de IA.
-- Claves y URL de Supabase inyectadas en cliente; imprescindible configurar RLS en tablas y añadir autenticación (Supabase Auth) para proteger edición y operaciones masivas; considerar mover sincronización y escrituras a edge functions con verificación JWT.[^1][^2]
-- Sanitización: uso de esc(s) en todo render de strings a innerHTML; onerror en imágenes de portada para ocultar fallos.[^2]
+- **Claves de Supabase:** Las claves y URL de Supabase están inyectadas en el cliente. Es imprescindible configurar RLS (Row Level Security) en las tablas de Supabase y considerar añadir un sistema de autenticación más robusto (Supabase Auth) para proteger las operaciones de escritura.
+- **Sanitización de Entradas:** Se utiliza una función `esc(s)` para sanitizar todas las cadenas de texto que se renderizan en el HTML mediante `innerHTML`. Esto previene ataques de tipo Cross-Site Scripting (XSS).
 
 
 ## Rendimiento
