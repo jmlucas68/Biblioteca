@@ -504,17 +504,6 @@ function renderBook(book) {
 }
 
 // UI Navigation
-function getSectionImageFilename(sectionName) {
-    if (sectionName === "Política e Historia") {
-        return "POLITICA_SOCIEDAD.jpg";
-    }
-    const normalizedName = sectionName
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase()
-        .replace(/\s+/g, '_');
-    return `${normalizedName}.jpg`;
-}
-
 function showSections() {
     hideAllViews();
     elements.sectionsView.classList.add('active');
@@ -524,8 +513,7 @@ function showSections() {
     updateBreadcrumb([]);
     const sectionEntries = Object.entries(classification.sections).map(([key, section]) => ({ key, section, bookCount: countBooksForSection(key) })).sort((a, b) => b.bookCount - a.bookCount);
     elements.sectionsGrid.innerHTML = sectionEntries.map(({ key, section, bookCount }) => {
-        const sectionImageFilename = getSectionImageFilename(section.name);
-        const sectionImagePath = `images/${sectionImageFilename}`;
+        const sectionImagePath = `images/${key}.jpg`;
         const defaultImagePath = 'images/biblioteca.jpg';
         return `
         <div class="section-card" onclick="showSubsections('${key}')">
