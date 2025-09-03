@@ -6,6 +6,9 @@
     <title>Mi Biblioteca Personal - Clasificada</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -31,7 +34,7 @@
         <header class="header">
             <div class="header-content">
                 <div class="header-left">
-                    <h1>📚 Mi Biblioteca Personal</h1>
+                    <img src="images/logo.png" alt="Mi Biblioteca Personal Logo" class="header-logo">
                     <div class="breadcrumb" id="breadcrumb"></div>
                 </div>
                 <div class="header-right">
@@ -42,6 +45,13 @@
                     <button class="btn btn--warning" style="margin-right: 0; display: none;" onclick="openClassificationEditor()" title="Editar la estructura de clasificación de secciones y tags">
                         ⚙️ Editar Clasificación
                     </button>
+                                        <div class="theme-switch-wrapper">
+                        <label class="theme-switch" for="darkModeToggle">
+                            <input type="checkbox" id="darkModeToggle" />
+                            <span class="slider round"></span>
+                        </label>
+                        <span style="margin-left: 8px; color: var(--color-text-secondary);">Modo Oscuro</span>
+                    </div>
                     <button class="header-search-btn" onclick="openSearchModal()">
                         🔍 Buscar Libros
                     </button>
