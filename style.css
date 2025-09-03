@@ -71,6 +71,12 @@ body {
     margin-bottom: 8px;
 }
 
+.header-logo {
+    height: 50px;
+    width: auto;
+    margin-bottom: 8px;
+}
+
 .breadcrumb {
     display: flex;
     align-items: center;
