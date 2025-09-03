@@ -222,6 +222,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Theme switcher logic
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const currentTheme = localStorage.getItem('theme');
+
+    if (currentTheme) {
+        document.body.classList.toggle('light-mode', currentTheme === 'light');
+        if (currentTheme === 'light') {
+            darkModeToggle.checked = false;
+        } else {
+            darkModeToggle.checked = true;
+        }
+    } else {
+        // Default to dark mode if no preference is saved
+        darkModeToggle.checked = true;
+    }
+
+    darkModeToggle.addEventListener('change', function() {
+        document.body.classList.toggle('light-mode', !this.checked);
+        let theme = this.checked ? 'dark' : 'light';
+        localStorage.setItem('theme', theme);
+    });
+
     const isAdminCookie = getCookie('isAdmin');
     if (isAdminCookie === 'true') {
         await enterAdminMode();
