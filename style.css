@@ -652,7 +652,7 @@ textarea.form-control {
 .modal-cover img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
 }
 
 .modal-info h2 {
@@ -753,6 +753,13 @@ textarea.form-control {
     }
     .modal-book {
         flex-direction: column;
+    }
+    .modal-cover {
+        flex-basis: auto;
+        height: auto;
+        max-height: 40vh;
+        align-self: center;
+        max-width: 250px;
     }
 }
 
