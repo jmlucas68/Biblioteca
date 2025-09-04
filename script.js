@@ -89,8 +89,6 @@ async function enterReadOnlyMode() {
 
 async function validatePassword() {
     const password = document.getElementById('passwordInput').value;
-    console.log(`[Frontend Log] Intentando validar. Longitud de la contraseña enviada: ${password.length}`);
-
     try {
         const response = await fetch(GEMINI_PROXY_URL, {
             method: 'POST',
@@ -103,12 +101,9 @@ async function validatePassword() {
             }),
         });
 
-        console.log(`[Frontend Log] Respuesta recibida del proxy. Estado: ${response.status}`);
         const data = await response.json();
-        console.log('[Frontend Log] Datos de la respuesta del proxy:', data);
 
         if (response.ok && data.success) {
-            console.log('[Frontend Log] La validación tuvo éxito en el frontend.');
             setCookie('isAdmin', 'true', 7); // Set cookie for 7 days
             isAdmin = true;
             closeLoginModal();
@@ -124,11 +119,10 @@ async function validatePassword() {
             }
 
         } else {
-            console.log('[Frontend Log] La validación falló. La condición (response.ok && data.success) es falsa.');
             alert('Contraseña incorrecta');
         }
     } catch (error) {
-        console.error('[Frontend Log] Error durante la llamada de validación:', error);
+        console.error('Error validating password:', error);
         alert('Error al validar la contraseña. Por favor, inténtalo de nuevo.');
     }
 }
@@ -1172,6 +1166,8 @@ function setupEventListeners() {
             if (description) {
                 document.getElementById('editDescripcion').value = description;
             }
+        } else {
+            alert('No hay un libro seleccionado para generar descripción.');
         }
     });
 }
