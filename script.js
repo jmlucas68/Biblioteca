@@ -329,6 +329,14 @@ async function handleFileUpload(event) {
 
             if (response.ok && result.success) {
                 fileStatus.innerHTML += '✅ ¡Éxito!';
+                const newBook = {
+                    id: -1, // Temporary ID, will be replaced by Supabase
+                    titulo: file.name.replace(/\.[^/.]+$/, ""),
+                    url_portada: result.url,
+                    genero: 'Sin_clasificar',
+                };
+                allBooks.push(newBook);
+                showSections(); // Refresh the view
             } else {
                 throw new Error(result.details || result.error || 'Error desconocido del servidor');
             }
