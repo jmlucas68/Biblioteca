@@ -89,39 +89,22 @@ async function enterReadOnlyMode() {
 async function validatePassword() {
     const password = document.getElementById('passwordInput').value;
     try {
-        const response = await fetch(GEMINI_PROXY_URL, {
-        method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'validate_password',
-                password: password
-            }),
+        const { data, error } = await supabaseClient.functions.invoke('validate-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password })
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Error del proxy: ${response.status} - ${errorText}`);
+        if (error) {
+            console.error('Error from Supabase function:', error);
+            throw error;
         }
 
-        const data = await response.json();
-
         if (data.isValid) {
-            setCookie('isAdmin', 'true', 7); // Set cookie for 7 days
             isAdmin = true;
-            closeLoginModal();
+            document.getElementById('securityModal').style.display = 'none';
             enableAdminFeatures();
-            
-            // Re-render current view to show admin controls
-            if (elements.booksView.classList.contains('active')) {
-                renderBooks();
-            } else if (elements.subsectionsView.classList.contains('active')) {
-                showSubsections(currentSection);
-            } else if (elements.sectionsView.classList.contains('active')) {
-                showSections();
-            }
-
+            await loadInitialData();
         } else {
             alert('Contraseña incorrecta');
         }
