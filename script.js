@@ -89,14 +89,12 @@ async function enterReadOnlyMode() {
 async function validatePassword() {
     const password = document.getElementById('passwordInput').value;
     try {
-        //const response = await fetch(GEMINI_PROXY_URL, {
-        const response = await fetch(BIBLIOTECA_ADMIN, {    
-        method: 'POST',
+        const response = await fetch('/api/login', {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                action: 'validate_password',
                 password: password
             }),
         });
