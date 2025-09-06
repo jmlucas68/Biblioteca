@@ -89,8 +89,7 @@ async function enterReadOnlyMode() {
 async function validatePassword() {
     const password = document.getElementById('passwordInput').value;
     try {
-        //const response = await fetch(GEMINI_PROXY_URL, {
-        const response = await fetch(BIBLIOTECA_ADMIN, {    
+        const response = await fetch(GEMINI_PROXY_URL, {
         method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
