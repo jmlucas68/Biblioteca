@@ -98,12 +98,9 @@ export async function POST(req: NextRequest) {
 
     // Subir a Google Drive
     const drive = getDriveClient(GOOGLE_SERVICE_ACCOUNT, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY);
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
     const uploadRes = await drive.files.create({
       requestBody: { name: file.name, parents: [GOOGLE_DRIVE_FOLDER_ID] },
-      media: { mimeType: file.type, body: BufferReadable(buffer) as any },
+      media: { mimeType: file.type, body: file.stream() as any },
       fields: "id, webViewLink, size",
     });
 
@@ -150,13 +147,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Utilidad: convierte un Buffer en un Readable para googleapis
-import { Readable } from "stream";
-function BufferReadable(buffer: Buffer): Readable {
-  const readable = new Readable();
-  readable.push(buffer);
-  readable.push(null);
-  return readable;
-}
+
 
 

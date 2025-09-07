@@ -1,1 +1,8 @@
-Refactor: Use Gemini proxy for password validation
+fix(importer): Usar streams para subida de archivos a Drive
+
+Se modifica el endpoint de subida de archivos para que utilice streams
+en lugar de cargar los ficheros completos en memoria.
+
+Esto soluciona problemas de timeouts y de límites de memoria en
+entornos serverless como Vercel, permitiendo la subida de ebooks de
+gran tamaño sin que la función falle.
