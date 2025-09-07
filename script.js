@@ -134,7 +134,7 @@ async function validatePassword() {
 
 function disableAdminFeatures() {
     // Hide all admin-only buttons and controls
-    document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
+    document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton, #importButton').forEach(button => {
         button.style.display = 'none';
     });
 
@@ -149,7 +149,7 @@ function disableAdminFeatures() {
 
 function enableAdminFeatures() {
     // Show all admin-only buttons and controls
-    document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
+    document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton, #importButton').forEach(button => {
         button.style.display = 'inline-flex';
     });
 
@@ -1129,4 +1129,11 @@ function setupEventListeners() {
             alert('No hay un libro seleccionado para generar descripción.');
         }
     });
+
+    const importButton = document.getElementById('importButton');
+    if (importButton) {
+        importButton.addEventListener('click', () => {
+            window.open('importer', '_blank');
+        });
+    }
 }

@@ -1,8 +1,6 @@
-fix(importer): Usar streams para subida de archivos a Drive
+feat(ui): Integrar botón de importación en la UI principal
 
-Se modifica el endpoint de subida de archivos para que utilice streams
-en lugar de cargar los ficheros completos en memoria.
-
-Esto soluciona problemas de timeouts y de límites de memoria en
-entornos serverless como Vercel, permitiendo la subida de ebooks de
-gran tamaño sin que la función falle.
+- Muestra el botón "Importar Libros" a los administradores.
+- Oculta el botón para los usuarios no administradores.
+- Añade un event listener para que el botón abra la aplicación de
+  importación (`/importer/`) en una nueva pestaña.
