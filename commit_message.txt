@@ -1,5 +1,8 @@
-fix(importer): Corregir error de sintaxis en importer.js
+fix(importer): Usar rutas absolutas para los assets
 
-Se elimina el texto extra que envolvía el código JavaScript y que
-causaba un error `Uncaught SyntaxError` al cargar la página de
-importación.
+Se modifica `importer.html` para que cargue los archivos `importer.css`
+y `importer.js` usando rutas absolutas desde la raíz del sitio
+(`/Biblioteca/...`).
+
+Esto soluciona los errores 404 (Not Found) que ocurrían al intentar
+cargar estos recursos con rutas relativas.
