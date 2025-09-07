@@ -1,8 +1,0 @@
-fix(importer): Usar rutas absolutas para los assets
-
-Se modifica `importer.html` para que cargue los archivos `importer.css`
-y `importer.js` usando rutas absolutas desde la raíz del sitio
-(`/Biblioteca/...`).
-
-Esto soluciona los errores 404 (Not Found) que ocurrían al intentar
-cargar estos recursos con rutas relativas.
