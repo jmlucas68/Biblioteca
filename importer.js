@@ -1,4 +1,4 @@
-'''document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('uploadForm');
     const fileInput = document.getElementById('file');
     const fileNameDisplay = document.getElementById('fileName');
@@ -70,7 +70,7 @@
                 throw new Error(result.details || result.error || 'Ocurrió un error desconocido.');
             }
 
-            showStatus(`¡Éxito! Libro "${result.metadata.titulo}" importado correctamente.`);
+            showStatus(`¡Éxito! Libro \"${result.metadata.titulo}\" importado correctamente.`);
             form.reset();
             fileNameDisplay.textContent = '';
 
@@ -81,4 +81,4 @@
             submitBtn.textContent = 'Subir Libro';
         }
     });
-});'''
+});

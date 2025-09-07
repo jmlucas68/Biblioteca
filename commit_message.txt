@@ -1,5 +1,5 @@
-refactor(importer): Mover lógica a backend y crear UI estática
+fix(importer): Corregir error de sintaxis en importer.js
 
-- Se elimina el subproyecto de Next.js 'importer' que estaba desacoplado.
-- Se añaden los archivos estáticos `importer.html`, `importer.css` y `importer.js` para crear la interfaz de importación directamente en la aplicación principal.
-- Esta nueva interfaz se comunica con el endpoint `/api/import` del backend centralizado (`perplexity-proxy-backend`), siguiendo una arquitectura más robusta y coherente.
+Se elimina el texto extra que envolvía el código JavaScript y que
+causaba un error `Uncaught SyntaxError` al cargar la página de
+importación.
