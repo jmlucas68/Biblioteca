@@ -1,6 +1,6 @@
-feat(ui): Integrar botón de importación en la UI principal
+feat(importer): Rediseñar la interfaz de subida de archivos
 
-- Muestra el botón "Importar Libros" a los administradores.
-- Oculta el botón para los usuarios no administradores.
-- Añade un event listener para que el botón abra la aplicación de
-  importación (`/importer/`) en una nueva pestaña.
+- Se rediseña completamente la página de importación con una interfaz más moderna y amigable.
+- Se añade una zona de "arrastrar y soltar" (drag-and-drop) para el archivo.
+- Se mejora el feedback visual para el usuario durante y después de la subida.
+- Se añaden estilos CSS dedicados para la página en `importer.css`.
