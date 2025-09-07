@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusMessage = document.getElementById('statusMessage');
 
     // URL del endpoint en el proxy
-    const UPLOAD_URL = 'https://perplexity-proxy-backend.vercel.app/api/import';
+        const UPLOAD_URL = 'https://perplexity-proxy-backend.vercel.app/api/upload';
 
     function showStatus(message, isError = false) {
         statusMessage.textContent = message;
