@@ -1,0 +1,58 @@
+'''<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importar Nuevo Libro</title>
+    <link rel="stylesheet" href="importer.css">
+</head>
+<body>
+    <main class="importer-container">
+        <div class="importer-card">
+            <div class="importer-header">
+                <h1>Importador de Ebooks</h1>
+                <p>Sube un libro a Google Drive y registra sus metadatos en la biblioteca.</p>
+            </div>
+
+            <form id="uploadForm" encType="multipart/form-data">
+                <div class="form-grid">
+                    <div class="form-group span-2">
+                        <label for="titulo">Título</label>
+                        <input id="titulo" name="titulo" type="text" placeholder="Ej: El Señor de los Anillos" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="autor">Autor</label>
+                        <input id="autor" name="autor" type="text" placeholder="Ej: J.R.R. Tolkien" />
+                    </div>
+                    <div class="form-group">
+                        <label for="serie">Serie</label>
+                        <input id="serie" name="serie" type="text" placeholder="Ej: La Rueda del Tiempo" />
+                    </div>
+                    <div class="form-group">
+                        <label for="numero_serie">Nº Serie</label>
+                        <input id="numero_serie" name="numero_serie" type="text" placeholder="Ej: 1" />
+                    </div>
+                    <div class="form-group">
+                        <label for="genero">Géneros (separados por comas)</label>
+                        <input id="genero" name="genero" type="text" placeholder="Ej: Fantasía, Aventura" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Archivo del Ebook</label>
+                    <label for="file" class="drop-zone">
+                        <p>Arrastra y suelta un archivo aquí, o haz clic para seleccionarlo</p>
+                        <p id="fileName" class="file-name-display"></p>
+                        <input id="file" name="file" type="file" required style="display: none;" />
+                    </label>
+                </div>
+
+                <button type="submit" id="submitBtn" class="submit-btn">Subir Libro</button>
+            </form>
+
+            <div id="statusMessage" class="status-message" style="display: none;"></div>
+        </div>
+    </main>
+    <script src="importer.js"></script>
+</body>
+</html>'''

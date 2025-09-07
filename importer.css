@@ -13,6 +13,10 @@
   --error-color: #ef4444;
 }
 
+body {
+    margin: 0;
+}
+
 .importer-container {
   display: flex;
   justify-content: center;
@@ -106,12 +110,9 @@
   background-color: #f0f0ff;
 }
 
-.drop-zone p {
-  color: var(--subtle-text-color);
-  margin: 0;
-}
-
-.drop-zone p strong {
+.file-name-display {
+    margin-top: 1rem;
+    font-weight: 600;
     color: var(--primary-color);
 }
 
@@ -126,6 +127,7 @@
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s;
+  margin-top: 1rem;
 }
 
 .submit-btn:hover {

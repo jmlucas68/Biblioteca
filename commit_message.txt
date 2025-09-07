@@ -1,6 +1,5 @@
-feat(importer): Rediseñar la interfaz de subida de archivos
+refactor(importer): Mover lógica a backend y crear UI estática
 
-- Se rediseña completamente la página de importación con una interfaz más moderna y amigable.
-- Se añade una zona de "arrastrar y soltar" (drag-and-drop) para el archivo.
-- Se mejora el feedback visual para el usuario durante y después de la subida.
-- Se añaden estilos CSS dedicados para la página en `importer.css`.
+- Se elimina el subproyecto de Next.js 'importer' que estaba desacoplado.
+- Se añaden los archivos estáticos `importer.html`, `importer.css` y `importer.js` para crear la interfaz de importación directamente en la aplicación principal.
+- Esta nueva interfaz se comunica con el endpoint `/api/import` del backend centralizado (`perplexity-proxy-backend`), siguiendo una arquitectura más robusta y coherente.
