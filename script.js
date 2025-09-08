@@ -300,6 +300,7 @@ async function loadClassification() {
 }
 
 // --- File Import ---
+// Improved file upload function with better error handling and debugging
 async function handleFileUpload(event) {
     const files = event.target.files;
     if (!files.length) {
@@ -307,12 +308,25 @@ async function handleFileUpload(event) {
     }
 
     const statusDiv = elements.uploadStatus;
-    statusDiv.innerHTML = ''; // Clear previous statuses
+    statusDiv.innerHTML = '';
     statusDiv.style.display = 'block';
 
     for (const file of files) {
+        console.log('Preparing to upload file:', {
+            name: file.name,
+            size: file.size,
+            type: file.type
+        });
+
+        // Create FormData with explicit field name
         const formData = new FormData();
-        formData.append('ebook', file);
+        formData.append('ebook', file, file.name); // Explicitly set filename
+        
+        // Log FormData contents for debugging
+        console.log('FormData created with entries:');
+        for (let [key, value] of formData.entries()) {
+            console.log(` - ${key}:`, value instanceof File ? `File: ${value.name}` : value);
+        }
 
         const fileStatus = document.createElement('div');
         fileStatus.className = 'upload-status-item';
@@ -323,25 +337,36 @@ async function handleFileUpload(event) {
             const response = await fetch(UPLOAD_URL, {
                 method: 'POST',
                 body: formData,
+                // Don't set Content-Type header, let browser set it with boundary for multipart/form-data
             });
 
+            console.log('Upload response status:', response.status);
+            console.log('Upload response headers:', Object.fromEntries(response.headers.entries()));
+
             const result = await response.json();
+            console.log('Upload response body:', result);
 
             if (response.ok && result.success) {
                 fileStatus.innerHTML += '✅ ¡Éxito!';
                 const newBook = {
-                    id: -1, // Temporary ID, will be replaced by Supabase
+                    id: -1,
                     titulo: file.name.replace(/\.[^/.]+$/, ""),
                     url_portada: result.url,
                     genero: 'Sin_clasificar',
                 };
                 allBooks.push(newBook);
-                showSections(); // Refresh the view
+                showSections();
             } else {
                 throw new Error(result.details || result.error || 'Error desconocido del servidor');
             }
         } catch (error) {
+            console.error('Upload error:', error);
             fileStatus.innerHTML += `❌ Error: ${error.message}`;
+            
+            // Show more detailed error info in console
+            if (error.response) {
+                console.error('Error response:', await error.response.text());
+            }
         }
     }
     
@@ -349,7 +374,7 @@ async function handleFileUpload(event) {
     setTimeout(() => {
         statusDiv.style.display = 'none';
         statusDiv.innerHTML = '';
-    }, 15000); // Hide after 15 seconds
+    }, 15000);
 }
 
 // Business Logic
