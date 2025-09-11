@@ -103,7 +103,7 @@ async function validatePassword() {
 
         const data = await response.json();
 
-        if (response.ok && data.success) {
+        if (response.ok && data.isValid) {
             setCookie('isAdmin', 'true', 7); // Set cookie for 7 days
             isAdmin = true;
             closeLoginModal();
