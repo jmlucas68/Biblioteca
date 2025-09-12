@@ -51,3 +51,4 @@ Nueva funcionalidad: Actualizacion dinámica de la estadísta por sección y sub
 Corrección sacar portada entera en móviles
 
 Corregida validacion clave (rama Import)
+
