@@ -150,7 +150,7 @@ function disableAdminFeatures() {
 
 function enableAdminFeatures() {
     // Show all admin-only buttons and controls
-    document.querySelectorAll('.admin-control').forEach(button => {
+    document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
         button.style.display = 'inline-flex';
     });
 
