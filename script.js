@@ -383,7 +383,7 @@ async function saveNewBook(event) {
         const newFormat = {
             book_id: insertedBook.id,
             formato: selectedFileForImport.name.split('.').pop(),
-            ruta_archivo: `uploads/${selectedFileForImport.name}`, // Placeholder path
+            url_download: `uploads/${selectedFileForImport.name}`, // Placeholder path
             tamano_mb: (selectedFileForImport.size / 1024 / 1024).toFixed(2)
         };
         
