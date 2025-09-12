@@ -396,8 +396,10 @@ async function saveNewBook(event) {
             allFormats.push(newFormat);
         }
 
+        // 4. Fire-and-forget request to extract cover
+        extractAndSetCover(selectedFileForImport, insertedBook.id);
 
-        // 3. Update local data and UI
+        // 5. Update local data and UI
         allBooks.push(insertedBook);
         updateGlobalStats();
         
@@ -416,6 +418,35 @@ async function saveNewBook(event) {
     } catch (error) {
         console.error("Error al guardar el nuevo libro:", error);
         alert(`Error al guardar el libro: ${error.message}`);
+    }
+}
+
+async function extractAndSetCover(file, bookId) {
+    const formData = new FormData();
+    formData.append('ebookFile', file);
+    formData.append('bookId', bookId);
+
+    try {
+        const response = await fetch('/api/extract-cover', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            console.log('Cover extraction successful:', result.coverUrl);
+            // Optionally, find the book in allBooks and update its url_portada
+            const bookIndex = allBooks.findIndex(b => b.id === bookId);
+            if (bookIndex !== -1) {
+                allBooks[bookIndex].url_portada = result.coverUrl;
+                // No need to re-render here, it will show on next full render
+            }
+        } else {
+            console.warn('Cover extraction failed:', result.error);
+        }
+    } catch (error) {
+        console.error('Error during cover extraction request:', error);
     }
 }
 
