@@ -430,7 +430,7 @@ async function extractAndSetCover(file, bookId) {
     formData.append('bookId', bookId);
 
     try {
-        const response = await fetch('/api/extract-cover', {
+        const response = await fetch(`${PROXY_BASE_URL}/api/extract-cover`, {
             method: 'POST',
             body: formData,
         });
