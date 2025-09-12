@@ -190,39 +190,45 @@ let currentObjectUrl = null; // For the book viewer
 let tagFilterLogic = 'OR'; // New global variable for tag filtering logic
 let selectedFileForImport = null;
 
-
 // DOM elements
-const elements = {
-    loading: document.getElementById('loading'),
-    sectionsView: document.getElementById('sectionsView'),
-    subsectionsView: document.getElementById('subsectionsView'),
-    booksView: document.getElementById('booksView'),
-    sectionsGrid: document.getElementById('sectionsGrid'),
-    subsectionsGrid: document.getElementById('subsectionsGrid'),
-    booksGrid: document.getElementById('booksGrid'),
-    breadcrumb: document.getElementById('breadcrumb'),
-    backButton: document.getElementById('backButton'),
-    searchContainer: document.getElementById('searchContainer'),
-    searchInput: document.getElementById('searchInput'),
-    sortSelect: document.getElementById('sortSelect'),
-    totalBooks: document.getElementById('totalBooks'),
-    totalFormats: document.getElementById('totalFormats'),
-    bookModal: document.getElementById('bookModal'),
-    modalContent: document.getElementById('modalContent'),
-    closeModal: document.getElementById('closeModal'),
-    editModal: document.getElementById('editModal'),
-    aiDescriptionButton: document.getElementById('aiDescriptionButton'),
-    adminControls: document.getElementById('adminControls'),
-    searchModal: document.getElementById('searchModal'),
-    ebookImporter: document.getElementById('ebookImporter'),
-    uploadStatus: document.getElementById('uploadStatus'),
-    importModal: document.getElementById('importModal'),
-    importForm: document.getElementById('importForm'),
-    closeImportModal: document.querySelector('#importModal .close-button')
-};
+let elements = {};
+
+function populateElements() {
+    elements = {
+        loading: document.getElementById('loading'),
+        sectionsView: document.getElementById('sectionsView'),
+        subsectionsView: document.getElementById('subsectionsView'),
+        booksView: document.getElementById('booksView'),
+        sectionsGrid: document.getElementById('sectionsGrid'),
+        subsectionsGrid: document.getElementById('subsectionsGrid'),
+        booksGrid: document.getElementById('booksGrid'),
+        breadcrumb: document.getElementById('breadcrumb'),
+        backButton: document.getElementById('backButton'),
+        searchContainer: document.getElementById('searchContainer'),
+        searchInput: document.getElementById('searchInput'),
+        sortSelect: document.getElementById('sortSelect'),
+        totalBooks: document.getElementById('totalBooks'),
+        totalFormats: document.getElementById('totalFormats'),
+        bookModal: document.getElementById('bookModal'),
+        modalContent: document.getElementById('modalContent'),
+        closeModal: document.getElementById('closeModal'),
+        editModal: document.getElementById('editModal'),
+        aiDescriptionButton: document.getElementById('aiDescriptionButton'),
+        adminControls: document.getElementById('adminControls'),
+        searchModal: document.getElementById('searchModal'),
+        ebookImporter: document.getElementById('ebookImporter'),
+        uploadStatus: document.getElementById('uploadStatus'),
+        importModal: document.getElementById('importModal'),
+        importForm: document.getElementById('importForm'),
+        closeImportModal: document.querySelector('#importModal .close-button')
+    };
+}
+
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
+    populateElements(); // Populate elements object after DOM is loaded
+
     const passwordInput = document.getElementById('passwordInput');
     if (passwordInput) {
         passwordInput.addEventListener('keydown', function(event) {
@@ -324,7 +330,7 @@ function handleFileSelect(event) {
     selectedFileForImport = files[0];
     
     // Pre-fill title with filename without extension
-    document.getElementById('modalTitle').value = selectedFileForImport.name.replace(/\.[^\/.+]$/, "");
+    document.getElementById('modalTitle').value = selectedFileForImport.name.replace(/\.[^/.]+$/, "");
 
     elements.importModal.style.display = 'block';
     
@@ -1263,8 +1269,6 @@ function setupEventListeners() {
             if (description) {
                 document.getElementById('editDescripcion').value = description;
             }
-        } else {
-            alert('No hay un libro seleccionado para generar descripción.');
         }
     });
 }
