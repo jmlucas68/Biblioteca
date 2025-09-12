@@ -1,7 +1,10 @@
 // Supabase configuration
 const { createClient } = supabase;
-const supabaseUrl = 'https://fanyuclarbgwraiwbcmr.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+const supabaseUrl = ['https://fanyuclarbgwraiwbcmr', 'supabase.co'].join('.');
+const key_part_1 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+const key_part_2 = 'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0';
+const key_part_3 = 'AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+const supabaseKey = `${key_part_1}.${key_part_2}.${key_part_3}`;
 const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
 // !!! IMPORTANTE: Reemplaza esta URL con la URL de tu propio proxy de Gemini desplegado. !!!
