@@ -58,7 +58,7 @@ function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt
 
 function resolveCoverThumb(urlPortada) {
     if (!urlPortada) return '';
-    const m = urlPortada.match(/\/d\/([^/]+)\//);
+    const m = urlPortada.match(/\/d\/([^\/]+)\/g);
     const id = m ? m[1] : null;
     if (!id) return urlPortada;
     return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
@@ -359,7 +359,7 @@ async function handleFileUpload(event) {
                 fileStatus.innerHTML += '✅ ¡Éxito!';
                 const newBook = {
                     id: -1,
-                    titulo: file.name.replace(/\.[^/.]+$/, ""),
+                    titulo: file.name.replace(/\.[^\/.]+$/, ""),
                     url_portada: result.url,
                     genero: 'Sin_clasificar',
                 };
@@ -1059,7 +1059,7 @@ function closeSearchModal() { elements.searchModal.classList.remove('show'); }
 
 // Visor embebido
 function buildPreviewUrl(viewUrl) {
-    const m = String(viewUrl || '').match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\/view/i);
+    const m = String(viewUrl || '').match(/https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\/view/i);
     if (m && m[1]) {
         const id = m[1];
         return `https://drive.google.com/file/d/${id}/preview`;
@@ -1159,6 +1159,12 @@ function showRandomBookDetails() {
 
 // Event Listeners
 function setupEventListeners() {
+    document.getElementById('importButton').addEventListener('click', () => {
+        console.log('Import button clicked! Triggering file input...');
+        elements.ebookImporter.click();
+    });
+    elements.ebookImporter.addEventListener('change', handleFileUpload);
+
     elements.backButton.addEventListener('click', goBack);
     elements.searchInput.addEventListener('input', filterBooks);
     elements.sortSelect.addEventListener('change', sortBooks);
@@ -1206,6 +1212,8 @@ function setupEventListeners() {
             if (description) {
                 document.getElementById('editDescripcion').value = description;
             }
+        } else {
+            alert('No hay un libro seleccionado para generar descripción.');
         }
     });
 }
