@@ -209,7 +209,9 @@ const elements = {
     editModal: document.getElementById('editModal'),
     aiDescriptionButton: document.getElementById('aiDescriptionButton'),
     adminControls: document.getElementById('adminControls'),
-    searchModal: document.getElementById('searchModal')
+    searchModal: document.getElementById('searchModal'),
+    ebookImporter: document.getElementById('ebookImporter'),
+    uploadStatus: document.getElementById('uploadStatus')
 };
 
 // Initialize app
@@ -1204,8 +1206,6 @@ function setupEventListeners() {
             if (description) {
                 document.getElementById('editDescripcion').value = description;
             }
-        } else {
-            alert('No hay un libro seleccionado para generar descripción.');
         }
     });
 }
