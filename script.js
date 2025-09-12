@@ -135,7 +135,7 @@ async function validatePassword() {
 
 function disableAdminFeatures() {
     // Hide all admin-only buttons and controls
-    document.querySelectorAll('.btn.edit, .btn--success, .btn--warning, #aiDescriptionButton').forEach(button => {
+    document.querySelectorAll('.admin-control').forEach(button => {
         button.style.display = 'none';
     });
 
