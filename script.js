@@ -188,6 +188,8 @@ let currentEditingBook = null;
 let classification = null; 
 let currentObjectUrl = null; // For the book viewer
 let tagFilterLogic = 'OR'; // New global variable for tag filtering logic
+let selectedFileForImport = null;
+
 
 // DOM elements
 const elements = {
@@ -213,7 +215,10 @@ const elements = {
     adminControls: document.getElementById('adminControls'),
     searchModal: document.getElementById('searchModal'),
     ebookImporter: document.getElementById('ebookImporter'),
-    uploadStatus: document.getElementById('uploadStatus')
+    uploadStatus: document.getElementById('uploadStatus'),
+    importModal: document.getElementById('importModal'),
+    importForm: document.getElementById('importForm'),
+    closeImportModal: document.querySelector('#importModal .close-button')
 };
 
 // Initialize app
@@ -311,82 +316,109 @@ async function loadClassification() {
 }
 
 // --- File Import ---
-// Improved file upload function with better error handling and debugging
-async function handleFileUpload(event) {
+function handleFileSelect(event) {
     const files = event.target.files;
     if (!files.length) {
         return;
     }
-
-    const statusDiv = elements.uploadStatus;
-    statusDiv.innerHTML = '';
-    statusDiv.style.display = 'block';
-
-    for (const file of files) {
-        console.log('Preparing to upload file:', {
-            name: file.name,
-            size: file.size,
-            type: file.type
-        });
-
-        // Create FormData with explicit field name
-        const formData = new FormData();
-        formData.append('ebook', file, file.name); // Explicitly set filename
-        
-        // Log FormData contents for debugging
-        console.log('FormData created with entries:');
-        for (let [key, value] of formData.entries()) {
-            console.log(` - ${key}:`, value instanceof File ? `File: ${value.name}` : value);
-        }
-
-        const fileStatus = document.createElement('div');
-        fileStatus.className = 'upload-status-item';
-        fileStatus.textContent = `Subiendo ${file.name}... `;
-        statusDiv.appendChild(fileStatus);
-
-        try {
-            const response = await fetch(UPLOAD_URL, {
-                method: 'POST',
-                body: formData,
-                // Don't set Content-Type header, let browser set it with boundary for multipart/form-data
-            });
-
-            console.log('Upload response status:', response.status);
-            console.log('Upload response headers:', Object.fromEntries(response.headers.entries()));
-
-            const result = await response.json();
-            console.log('Upload response body:', result);
-
-            if (response.ok && result.success) {
-                fileStatus.innerHTML += '✅ ¡Éxito!';
-                const newBook = {
-                    id: -1,
-                    titulo: file.name.replace(/\.[^\/.]+$/, ""),
-                    url_portada: result.url,
-                    genero: 'Sin_clasificar',
-                };
-                allBooks.push(newBook);
-                showSections();
-            } else {
-                throw new Error(result.details || result.error || 'Error desconocido del servidor');
-            }
-        } catch (error) {
-            console.error('Upload error:', error);
-            fileStatus.innerHTML += `❌ Error: ${error.message}`;
-            
-            // Show more detailed error info in console
-            if (error.response) {
-                console.error('Error response:', await error.response.text());
-            }
-        }
-    }
+    selectedFileForImport = files[0];
     
-    elements.ebookImporter.value = ''; 
-    setTimeout(() => {
-        statusDiv.style.display = 'none';
-        statusDiv.innerHTML = '';
-    }, 15000);
+    // Pre-fill title with filename without extension
+    document.getElementById('modalTitle').value = selectedFileForImport.name.replace(/\.[^\/.]+$/, "");
+
+    elements.importModal.style.display = 'block';
+    
+    // Reset file input so the 'change' event fires again if the same file is selected
+    event.target.value = ''; 
 }
+
+async function saveNewBook(event) {
+    event.preventDefault();
+    if (!selectedFileForImport) {
+        alert("No se ha seleccionado ningún archivo.");
+        return;
+    }
+
+    const title = document.getElementById('modalTitle').value.trim();
+    const author = document.getElementById('modalAuthor').value.trim();
+    const category = document.getElementById('modalCategory').value.trim();
+    const description = document.getElementById('modalDescription').value.trim();
+
+    if (!title || !author || !category) {
+        alert("Por favor, complete los campos Título, Autor y Categoría.");
+        return;
+    }
+
+    const newBookData = {
+        titulo: title,
+        autor: author,
+        genero: category, // 'genero' field is used for categories/tags
+        descripcion: description,
+        // url_portada will be handled separately, maybe after upload
+    };
+
+    try {
+        // 1. Insert book data into Supabase
+        const { data: insertedBook, error } = await supabaseClient
+            .from('books')
+            .insert([newBookData])
+            .select()
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        // 2. (Future step) Upload the actual file and link it
+        // For now, we just add the book to the list.
+        // The 'enlace' would be created here, linking to the uploaded file.
+        // This part requires a backend or another upload mechanism.
+        // Let's simulate adding a format entry.
+        const newFormat = {
+            book_id: insertedBook.id,
+            formato: selectedFileForImport.name.split('.').pop(),
+            ruta_archivo: `uploads/${selectedFileForImport.name}`, // Placeholder path
+            tamano_mb: (selectedFileForImport.size / 1024 / 1024).toFixed(2)
+        };
+        
+        const { error: formatError } = await supabaseClient.from('book_formats').insert([newFormat]);
+        if (formatError) {
+            // Even if format fails, the book was created. We can decide how to handle this.
+            console.warn("El libro se creó, pero hubo un error al añadir el formato:", formatError.message);
+        } else {
+            allFormats.push(newFormat);
+        }
+
+
+        // 3. Update local data and UI
+        allBooks.push(insertedBook);
+        updateGlobalStats();
+        
+        // Refresh the current view
+        if (elements.booksView.classList.contains('active')) {
+            applyTagFilters(classification.sections[currentSection].subsections[currentSubsection].tags);
+        } else if (elements.subsectionsView.classList.contains('active')) {
+            showSubsections(currentSection);
+        } else {
+            showSections();
+        }
+
+        alert(`¡Libro "${title}" añadido con éxito!`);
+        closeImportModal();
+
+    } catch (error) {
+        console.error("Error al guardar el nuevo libro:", error);
+        alert(`Error al guardar el libro: ${error.message}`);
+    }
+}
+
+
+function closeImportModal() {
+    elements.importModal.style.display = 'none';
+    elements.importForm.reset();
+    selectedFileForImport = null;
+}
+
 
 // Business Logic
 function normalizeText(str) {
@@ -1162,10 +1194,20 @@ function showRandomBookDetails() {
 // Event Listeners
 function setupEventListeners() {
     document.getElementById('importButton').addEventListener('click', () => {
-        console.log('Import button clicked! Triggering file input...');
         elements.ebookImporter.click();
     });
-    elements.ebookImporter.addEventListener('change', handleFileUpload);
+    // This is the new listener for the import functionality
+    elements.ebookImporter.addEventListener('change', handleFileSelect);
+
+    // Listeners for the new import modal
+    elements.closeImportModal.addEventListener('click', closeImportModal);
+    elements.importForm.addEventListener('submit', saveNewBook);
+    elements.importModal.addEventListener('click', (e) => {
+        if (e.target === elements.importModal) {
+            closeImportModal();
+        }
+    });
+
 
     elements.backButton.addEventListener('click', goBack);
     elements.searchInput.addEventListener('input', filterBooks);
@@ -1186,6 +1228,7 @@ function setupEventListeners() {
             closeEditModal();
             closeSearchModal();
             closeViewer();
+            closeImportModal();
         }
     });
     const autorInput = document.getElementById('searchAutorInput');
