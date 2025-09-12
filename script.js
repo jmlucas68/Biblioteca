@@ -6,6 +6,7 @@ const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
 // !!! IMPORTANTE: Reemplaza esta URL con la URL de tu propio proxy de Gemini desplegado. !!!
 // Puedes usar un servicio como Vercel para desplegar un proxy simple.
+const PROXY_BASE_URL = 'https://perplexity-proxy-backend.vercel.app'; 
 const GEMINI_PROXY_URL = 'https://perplexity-proxy-backend.vercel.app/api/proxy'; 
 const UPLOAD_URL = `${PROXY_BASE_URL}/api/upload`;
 
