@@ -383,7 +383,7 @@ async function saveNewBook(event) {
         const newFormat = {
             book_id: insertedBook.id,
             formato: selectedFileForImport.name.split('.').pop(),
-            url_download: `uploads/${selectedFileForImport.name}` // Placeholder path
+            url: `uploads/${selectedFileForImport.name}` // Placeholder path
         };
         
         const { error: formatError } = await supabaseClient.from('book_formats').insert([newFormat]);
