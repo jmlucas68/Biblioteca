@@ -324,7 +324,7 @@ function handleFileSelect(event) {
     selectedFileForImport = files[0];
     
     // Pre-fill title with filename without extension
-    document.getElementById('modalTitle').value = selectedFileForImport.name.replace(/\.[^\/.]+$/, "");
+    document.getElementById('modalTitle').value = selectedFileForImport.name.replace(/\.[^\/.+]$/, "");
 
     elements.importModal.style.display = 'block';
     
@@ -1196,19 +1196,25 @@ function setupEventListeners() {
     document.getElementById('importButton').addEventListener('click', () => {
         elements.ebookImporter.click();
     });
-    // This is the new listener for the import functionality
+    // MODIFIED: Use handleFileSelect for the new import modal flow
     elements.ebookImporter.addEventListener('change', handleFileSelect);
 
-    // Listeners for the new import modal
-    elements.closeImportModal.addEventListener('click', closeImportModal);
-    elements.importForm.addEventListener('submit', saveNewBook);
-    elements.importModal.addEventListener('click', (e) => {
-        if (e.target === elements.importModal) {
-            closeImportModal();
-        }
-    });
+    // NEW: Listeners for the import modal
+    if (elements.closeImportModal) {
+        elements.closeImportModal.addEventListener('click', closeImportModal);
+    }
+    if (elements.importForm) {
+        elements.importForm.addEventListener('submit', saveNewBook);
+    }
+    if (elements.importModal) {
+        elements.importModal.addEventListener('click', (e) => {
+            if (e.target === elements.importModal) {
+                closeImportModal();
+            }
+        });
+    }
 
-
+    // Original listeners
     elements.backButton.addEventListener('click', goBack);
     elements.searchInput.addEventListener('input', filterBooks);
     elements.sortSelect.addEventListener('change', sortBooks);
@@ -1228,7 +1234,7 @@ function setupEventListeners() {
             closeEditModal();
             closeSearchModal();
             closeViewer();
-            closeImportModal();
+            closeImportModal(); // MODIFIED: Also close import modal on escape
         }
     });
     const autorInput = document.getElementById('searchAutorInput');
