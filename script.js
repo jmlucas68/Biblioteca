@@ -360,6 +360,8 @@ async function saveNewBook(event) {
         autor: author,
         genero: category, // 'genero' field is used for categories/tags
         descripcion: description,
+        carpeta_obra: '.IMPORTADOS',
+        tamanio_total: selectedFileForImport.size
         // url_portada will be handled separately, maybe after upload
     };
 
