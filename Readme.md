@@ -52,3 +52,4 @@ Corrección sacar portada entera en móviles
 
 Corregida validacion clave (rama Import)
 
+intento restaurar boton de importar
