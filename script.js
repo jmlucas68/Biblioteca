@@ -435,9 +435,8 @@ async function extractAndSetCover(file, bookId) {
             body: formData,
         });
 
-        const result = await response.json();
-
         if (response.ok) {
+            const result = await response.json();
             console.log('Cover extraction successful:', result.coverUrl);
             // Optionally, find the book in allBooks and update its url_portada
             const bookIndex = allBooks.findIndex(b => b.id === bookId);
@@ -446,7 +445,8 @@ async function extractAndSetCover(file, bookId) {
                 // No need to re-render here, it will show on next full render
             }
         } else {
-            console.warn('Cover extraction failed:', result.error);
+            const errorText = await response.text();
+            console.warn('Cover extraction failed:', errorText);
         }
     } catch (error) {
         console.error('Error during cover extraction request:', error);
