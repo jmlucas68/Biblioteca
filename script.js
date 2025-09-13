@@ -438,18 +438,22 @@ async function extractAndSetCover(file, bookId) {
         if (response.ok) {
             const result = await response.json();
             console.log('Cover extraction successful:', result.coverUrl);
-            // Optionally, find the book in allBooks and update its url_portada
             const bookIndex = allBooks.findIndex(b => b.id === bookId);
             if (bookIndex !== -1) {
                 allBooks[bookIndex].url_portada = result.coverUrl;
-                // No need to re-render here, it will show on next full render
             }
         } else {
             const errorText = await response.text();
             console.warn('Cover extraction failed:', errorText);
+            alert(`Error al extraer la portada: ${errorText}. Asegúrate de que el proxy está funcionando correctamente.`);
         }
     } catch (error) {
         console.error('Error during cover extraction request:', error);
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+            alert('Error de red al intentar extraer la portada. Asegúrate de que tienes conexión a internet y que el proxy está accesible.');
+        } else {
+            alert(`Error inesperado al extraer la portada: ${error.message}`);
+        }
     }
 }
 
