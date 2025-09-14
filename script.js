@@ -506,8 +506,11 @@ async function extractAndSetCover(file, bookId) {
         const coverImageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
         const coverImageBlob = dataURLtoBlob(coverImageDataUrl);
 
+        const originalFilename = file.name.replace(/\.[^/.]+$/, "");
+        const coverFilename = `${originalFilename}.jpg`;
+
         const formData = new FormData();
-        formData.append('ebook', coverImageBlob, `cover-${bookId}.jpg`);
+        formData.append('ebook', coverImageBlob, coverFilename);
         formData.append('bookId', bookId);
 
         const response = await fetch(UPLOAD_URL, {
