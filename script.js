@@ -380,7 +380,7 @@ async function saveNewBook(event) {
         const uploadResult = await uploadResponse.json();
         const viewUrl = uploadResult.viewUrl;
         const downloadUrl = uploadResult.downloadUrl;
-        console.log("Received from backend:", { viewUrl, downloadUrl });
+        
 
         // 2. Prepare book data
         const newBookData = {
@@ -507,7 +507,7 @@ async function extractAndSetCover(file, bookId) {
         const coverImageBlob = dataURLtoBlob(coverImageDataUrl);
 
         const formData = new FormData();
-        formData.append('file', coverImageBlob, `cover-${bookId}.jpg`);
+        formData.append('ebook', coverImageBlob, `cover-${bookId}.jpg`);
         formData.append('bookId', bookId);
 
         const response = await fetch(UPLOAD_URL, {
@@ -517,10 +517,10 @@ async function extractAndSetCover(file, bookId) {
 
         if (response.ok) {
             const result = await response.json();
-            console.log('Subida de portada exitosa:', result.coverUrl);
+            console.log('Subida de portada exitosa:', result.viewUrl);
             const bookIndex = allBooks.findIndex(b => b.id === bookId);
             if (bookIndex !== -1) {
-                allBooks[bookIndex].url_portada = result.coverUrl;
+                allBooks[bookIndex].url_portada = result.viewUrl;
             }
         } else {
             const errorText = await response.text();
