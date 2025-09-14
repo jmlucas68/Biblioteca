@@ -358,55 +358,71 @@ async function saveNewBook(event) {
         return;
     }
 
-    const newBookData = {
-        titulo: title,
-        autor: author,
-        genero: category, // 'genero' field is used for categories/tags
-        descripcion: description,
-        carpeta_obra: '.IMPORTADOS',
-        tamanio_total: `${Math.round(selectedFileForImport.size / 1024)} KB`
-        // url_portada will be handled separately, maybe after upload
-    };
+    // Show loading indicator
+    elements.loading.style.display = 'flex';
+    elements.loading.textContent = 'Subiendo fichero y guardando datos...';
 
     try {
-        // 1. Insert book data into Supabase
-        const { data: insertedBook, error } = await supabaseClient
+        // 1. Upload the file to the backend proxy, which will upload to Google Drive
+        const formData = new FormData();
+        formData.append('file', selectedFileForImport);
+        
+        const uploadResponse = await fetch(UPLOAD_URL, { // UPLOAD_URL is defined at the top
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            throw new Error(`Error al subir el fichero: ${uploadResponse.status} - ${errorText}`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        const fileUrl = uploadResult.url; // Assuming the proxy returns { url: '...' }
+
+        // 2. Prepare book data
+        const newBookData = {
+            titulo: title,
+            autor: author,
+            genero: category,
+            descripcion: description,
+            carpeta_obra: '.IMPORTADOS',
+            tamanio_total: `${Math.round(selectedFileForImport.size / 1024)} KB`
+        };
+
+        // 3. Insert book data into Supabase
+        const { data: insertedBook, error: bookError } = await supabaseClient
             .from('books')
             .insert([newBookData])
             .select()
             .single();
 
-        if (error) {
-            throw error;
+        if (bookError) {
+            throw bookError;
         }
 
-        // 2. (Future step) Upload the actual file and link it
-        // For now, we just add the book to the list.
-        // The 'enlace' would be created here, linking to the uploaded file.
-        // This part requires a backend or another upload mechanism.
-        // Let's simulate adding a format entry.
+        // 4. Create the format entry with the real URL from the upload
         const newFormat = {
             book_id: insertedBook.id,
             formato: selectedFileForImport.name.split('.').pop(),
-            url: `uploads/${selectedFileForImport.name}` // Placeholder path
+            url: fileUrl, // Use the real URL
+            url_download: fileUrl // Also set the download URL
         };
         
         const { error: formatError } = await supabaseClient.from('book_formats').insert([newFormat]);
         if (formatError) {
-            // Even if format fails, the book was created. We can decide how to handle this.
             console.warn("El libro se creó, pero hubo un error al añadir el formato:", formatError.message);
         } else {
             allFormats.push(newFormat);
         }
 
-        // 4. Fire-and-forget request to extract cover
+        // 5. Fire-and-forget request to extract cover
         extractAndSetCover(selectedFileForImport, insertedBook.id);
 
-        // 5. Update local data and UI
+        // 6. Update local data and UI
         allBooks.push(insertedBook);
         updateGlobalStats();
         
-        // Refresh the current view
         if (elements.booksView.classList.contains('active')) {
             applyTagFilters(classification.sections[currentSection].subsections[currentSubsection].tags);
         } else if (elements.subsectionsView.classList.contains('active')) {
@@ -415,12 +431,16 @@ async function saveNewBook(event) {
             showSections();
         }
 
-        alert(`¡Libro "${title}" añadido con éxito!`);
+        alert(`¡Libro \"${title}\" añadido con éxito!`);
         closeImportModal();
 
     } catch (error) {
         console.error("Error al guardar el nuevo libro:", error);
         alert(`Error al guardar el libro: ${error.message}`);
+    } finally {
+        // Hide loading indicator
+        elements.loading.style.display = 'none';
+        elements.loading.textContent = 'Cargando biblioteca...';
     }
 }
 
