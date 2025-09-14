@@ -378,7 +378,9 @@ async function saveNewBook(event) {
         }
 
         const uploadResult = await uploadResponse.json();
-        const fileUrl = uploadResult.url; // Assuming the proxy returns { url: '...' }
+        const viewUrl = uploadResult.viewUrl;
+        const downloadUrl = uploadResult.downloadUrl;
+        console.log("Received from backend:", { viewUrl, downloadUrl });
 
         // 2. Prepare book data
         const newBookData = {
@@ -401,12 +403,12 @@ async function saveNewBook(event) {
             throw bookError;
         }
 
-        // 4. Create the format entry with the real URL from the upload
+        // 4. Create the format entry with the real URLs from the upload
         const newFormat = {
             book_id: insertedBook.id,
             formato: selectedFileForImport.name.split('.').pop(),
-            url: fileUrl, // Use the real URL
-            url_download: fileUrl // Also set the download URL
+            url: viewUrl,
+            url_download: downloadUrl
         };
         
         const { error: formatError } = await supabaseClient.from('book_formats').insert([newFormat]);
