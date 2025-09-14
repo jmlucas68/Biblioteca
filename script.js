@@ -485,7 +485,7 @@ async function extractAndSetCover(file, bookId) {
         const coverImageBlob = dataURLtoBlob(coverImageDataUrl);
 
         const formData = new FormData();
-        formData.append('ebookFile', coverImageBlob, `cover-${bookId}.jpg`);
+        formData.append('file', coverImageBlob, `cover-${bookId}.jpg`);
         formData.append('bookId', bookId);
 
         const response = await fetch(UPLOAD_URL, {
