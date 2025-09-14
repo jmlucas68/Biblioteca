@@ -365,7 +365,7 @@ async function saveNewBook(event) {
     try {
         // 1. Upload the file to the backend proxy, which will upload to Google Drive
         const formData = new FormData();
-        formData.append('file', selectedFileForImport);
+        formData.append('ebook', selectedFileForImport);
         
         const uploadResponse = await fetch(UPLOAD_URL, { // UPLOAD_URL is defined at the top
             method: 'POST',
