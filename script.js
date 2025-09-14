@@ -445,35 +445,87 @@ async function saveNewBook(event) {
 }
 
 async function extractAndSetCover(file, bookId) {
-    const formData = new FormData();
-    formData.append('ebookFile', file);
-    formData.append('bookId', bookId);
+    // Solo procesar archivos PDF en el cliente
+    if (!file.type.includes('pdf')) {
+        console.log('El archivo no es un PDF, se omitirá la extracción de portada en el cliente.');
+        return;
+    }
 
     try {
-        const response = await fetch(`${PROXY_BASE_URL}/api/extract-cover`, {
+        // 1. Cargar pdf.js si no está disponible
+        if (typeof pdfjsLib === 'undefined') {
+            if (!window.pdfjsScriptLoading) {
+                window.pdfjsScriptLoading = true;
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                document.head.appendChild(script);
+                await new Promise((resolve, reject) => {
+                    script.onload = resolve;
+                    script.onerror = reject;
+                });
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            } else {
+                await new Promise(resolve => {
+                    const check = () => {
+                        if (typeof pdfjsLib !== 'undefined') resolve();
+                        else setTimeout(check, 100);
+                    };
+                    check();
+                });
+            }
+        }
+        
+        const dataURLtoBlob = (dataurl) => {
+            const arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while(n--){
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], {type:mime});
+        };
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        
+        if (pdf.numPages === 0) throw new Error('El PDF no tiene páginas.');
+        
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 1.5 });
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+        
+        const coverImageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const coverImageBlob = dataURLtoBlob(coverImageDataUrl);
+
+        const formData = new FormData();
+        formData.append('file', coverImageBlob, `cover-${bookId}.jpg`);
+        formData.append('bookId', bookId);
+
+        const response = await fetch(UPLOAD_URL, {
             method: 'POST',
             body: formData,
         });
 
         if (response.ok) {
             const result = await response.json();
-            console.log('Cover extraction successful:', result.coverUrl);
+            console.log('Subida de portada exitosa:', result.coverUrl);
             const bookIndex = allBooks.findIndex(b => b.id === bookId);
             if (bookIndex !== -1) {
                 allBooks[bookIndex].url_portada = result.coverUrl;
             }
         } else {
             const errorText = await response.text();
-            console.warn('Cover extraction failed:', errorText);
-            alert(`Error al extraer la portada: ${errorText}. Asegúrate de que el proxy está funcionando correctamente.`);
+            console.warn('La subida de la portada falló:', errorText);
         }
     } catch (error) {
-        console.error('Error during cover extraction request:', error);
-        if (error instanceof TypeError && error.message === 'Failed to fetch') {
-            alert('Error de red al intentar extraer la portada. Asegúrate de que tienes conexión a internet y que el proxy está accesible.');
-        } else {
-            alert(`Error inesperado al extraer la portada: ${error.message}`);
-        }
+        console.error('Error durante la extracción de portada en el cliente:', error);
     }
 }
 
