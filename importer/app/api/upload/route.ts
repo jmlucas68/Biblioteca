@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     const uploadRes = await drive.files.create({
       requestBody: { name: file.name, parents: [GOOGLE_DRIVE_FOLDER_ID] },
       media: { mimeType: file.type, body: BufferReadable(buffer) as any },
-      fields: "id, webViewLink, size",
+      fields: "id, webViewLink, webContentLink, size",
     });
 
     const sizeBytes = uploadRes.data.size ? Number(uploadRes.data.size) : undefined;
@@ -125,7 +125,8 @@ export async function POST(req: NextRequest) {
       numero_serie: fields.numero_serie,
       carpeta_autor: fields.autor || null,
       carpeta_obra: fields.titulo || null,
-      url_download_portada: uploadRes.data.webViewLink ?? null,
+      url_portada: uploadRes.data.webViewLink ?? null,
+      url_download: uploadRes.data.webContentLink ?? null,
       tamanio_total,
     }];
 
@@ -137,7 +138,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       status: "success",
       drive_id: uploadRes.data.id,
-      file_url: uploadRes.data.webViewLink,
+      file_url: uploadRes.data.webContentLink,
       metadata: {
         titulo: insertPayload[0].titulo,
         autor: insertPayload[0].autor,
