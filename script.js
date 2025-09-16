@@ -521,6 +521,22 @@ async function extractAndSetCover(file, bookId) {
         if (response.ok) {
             const result = await response.json();
             console.log('Subida de portada exitosa:', result.viewUrl);
+
+            // --- INICIO DE LA CORRECCIÓN ---
+            // Persistir la URL de la portada en la base de datos
+            const { error: updateError } = await supabaseClient
+                .from('books')
+                .update({ 
+                    url_portada: result.viewUrl,
+                    url_download_portada: result.downloadUrl || result.viewUrl // Usar viewUrl como fallback
+                })
+                .eq('id', bookId);
+
+            if (updateError) {
+                console.warn('Error al guardar la URL de la portada en la base de datos:', updateError.message);
+            }
+            // --- FIN DE LA CORRECCIÓN ---
+
             const bookIndex = allBooks.findIndex(b => b.id === bookId);
             if (bookIndex !== -1) {
                 allBooks[bookIndex].url_portada = result.viewUrl;

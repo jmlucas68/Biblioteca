@@ -138,7 +138,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       status: "success",
       drive_id: uploadRes.data.id,
-      file_url: uploadRes.data.webContentLink,
+      viewUrl: uploadRes.data.webViewLink,
+      downloadUrl: uploadRes.data.webContentLink,
       metadata: {
         titulo: insertPayload[0].titulo,
         autor: insertPayload[0].autor,
