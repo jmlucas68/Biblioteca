@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
       carpeta_autor: fields.autor || null,
       carpeta_obra: fields.titulo || null,
       url_portada: uploadRes.data.webViewLink ?? null,
-      url_download: uploadRes.data.webContentLink ?? null,
+      url_download_portada: uploadRes.data.webContentLink ?? null,
       tamanio_total,
     }];
 
