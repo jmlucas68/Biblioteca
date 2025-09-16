@@ -447,65 +447,85 @@ async function saveNewBook(event) {
 }
 
 async function extractAndSetCover(file, bookId) {
-    // Solo procesar archivos PDF en el cliente
-    if (!file.type.includes('pdf')) {
-        console.log('El archivo no es un PDF, se omitirá la extracción de portada en el cliente.');
-        return;
-    }
+    const fileType = file.type;
+    let coverImageBlob = null;
 
     try {
-        // 1. Cargar pdf.js si no está disponible
-        if (typeof pdfjsLib === 'undefined') {
-            if (!window.pdfjsScriptLoading) {
-                window.pdfjsScriptLoading = true;
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-                document.head.appendChild(script);
-                await new Promise((resolve, reject) => {
-                    script.onload = resolve;
-                    script.onerror = reject;
-                });
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-            } else {
-                await new Promise(resolve => {
-                    const check = () => {
-                        if (typeof pdfjsLib !== 'undefined') resolve();
-                        else setTimeout(check, 100);
-                    };
-                    check();
-                });
+        // --- PDF Cover Extraction ---
+        if (fileType.includes('pdf')) {
+            console.log('Extrayendo portada de PDF...');
+            if (typeof pdfjsLib === 'undefined') {
+                if (!window.pdfjsScriptLoading) {
+                    window.pdfjsScriptLoading = true;
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                    document.head.appendChild(script);
+                    await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; });
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                } else {
+                    await new Promise(resolve => {
+                        const check = () => typeof pdfjsLib !== 'undefined' ? resolve() : setTimeout(check, 100);
+                        check();
+                    });
+                }
             }
+            
+            const dataURLtoBlob = (dataurl) => {
+                const arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while(n--) u8arr[n] = bstr.charCodeAt(n);
+                return new Blob([u8arr], {type:mime});
+            };
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            if (pdf.numPages === 0) throw new Error('El PDF no tiene páginas.');
+            
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+            
+            const coverImageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            coverImageBlob = dataURLtoBlob(coverImageDataUrl);
+
+        // --- EPUB Cover Extraction ---
+        } else if (fileType.includes('epub')) {
+            console.log('Extrayendo portada de EPUB...');
+            if (typeof ePub === 'undefined') {
+                 throw new Error('epub.js no está cargado. Asegúrate de que esté incluido en index.html');
+            }
+            const arrayBuffer = await file.arrayBuffer();
+            const book = ePub(arrayBuffer);
+            const coverUrl = await book.coverUrl();
+            
+            if (!coverUrl) {
+                console.warn('El EPUB no parece tener una portada definida.');
+                return;
+            }
+            
+            // Fetch the blob URL to get the actual image data
+            const response = await fetch(coverUrl);
+            coverImageBlob = await response.blob();
+            book.destroy(); // Clean up memory
+
+        } else {
+            console.log(`El archivo no es un PDF o EPUB (${fileType}), se omitirá la extracción de portada.`);
+            return;
         }
-        
-        const dataURLtoBlob = (dataurl) => {
-            const arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1];
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while(n--){
-                u8arr[n] = bstr.charCodeAt(n);
-            }
-            return new Blob([u8arr], {type:mime});
-        };
 
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-        
-        if (pdf.numPages === 0) throw new Error('El PDF no tiene páginas.');
-        
-        const page = await pdf.getPage(1);
-        const viewport = page.getViewport({ scale: 1.5 });
-        
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        
-        await page.render({ canvasContext: context, viewport: viewport }).promise;
-        
-        const coverImageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        const coverImageBlob = dataURLtoBlob(coverImageDataUrl);
+        if (!coverImageBlob) {
+            console.warn('No se pudo extraer la portada del archivo.');
+            return;
+        }
 
+        // --- Common Upload Logic ---
+        console.log('Subiendo portada extraída...');
         const originalFilename = file.name.replace(/\.[^/.]+$/, "");
         const coverFilename = `${originalFilename}.jpg`;
 
@@ -522,20 +542,19 @@ async function extractAndSetCover(file, bookId) {
             const result = await response.json();
             console.log('Subida de portada exitosa:', result.viewUrl);
 
-            // --- INICIO DE LA CORRECCIÓN ---
-            // Persistir la URL de la portada en la base de datos
             const { error: updateError } = await supabaseClient
                 .from('books')
                 .update({ 
                     url_portada: result.viewUrl,
-                    url_download_portada: result.downloadUrl || result.viewUrl // Usar viewUrl como fallback
+                    url_download_portada: result.downloadUrl || result.viewUrl
                 })
                 .eq('id', bookId);
 
             if (updateError) {
                 console.warn('Error al guardar la URL de la portada en la base de datos:', updateError.message);
+            } else {
+                 console.log('URL de portada guardada en la base de datos.');
             }
-            // --- FIN DE LA CORRECCIÓN ---
 
             const bookIndex = allBooks.findIndex(b => b.id === bookId);
             if (bookIndex !== -1) {
