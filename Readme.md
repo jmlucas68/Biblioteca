@@ -53,3 +53,5 @@ Corrección sacar portada entera en móviles
 Corregida validacion clave (rama Import)
 
 Nueva funcionalidad importar libro (sin alta en BBDD)
+
+Nueva funcionalidad: Importa ebook en PDF

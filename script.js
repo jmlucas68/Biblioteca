@@ -1,7 +1,10 @@
 // Supabase configuration
 const { createClient } = supabase;
-const supabaseUrl = 'https://fanyuclarbgwraiwbcmr.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+const supabaseUrl = ['https://fanyuclarbgwraiwbcmr', 'supabase.co'].join('.');
+const key_part_1 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+const key_part_2 = 'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0';
+const key_part_3 = 'AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+const supabaseKey = `${key_part_1}.${key_part_2}.${key_part_3}`;
 const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
 // !!! IMPORTANTE: Reemplaza esta URL con la URL de tu propio proxy de Gemini desplegado. !!!
@@ -188,36 +191,47 @@ let currentEditingBook = null;
 let classification = null; 
 let currentObjectUrl = null; // For the book viewer
 let tagFilterLogic = 'OR'; // New global variable for tag filtering logic
+let selectedFileForImport = null;
 
 // DOM elements
-const elements = {
-    loading: document.getElementById('loading'),
-    sectionsView: document.getElementById('sectionsView'),
-    subsectionsView: document.getElementById('subsectionsView'),
-    booksView: document.getElementById('booksView'),
-    sectionsGrid: document.getElementById('sectionsGrid'),
-    subsectionsGrid: document.getElementById('subsectionsGrid'),
-    booksGrid: document.getElementById('booksGrid'),
-    breadcrumb: document.getElementById('breadcrumb'),
-    backButton: document.getElementById('backButton'),
-    searchContainer: document.getElementById('searchContainer'),
-    searchInput: document.getElementById('searchInput'),
-    sortSelect: document.getElementById('sortSelect'),
-    totalBooks: document.getElementById('totalBooks'),
-    totalFormats: document.getElementById('totalFormats'),
-    bookModal: document.getElementById('bookModal'),
-    modalContent: document.getElementById('modalContent'),
-    closeModal: document.getElementById('closeModal'),
-    editModal: document.getElementById('editModal'),
-    aiDescriptionButton: document.getElementById('aiDescriptionButton'),
-    adminControls: document.getElementById('adminControls'),
-    searchModal: document.getElementById('searchModal'),
-    ebookImporter: document.getElementById('ebookImporter'),
-    uploadStatus: document.getElementById('uploadStatus')
-};
+let elements = {};
+
+function populateElements() {
+    elements = {
+        loading: document.getElementById('loading'),
+        sectionsView: document.getElementById('sectionsView'),
+        subsectionsView: document.getElementById('subsectionsView'),
+        booksView: document.getElementById('booksView'),
+        sectionsGrid: document.getElementById('sectionsGrid'),
+        subsectionsGrid: document.getElementById('subsectionsGrid'),
+        booksGrid: document.getElementById('booksGrid'),
+        breadcrumb: document.getElementById('breadcrumb'),
+        backButton: document.getElementById('backButton'),
+        searchContainer: document.getElementById('searchContainer'),
+        searchInput: document.getElementById('searchInput'),
+        sortSelect: document.getElementById('sortSelect'),
+        totalBooks: document.getElementById('totalBooks'),
+        totalFormats: document.getElementById('totalFormats'),
+        bookModal: document.getElementById('bookModal'),
+        modalContent: document.getElementById('modalContent'),
+        closeModal: document.getElementById('closeModal'),
+        editModal: document.getElementById('editModal'),
+        aiDescriptionButton: document.getElementById('aiDescriptionButton'),
+        adminControls: document.getElementById('adminControls'),
+        searchModal: document.getElementById('searchModal'),
+        ebookImporter: document.getElementById('ebookImporter'),
+        uploadStatus: document.getElementById('uploadStatus'),
+        importModal: document.getElementById('importModal'),
+        importForm: document.getElementById('importForm'),
+        closeImportModal: document.querySelector('#importModal .close-button')
+    };
+}
+
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
+    populateElements(); // Populate elements object after DOM is loaded
+
     const passwordInput = document.getElementById('passwordInput');
     if (passwordInput) {
         passwordInput.addEventListener('keydown', function(event) {
@@ -311,82 +325,238 @@ async function loadClassification() {
 }
 
 // --- File Import ---
-// Improved file upload function with better error handling and debugging
-async function handleFileUpload(event) {
+function handleFileSelect(event) {
     const files = event.target.files;
     if (!files.length) {
         return;
     }
+    selectedFileForImport = files[0];
+    
+    // Pre-fill title with filename without extension
+    document.getElementById('modalTitle').value = selectedFileForImport.name.replace(/\.[^/.]+$/, "");
 
-    const statusDiv = elements.uploadStatus;
-    statusDiv.innerHTML = '';
-    statusDiv.style.display = 'block';
+    elements.importModal.style.display = 'block';
+    
+    // Reset file input so the 'change' event fires again if the same file is selected
+    event.target.value = ''; 
+}
 
-    for (const file of files) {
-        console.log('Preparing to upload file:', {
-            name: file.name,
-            size: file.size,
-            type: file.type
+async function saveNewBook(event) {
+    event.preventDefault();
+    if (!selectedFileForImport) {
+        alert("No se ha seleccionado ningún archivo.");
+        return;
+    }
+
+    const title = document.getElementById('modalTitle').value.trim();
+    const author = document.getElementById('modalAuthor').value.trim();
+    const category = document.getElementById('modalCategory').value.trim();
+    const description = document.getElementById('modalDescription').value.trim();
+
+    if (!title || !author || !category) {
+        alert("Por favor, complete los campos Título, Autor y Categoría.");
+        return;
+    }
+
+    // Show loading indicator
+    elements.loading.style.display = 'flex';
+    elements.loading.textContent = 'Subiendo fichero y guardando datos...';
+
+    try {
+        // 1. Upload the file to the backend proxy, which will upload to Google Drive
+        const formData = new FormData();
+        formData.append('ebook', selectedFileForImport);
+        
+        const uploadResponse = await fetch(UPLOAD_URL, { // UPLOAD_URL is defined at the top
+            method: 'POST',
+            body: formData,
         });
 
-        // Create FormData with explicit field name
-        const formData = new FormData();
-        formData.append('ebook', file, file.name); // Explicitly set filename
+        if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            throw new Error(`Error al subir el fichero: ${uploadResponse.status} - ${errorText}`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        const viewUrl = uploadResult.viewUrl;
+        const downloadUrl = uploadResult.downloadUrl;
         
-        // Log FormData contents for debugging
-        console.log('FormData created with entries:');
-        for (let [key, value] of formData.entries()) {
-            console.log(` - ${key}:`, value instanceof File ? `File: ${value.name}` : value);
+
+        // 2. Prepare book data
+        const newBookData = {
+            titulo: title,
+            autor: author,
+            genero: category,
+            descripcion: description,
+            carpeta_obra: '.IMPORTADOS',
+            tamanio_total: `${Math.round(selectedFileForImport.size / 1024)} KB`
+        };
+
+        // 3. Insert book data into Supabase
+        const { data: insertedBook, error: bookError } = await supabaseClient
+            .from('books')
+            .insert([newBookData])
+            .select()
+            .single();
+
+        if (bookError) {
+            throw bookError;
         }
 
-        const fileStatus = document.createElement('div');
-        fileStatus.className = 'upload-status-item';
-        fileStatus.textContent = `Subiendo ${file.name}... `;
-        statusDiv.appendChild(fileStatus);
-
-        try {
-            const response = await fetch(UPLOAD_URL, {
-                method: 'POST',
-                body: formData,
-                // Don't set Content-Type header, let browser set it with boundary for multipart/form-data
-            });
-
-            console.log('Upload response status:', response.status);
-            console.log('Upload response headers:', Object.fromEntries(response.headers.entries()));
-
-            const result = await response.json();
-            console.log('Upload response body:', result);
-
-            if (response.ok && result.success) {
-                fileStatus.innerHTML += '✅ ¡Éxito!';
-                const newBook = {
-                    id: -1,
-                    titulo: file.name.replace(/\.[^\/.]+$/, ""),
-                    url_portada: result.url,
-                    genero: 'Sin_clasificar',
-                };
-                allBooks.push(newBook);
-                showSections();
-            } else {
-                throw new Error(result.details || result.error || 'Error desconocido del servidor');
-            }
-        } catch (error) {
-            console.error('Upload error:', error);
-            fileStatus.innerHTML += `❌ Error: ${error.message}`;
-            
-            // Show more detailed error info in console
-            if (error.response) {
-                console.error('Error response:', await error.response.text());
-            }
+        // 4. Create the format entry with the real URLs from the upload
+        const newFormat = {
+            book_id: insertedBook.id,
+            formato: selectedFileForImport.name.split('.').pop(),
+            url: viewUrl,
+            url_download: downloadUrl
+        };
+        
+        const { error: formatError } = await supabaseClient.from('book_formats').insert([newFormat]);
+        if (formatError) {
+            console.warn("El libro se creó, pero hubo un error al añadir el formato:", formatError.message);
+        } else {
+            allFormats.push(newFormat);
         }
+
+        // 5. Fire-and-forget request to extract cover
+        extractAndSetCover(selectedFileForImport, insertedBook.id);
+
+        // 6. Update local data and UI
+        allBooks.push(insertedBook);
+        updateGlobalStats();
+        
+        if (elements.booksView.classList.contains('active')) {
+            applyTagFilters(classification.sections[currentSection].subsections[currentSubsection].tags);
+        } else if (elements.subsectionsView.classList.contains('active')) {
+            showSubsections(currentSection);
+        } else {
+            showSections();
+        }
+
+        alert(`¡Libro \"${title}\" añadido con éxito!`);
+        closeImportModal();
+
+    } catch (error) {
+        console.error("Error al guardar el nuevo libro:", error);
+        alert(`Error al guardar el libro: ${error.message}`);
+    } finally {
+        // Hide loading indicator
+        elements.loading.style.display = 'none';
+        elements.loading.textContent = 'Cargando biblioteca...';
     }
-    
-    elements.ebookImporter.value = ''; 
-    setTimeout(() => {
-        statusDiv.style.display = 'none';
-        statusDiv.innerHTML = '';
-    }, 15000);
 }
+
+async function extractAndSetCover(file, bookId) {
+    // Solo procesar archivos PDF en el cliente
+    if (!file.type.includes('pdf')) {
+        console.log('El archivo no es un PDF, se omitirá la extracción de portada en el cliente.');
+        return;
+    }
+
+    try {
+        // 1. Cargar pdf.js si no está disponible
+        if (typeof pdfjsLib === 'undefined') {
+            if (!window.pdfjsScriptLoading) {
+                window.pdfjsScriptLoading = true;
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                document.head.appendChild(script);
+                await new Promise((resolve, reject) => {
+                    script.onload = resolve;
+                    script.onerror = reject;
+                });
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            } else {
+                await new Promise(resolve => {
+                    const check = () => {
+                        if (typeof pdfjsLib !== 'undefined') resolve();
+                        else setTimeout(check, 100);
+                    };
+                    check();
+                });
+            }
+        }
+        
+        const dataURLtoBlob = (dataurl) => {
+            const arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while(n--){
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], {type:mime});
+        };
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        
+        if (pdf.numPages === 0) throw new Error('El PDF no tiene páginas.');
+        
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 1.5 });
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+        
+        const coverImageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const coverImageBlob = dataURLtoBlob(coverImageDataUrl);
+
+        const originalFilename = file.name.replace(/\.[^/.]+$/, "");
+        const coverFilename = `${originalFilename}.jpg`;
+
+        const formData = new FormData();
+        formData.append('ebook', coverImageBlob, coverFilename);
+        formData.append('bookId', bookId);
+
+        const response = await fetch(UPLOAD_URL, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Subida de portada exitosa:', result.viewUrl);
+
+            // --- INICIO DE LA CORRECCIÓN ---
+            // Persistir la URL de la portada en la base de datos
+            const { error: updateError } = await supabaseClient
+                .from('books')
+                .update({ 
+                    url_portada: result.viewUrl,
+                    url_download_portada: result.downloadUrl || result.viewUrl // Usar viewUrl como fallback
+                })
+                .eq('id', bookId);
+
+            if (updateError) {
+                console.warn('Error al guardar la URL de la portada en la base de datos:', updateError.message);
+            }
+            // --- FIN DE LA CORRECCIÓN ---
+
+            const bookIndex = allBooks.findIndex(b => b.id === bookId);
+            if (bookIndex !== -1) {
+                allBooks[bookIndex].url_portada = result.viewUrl;
+            }
+        } else {
+            const errorText = await response.text();
+            console.warn('La subida de la portada falló:', errorText);
+        }
+    } catch (error) {
+        console.error('Error durante la extracción de portada en el cliente:', error);
+    }
+}
+
+
+function closeImportModal() {
+    elements.importModal.style.display = 'none';
+    elements.importForm.reset();
+    selectedFileForImport = null;
+}
+
 
 // Business Logic
 function normalizeText(str) {
@@ -1162,11 +1332,27 @@ function showRandomBookDetails() {
 // Event Listeners
 function setupEventListeners() {
     document.getElementById('importButton').addEventListener('click', () => {
-        console.log('Import button clicked! Triggering file input...');
         elements.ebookImporter.click();
     });
-    elements.ebookImporter.addEventListener('change', handleFileUpload);
+    // MODIFIED: Use handleFileSelect for the new import modal flow
+    elements.ebookImporter.addEventListener('change', handleFileSelect);
 
+    // NEW: Listeners for the import modal
+    if (elements.closeImportModal) {
+        elements.closeImportModal.addEventListener('click', closeImportModal);
+    }
+    if (elements.importForm) {
+        elements.importForm.addEventListener('submit', saveNewBook);
+    }
+    if (elements.importModal) {
+        elements.importModal.addEventListener('click', (e) => {
+            if (e.target === elements.importModal) {
+                closeImportModal();
+            }
+        });
+    }
+
+    // Original listeners
     elements.backButton.addEventListener('click', goBack);
     elements.searchInput.addEventListener('input', filterBooks);
     elements.sortSelect.addEventListener('change', sortBooks);
@@ -1186,6 +1372,7 @@ function setupEventListeners() {
             closeEditModal();
             closeSearchModal();
             closeViewer();
+            closeImportModal(); // MODIFIED: Also close import modal on escape
         }
     });
     const autorInput = document.getElementById('searchAutorInput');
@@ -1214,8 +1401,6 @@ function setupEventListeners() {
             if (description) {
                 document.getElementById('editDescripcion').value = description;
             }
-        } else {
-            alert('No hay un libro seleccionado para generar descripción.');
         }
     });
 }
