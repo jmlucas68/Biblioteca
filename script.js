@@ -447,12 +447,12 @@ async function saveNewBook(event) {
 }
 
 async function extractAndSetCover(file, bookId) {
-    const fileType = file.type;
+    const fileName = file.name.toLowerCase();
     let coverImageBlob = null;
 
     try {
         // --- PDF Cover Extraction ---
-        if (fileType.includes('pdf')) {
+        if (fileName.endsWith('.pdf')) {
             console.log('Extrayendo portada de PDF...');
             if (typeof pdfjsLib === 'undefined') {
                 if (!window.pdfjsScriptLoading) {
@@ -495,7 +495,7 @@ async function extractAndSetCover(file, bookId) {
             coverImageBlob = dataURLtoBlob(coverImageDataUrl);
 
         // --- EPUB Cover Extraction ---
-        } else if (fileType.includes('epub')) {
+        } else if (fileName.endsWith('.epub')) {
             console.log('Extrayendo portada de EPUB...');
             if (typeof ePub === 'undefined') {
                  throw new Error('epub.js no está cargado. Asegúrate de que esté incluido en index.html');
@@ -515,7 +515,7 @@ async function extractAndSetCover(file, bookId) {
             book.destroy(); // Clean up memory
 
         } else {
-            console.log(`El archivo no es un PDF o EPUB (${fileType}), se omitirá la extracción de portada.`);
+            console.log(`El archivo no es un PDF o EPUB (${fileName}), se omitirá la extracción de portada.`);
             return;
         }
 
