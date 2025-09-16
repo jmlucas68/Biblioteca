@@ -325,20 +325,83 @@ async function loadClassification() {
 }
 
 // --- File Import ---
-function handleFileSelect(event) {
+async function handleFileSelect(event) {
     const files = event.target.files;
     if (!files.length) {
         return;
     }
     selectedFileForImport = files[0];
-    
-    // Pre-fill title with filename without extension
-    document.getElementById('modalTitle').value = selectedFileForImport.name.replace(/\.[^/.]+$/, "");
+    const file = selectedFileForImport;
+    const fileName = file.name.toLowerCase();
 
-    elements.importModal.style.display = 'block';
-    
-    // Reset file input so the 'change' event fires again if the same file is selected
-    event.target.value = ''; 
+    // Get modal fields
+    const modalTitle = document.getElementById('modalTitle');
+    const modalAuthor = document.getElementById('modalAuthor');
+    const modalDescription = document.getElementById('modalDescription');
+
+    // Reset fields
+    modalTitle.value = '';
+    modalAuthor.value = '';
+    modalDescription.value = '';
+
+    // Show loading indicator while processing
+    elements.loading.style.display = 'flex';
+    elements.loading.textContent = 'Procesando metadatos...';
+
+    try {
+        // Pre-fill title with filename as a fallback
+        modalTitle.value = file.name.replace(/\.[^/.]+$/, "");
+
+        if (fileName.endsWith('.epub')) {
+            if (typeof ePub === 'undefined') {
+                 throw new Error('epub.js no está cargado.');
+            }
+            const arrayBuffer = await file.arrayBuffer();
+            const book = ePub(arrayBuffer);
+            const metadata = await book.loaded.metadata;
+            if (metadata) {
+                modalTitle.value = metadata.title || modalTitle.value;
+                modalAuthor.value = metadata.creator || '';
+                modalDescription.value = metadata.description || '';
+            }
+            book.destroy();
+
+        } else if (fileName.endsWith('.pdf')) {
+            if (typeof pdfjsLib === 'undefined') {
+                if (!window.pdfjsScriptLoading) {
+                    window.pdfjsScriptLoading = true;
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                    document.head.appendChild(script);
+                    await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; });
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                } else {
+                    await new Promise(resolve => {
+                        const check = () => typeof pdfjsLib !== 'undefined' ? resolve() : setTimeout(check, 100);
+                        check();
+                    });
+                }
+            }
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            const { info } = await pdf.getMetadata();
+            if (info) {
+                modalTitle.value = info.Title || modalTitle.value;
+                modalAuthor.value = info.Author || '';
+                modalDescription.value = info.Subject || '';
+            }
+        }
+    } catch (error) {
+        console.error('Error al extraer metadatos:', error);
+        alert('No se pudieron extraer los metadatos del archivo. Por favor, ingréselos manualmente.');
+    } finally {
+        // Hide loading and show modal
+        elements.loading.style.display = 'none';
+        elements.loading.textContent = 'Cargando biblioteca...';
+        elements.importModal.style.display = 'block';
+        // Reset file input so the 'change' event fires again if the same file is selected
+        event.target.value = '';
+    }
 }
 
 async function saveNewBook(event) {
