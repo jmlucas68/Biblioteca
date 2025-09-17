@@ -1328,6 +1328,12 @@ function buildPreviewUrl(viewUrl) {
 async function openViewer(event, formatUrl, bookTitle, formatName) {
     event.preventDefault();
     event.stopPropagation();
+
+    if (formatName.toLowerCase() === 'epub') {
+        window.open(`lector_epub.html?book=${encodeURIComponent(formatUrl)}`, '_blank');
+        return;
+    }
+
     if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
     const viewerModal = document.getElementById('viewerModal');
     const viewerIframe = document.getElementById('viewerIframe');
