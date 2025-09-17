@@ -337,11 +337,13 @@ async function handleFileSelect(event) {
     // Get modal fields
     const modalTitle = document.getElementById('modalTitle');
     const modalAuthor = document.getElementById('modalAuthor');
+    const modalCategory = document.getElementById('modalCategory');
     const modalDescription = document.getElementById('modalDescription');
 
     // Reset fields
     modalTitle.value = '';
     modalAuthor.value = '';
+    modalCategory.value = '';
     modalDescription.value = '';
 
     // Show loading indicator while processing
@@ -362,6 +364,7 @@ async function handleFileSelect(event) {
             if (metadata) {
                 modalTitle.value = metadata.title || modalTitle.value;
                 modalAuthor.value = metadata.creator || '';
+                modalCategory.value = metadata.subject || '';
                 modalDescription.value = metadata.description || '';
             }
             book.destroy();
@@ -388,6 +391,7 @@ async function handleFileSelect(event) {
             if (info) {
                 modalTitle.value = info.Title || modalTitle.value;
                 modalAuthor.value = info.Author || '';
+                modalCategory.value = info.Keywords || '';
                 modalDescription.value = info.Subject || '';
             }
         }
