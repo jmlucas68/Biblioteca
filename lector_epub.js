@@ -4,7 +4,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (rawBookUrl) {
         // Usamos un proxy CORS público para evitar el problema con Google Drive
-        const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+        const PROXY_BASE_URL = 'https://perplexity-proxy-backend.vercel.app'; 
+        const GEMINI_PROXY_URL = 'https://perplexity-proxy-backend.vercel.app/api/proxy'; 
+
         const bookUrl = PROXY_URL + encodeURIComponent(rawBookUrl);
 
         const book = ePub(bookUrl);
