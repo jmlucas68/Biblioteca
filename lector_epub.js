@@ -1,8 +1,11 @@
 document.addEventListener('DOMContentLoaded', function () {
     const params = new URLSearchParams(window.location.search);
-    const bookUrl = params.get('book');
+    const rawBookUrl = params.get('book');
 
-    if (bookUrl) {
+    if (rawBookUrl) {
+        const PROXY_URL = 'https://perplexity-proxy-backend.vercel.app/api/proxy?url=';
+        const bookUrl = PROXY_URL + encodeURIComponent(rawBookUrl);
+
         const book = ePub(bookUrl);
         const rendition = book.renderTo("viewer", { width: "100%", height: "100%" });
         rendition.display();
