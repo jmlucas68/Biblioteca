@@ -2,6 +2,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     const params = new URLSearchParams(window.location.search);
     const rawBookUrl = params.get('book');
 
+    // Use the same proxy configuration as script.js
+    const PROXY_BASE_URL = 'https://perplexity-proxy-backend.vercel.app';
+    const DOWNLOAD_PROXY_URL = `${PROXY_BASE_URL}/api/download`;
+
     if (rawBookUrl) {
         try {
             // Show loading message
@@ -10,27 +14,34 @@ document.addEventListener('DOMContentLoaded', async function () {
                 viewer.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;"><p>Cargando libro...</p></div>';
             }
 
-            // Instead of loading directly from Google Drive URL (which causes CORS),
-            // we need to fetch the file as a blob first
             let bookData;
             
-            // Check if it's a Google Drive URL and convert to download URL
+            // Check if it's a Google Drive URL
             const googleDriveMatch = rawBookUrl.match(/drive\.google\.com.*[?&]id=([a-zA-Z0-9_-]+)/);
             if (googleDriveMatch) {
                 const fileId = googleDriveMatch[1];
-                const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
                 
                 try {
-                    const response = await fetch(downloadUrl);
+                    // Use your proxy to download the file (bypasses CORS)
+                    const response = await fetch(DOWNLOAD_PROXY_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            fileId: fileId,
+                            action: 'download_file'
+                        }),
+                    });
+                    
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        throw new Error(`Proxy error: ${response.status}`);
                     }
+                    
                     bookData = await response.arrayBuffer();
-                } catch (fetchError) {
-                    console.warn('Direct download failed, trying proxy approach:', fetchError);
-                    // If direct download fails, we might need to use the proxy
-                    // This would require modifying your backend proxy to handle EPUB files
-                    throw new Error('No se pudo descargar el archivo EPUB. Verifique que el archivo sea público.');
+                } catch (proxyError) {
+                    console.warn('Proxy download failed:', proxyError);
+                    throw new Error('No se pudo descargar el archivo EPUB a través del proxy. Verifique que el archivo sea público.');
                 }
             } else {
                 // For non-Google Drive URLs, try direct fetch
