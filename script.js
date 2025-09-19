@@ -82,7 +82,7 @@ function isHTML(str) {
 function redirectToGoogleAuth() {
     // !!! IMPORTANTE: Reemplaza estos valores con los de tu proyecto de Google Cloud !!!
     const GOOGLE_CLIENT_ID = '991221536561-6ufogcm4u6v1e6ot8qu01gf67a1bfb1u.apps.googleusercontent.com'; // Puedes encontrarlo en las variables de entorno de tu backend en Vercel.
-    const GOOGLE_REDIRECT_URI = '991221536561-6ufogcm4u6v1e6ot8qu01gf67a1bfb1u.apps.googleusercontent.com'; // Debe ser la URL a la que Google redirige tras el login.
+    const GOOGLE_REDIRECT_URI = 'https://developers.google.com/oauthplayground'; // Debe ser la URL a la que Google redirige tras el login.
 
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.append('client_id', GOOGLE_CLIENT_ID);
