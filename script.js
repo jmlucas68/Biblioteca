@@ -79,6 +79,22 @@ function isHTML(str) {
     return Array.from(doc.body.childNodes).some(node => node.nodeType === 1);
 }
 
+function redirectToGoogleAuth() {
+    // !!! IMPORTANTE: Reemplaza estos valores con los de tu proyecto de Google Cloud !!!
+    const GOOGLE_CLIENT_ID = '991221536561-6ufogcm4u6v1e6ot8qu01gf67a1bfb1u.apps.googleusercontent.com'; // Puedes encontrarlo en las variables de entorno de tu backend en Vercel.
+    const GOOGLE_REDIRECT_URI = '991221536561-6ufogcm4u6v1e6ot8qu01gf67a1bfb1u.apps.googleusercontent.com'; // Debe ser la URL a la que Google redirige tras el login.
+
+    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    authUrl.searchParams.append('client_id', GOOGLE_CLIENT_ID);
+    authUrl.searchParams.append('redirect_uri', GOOGLE_REDIRECT_URI);
+    authUrl.searchParams.append('response_type', 'code');
+    authUrl.searchParams.append('scope', 'https://www.googleapis.com/auth/drive.file');
+    authUrl.searchParams.append('access_type', 'offline');
+    authUrl.searchParams.append('prompt', 'consent'); // 'consent' fuerza que se pida permiso y se genere un nuevo refresh_token
+
+    window.location.href = authUrl.toString();
+}
+
 async function enterAdminMode() {
     isAdmin = true;
     enableAdminFeatures();
@@ -440,6 +456,11 @@ async function saveNewBook(event) {
         });
 
         if (!uploadResponse.ok) {
+            if (uploadResponse.status === 401) {
+                alert("Autenticación con Google requerida. Serás redirigido para iniciar sesión.");
+                redirectToGoogleAuth();
+                return; // Detener la ejecución para que no continúe
+            }
             const errorText = await uploadResponse.text();
             throw new Error(`Error al subir el fichero: ${uploadResponse.status} - ${errorText}`);
         }
