@@ -117,10 +117,73 @@
         applyThemeFromStorage();
         window.addEventListener('storage', (e) => { if (e.key === 'theme') applyThemeFromStorage(); });
 
+        function resolveDriveDownloadUrl(url) {
+            if (!url) return '';
+            const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
+            if (idMatch && idMatch[1]) {
+                return `https://drive.google.com/uc?export=download&id=${idMatch[1]}`;
+            }
+            return url;
+        }
+        function extractDriveId(url) {
+            const m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
+            return m && m[1] ? m[1] : null;
+        }
+
+        async function fetchAsBlobWithCors(url) {
+            const candidates = [
+                `https://cors.isomorphic-git.org/${url}`,
+                `https://corsproxy.io/?${encodeURIComponent(url)}`
+            ];
+            let lastError = null;
+            for (const candidate of candidates) {
+                try {
+                    const res = await fetch(candidate, { credentials: 'omit' });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return await res.blob();
+                } catch (e) {
+                    lastError = e;
+                }
+            }
+            throw lastError || new Error('No se pudo descargar el EPUB con CORS');
+        }
+
         if (!bookUrl) {
             document.body.innerHTML = '<div style="padding:20px;">No se proporcionó URL del EPUB.</div>';
         } else {
-            const book = ePub(bookUrl);
+            const driveId = extractDriveId(bookUrl);
+            if (driveId) {
+                // Mismo enfoque que la vista previa actual: usar visor de Google Drive para evitar CORS
+                const embed = `https://drive.google.com/file/d/${driveId}/preview`;
+                document.getElementById('toc').innerHTML = '';
+                document.getElementById('spine').innerHTML = '';
+                const rend = document.getElementById('rendition');
+                rend.innerHTML = '';
+                const iframe = document.createElement('iframe');
+                iframe.src = embed;
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = '0';
+                rend.appendChild(iframe);
+                // Ocultar controles que no aplican al visor de Drive
+                document.getElementById('fontSize').parentElement.classList.add('hidden');
+                // Navegación de flechas no aplica aquí
+                document.getElementById('prevBtn').classList.add('hidden');
+                document.getElementById('nextBtn').classList.add('hidden');
+                // Barra de progreso no aplica
+                document.querySelector('.footer').classList.add('hidden');
+                return; // No inicializar epub.js
+            }
+            let objectUrl = null;
+            const resolvedUrl = resolveDriveDownloadUrl(bookUrl);
+            const blob = await fetchAsBlobWithCors(resolvedUrl).catch(err => null);
+            if (!blob) {
+                document.body.innerHTML = '<div style="padding:20px;">No se pudo descargar el EPUB debido a restricciones CORS.</div>';
+                throw new Error('CORS EPUB download failed');
+            }
+            objectUrl = URL.createObjectURL(blob);
+
+            const book = ePub(objectUrl);
             const rendition = book.renderTo('rendition', { width: '100%', height: '100%', spread: 'auto' });
             const storedKey = 'epub-pos:' + bookUrl;
             const storedFontKey = 'epub-font:' + bookUrl;
@@ -210,7 +273,7 @@
                 else if (e.key === '-') { e.preventDefault(); changeFont(-1); }
             });
 
-            window.addEventListener('beforeunload', () => { try { saveLocation(rendition?.currentLocation()?.start?.cfi); } catch(e){} });
+            window.addEventListener('beforeunload', () => { try { saveLocation(rendition?.currentLocation()?.start?.cfi); } catch(e){} try { if (objectUrl) URL.revokeObjectURL(objectUrl); } catch(err){} });
 
             init();
         }
