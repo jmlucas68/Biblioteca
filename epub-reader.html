@@ -153,11 +153,15 @@
                 document.body.innerHTML = '<div style="padding:20px;">No se proporcionó URL del EPUB.</div>';
                 return;
             }
-            // Si es Google Drive, redirigir directamente a la vista preview y no intentar descargar
+            // Si es Google Drive, abrir en nueva pestaña la vista preview y no intentar descargar
             const driveIdEarly = extractDriveId(bookUrl);
             if (driveIdEarly) {
                 const embed = `https://drive.google.com/file/d/${driveIdEarly}/preview`;
-                window.location.replace(embed);
+                try { window.open(embed, '_blank', 'noopener'); } catch(e){}
+                // Intentar cerrar esta pestaña si fue abierta por script
+                try { window.close(); } catch(e){}
+                // Si no se pudo cerrar, mostrar enlace para el usuario
+                document.body.innerHTML = `<div style="padding:20px;">Abriendo visor de Google Drive... Si no se abrió, <a href="${embed}" target="_blank" rel="noopener">haz clic aquí</a>.</div>`;
                 return;
             }
             let objectUrl = null;
@@ -168,20 +172,9 @@
                 const driveId = extractDriveId(bookUrl);
                 if (driveId) {
                     const embed = `https://drive.google.com/file/d/${driveId}/preview`;
-                    document.getElementById('toc').innerHTML = '';
-                    document.getElementById('spine').innerHTML = '';
-                    const rend = document.getElementById('rendition');
-                    rend.innerHTML = '';
-                    const iframe = document.createElement('iframe');
-                    iframe.src = embed;
-                    iframe.style.width = '100%';
-                    iframe.style.height = '100%';
-                    iframe.style.border = '0';
-                    rend.appendChild(iframe);
-                    const controls = document.querySelector('.controls');
-                    if (controls) controls.classList.add('hidden');
-                    const footer = document.querySelector('.footer');
-                    if (footer) footer.classList.add('hidden');
+                    try { window.open(embed, '_blank', 'noopener'); } catch(e){}
+                    try { window.close(); } catch(e){}
+                    document.body.innerHTML = `<div style="padding:20px;">Abriendo visor de Google Drive... Si no se abrió, <a href="${embed}" target="_blank" rel="noopener">haz clic aquí</a>.</div>`;
                     return;
                 }
                 document.body.innerHTML = '<div style="padding:20px;">No se pudo descargar el EPUB debido a restricciones CORS.</div>';
