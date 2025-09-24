@@ -277,8 +277,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('theme', theme);
     });
 
-    // Always show login modal on load
-    showLoginModal();
+    const isAdminCookie = getCookie('isAdmin');
+    if (isAdminCookie === 'true') {
+        await enterAdminMode();
+    } else {
+        // If not admin, show login modal (which will pre-select Lector if userRole cookie exists)
+        showLoginModal();
+    }
 });
 
 // Data loading
