@@ -735,6 +735,14 @@ textarea.form-control {
     }
 }
 
+/* Override sticky when header is not pinned: allow it to scroll away */
+@media (min-width: 769px) {
+    body:not(.header-is-pinned) .header {
+        position: static;
+        top: auto;
+    }
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 16px;
