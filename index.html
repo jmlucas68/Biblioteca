@@ -14,6 +14,54 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Header -->
+    <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <img src="images/logo.png" alt="Mi Biblioteca Personal Logo" class="header-logo">
+                    <div class="breadcrumb" id="breadcrumb"></div>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn--primary" id="authButton" style="margin-right: 1rem;">
+                        🔒 Login
+                    </button>
+                    <!-- Botón Editar Clasificación a la izquierda del de Buscar Libros -->
+                    <button class="btn btn--warning admin-control" style="margin-right: 1rem; display: none;" onclick="openClassificationEditor()" title="Editar la estructura de clasificación de secciones y tags">
+                        ⚙️ Editar Clasificación
+                    </button>
+                    <button id="importButton" class="btn btn--primary admin-control" style="display: none; margin-right: 1rem;" title="Importar nuevos libros desde archivos">
+                        📥 Importar Libros
+                    </button>
+                    <button class="btn btn--outline" id="pinHeaderButton" title="Fijar/Desfijar cabecera">
+                        📌
+                    </button>
+                                        <div class="theme-switch-wrapper">
+                        <label class="theme-switch" for="darkModeToggle">
+                            <input type="checkbox" id="darkModeToggle" />
+                            <span class="slider round"></span>
+                        </label>
+                        <span style="margin-left: 8px; color: var(--color-text-secondary);">Modo Oscuro</span>
+                    </div>
+                    <button class="header-search-btn" onclick="openSearchModal()">
+                        🔍 Buscar Libros
+                    </button>
+                    <div class="stats">
+                        <div class="stat">
+                            <span class="stat-number" id="totalBooks">0</span>
+                            <span class="stat-label">Libros</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number" id="totalAuthors">0</span>
+                            <span class="stat-label">Autores</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number" id="totalFormats">0</span>
+                            <span class="stat-label">Formatos</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
     <div class="modal-backdrop" id="securityModal" style="display: none;">
         <div class="modal">
             <div class="modal-header">
@@ -47,54 +95,7 @@
         </div>
     </div>
     <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-content">
-                <div class="header-left">
-                    <img src="images/logo.png" alt="Mi Biblioteca Personal Logo" class="header-logo">
-                    <div class="breadcrumb" id="breadcrumb"></div>
-                </div>
-                <div class="header-right">
-                    <button class="btn btn--primary" id="authButton" style="margin-right: 1rem;">
-                        🔒 Login
-                    </button>
-                    <!-- Botón Editar Clasificación a la izquierda del de Buscar Libros -->
-                    <button class="btn btn--warning admin-control" style="margin-right: 1rem; display: none;" onclick="openClassificationEditor()" title="Editar la estructura de clasificación de secciones y tags">
-                        ⚙️ Editar Clasificación
-                    </button>
-                    <button id="importButton" class="btn btn--primary admin-control" style="display: none; margin-right: 1rem;" title="Importar nuevos libros desde archivos">
-                        📥 Importar Libros
-                    </button>
-                                        <button class="btn btn--outline" id="pinHeaderButton" title="Fijar/Desfijar cabecera">
-                        📌
-                    </button>
-                                        <div class="theme-switch-wrapper">
-                        <label class="theme-switch" for="darkModeToggle">
-                            <input type="checkbox" id="darkModeToggle" />
-                            <span class="slider round"></span>
-                        </label>
-                        <span style="margin-left: 8px; color: var(--color-text-secondary);">Modo Oscuro</span>
-                    </div>
-                    <button class="header-search-btn" onclick="openSearchModal()">
-                        🔍 Buscar Libros
-                    </button>
-                    <div class="stats">
-                        <div class="stat">
-                            <span class="stat-number" id="totalBooks">0</span>
-                            <span class="stat-label">Libros</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-number" id="totalAuthors">0</span>
-                            <span class="stat-label">Autores</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-number" id="totalFormats">0</span>
-                            <span class="stat-label">Formatos</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </header>
+        
 
         <!-- Admin Controls -->
         <div class="admin-controls" id="adminControls">
