@@ -48,6 +48,13 @@ function esc(s) {
 
 function showLoginModal() {
     document.getElementById('securityModal').style.display = 'flex';
+    const lastUserRole = getCookie('userRole');
+    if (lastUserRole) {
+        const radio = document.querySelector(`input[name="userType"][value="${lastUserRole}"]`);
+        if (radio) {
+            radio.checked = true;
+        }
+    }
 }
 
 function closeLoginModal() {
@@ -56,6 +63,7 @@ function closeLoginModal() {
 
 function logoff() {
     deleteCookie('isAdmin');
+    deleteCookie('userRole'); // Delete userRole cookie
     isAdmin = false; // Update local state
     disableAdminFeatures(); // Immediately disable features
     showLoginModal(); // Show login modal after logoff
@@ -120,6 +128,7 @@ async function validatePassword() {
 
         if (data.success) { // Assuming backend returns { success: true, role: 'Lector'/'Bibliotecario' }
             closeLoginModal();
+            setCookie('userRole', data.role, 7); // Set userRole cookie for 7 days
             if (data.role === 'Bibliotecario') {
                 setCookie('isAdmin', 'true', 7); // Set cookie for 7 days
                 isAdmin = true;
