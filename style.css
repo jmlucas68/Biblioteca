@@ -1086,7 +1086,7 @@ body.light-mode .tag-delete-btn:hover {
     font-size: 1rem;
     flex-grow: 1;
     padding: 0.75rem 1rem;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--radius-md);
     transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
     border: 1px solid transparent;
 }
@@ -1135,4 +1135,20 @@ body.light-mode .tag-delete-btn:hover {
     /* Estilo para el contenedor del label cuando está seleccionado */
     background-color: var(--color-primary-light);
     border-color: var(--color-primary);
+}
+
+/* Header pinning */
+.header--pinned {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 999; /* Below modals, above regular content */
+    border-radius: 0; /* Remove border-radius when fixed to span full width */
+    transition: all 0.3s ease-in-out;
+}
+
+/* Adjust body padding when header is pinned */
+body.header-is-pinned {
+    padding-top: 120px; /* Adjust this value based on your header's height */
 }
