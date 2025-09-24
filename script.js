@@ -1546,7 +1546,7 @@ authButton.addEventListener('click', () => {
     if (isAdmin) {
         logoff();
     }
-} else {
+    else {
         showLoginModal();
     }
 });
