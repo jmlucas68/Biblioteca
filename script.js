@@ -278,10 +278,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const isAdminCookie = getCookie('isAdmin');
+    const userRoleCookie = getCookie('userRole'); // Get the userRole cookie
+
     if (isAdminCookie === 'true') {
+        // If admin cookie exists, enter admin mode directly
         await enterAdminMode();
+    } else if (userRoleCookie === 'Lector') {
+        // If Lector cookie exists, enter read-only mode directly
+        await enterReadOnlyMode(); // This function already sets isAdmin = false and calls loadInitialData()
     } else {
-        // If not admin, show login modal (which will pre-select Lector if userRole cookie exists)
+        // If neither admin nor lector cookie exists, then show the login modal
         showLoginModal();
     }
 });
