@@ -148,38 +148,37 @@
             throw lastError || new Error('No se pudo descargar el EPUB con CORS');
         }
 
-        if (!bookUrl) {
-            document.body.innerHTML = '<div style="padding:20px;">No se proporcionó URL del EPUB.</div>';
-        } else {
-            const driveId = extractDriveId(bookUrl);
-            if (driveId) {
-                // Mismo enfoque que la vista previa actual: usar visor de Google Drive para evitar CORS
-                const embed = `https://drive.google.com/file/d/${driveId}/preview`;
-                document.getElementById('toc').innerHTML = '';
-                document.getElementById('spine').innerHTML = '';
-                const rend = document.getElementById('rendition');
-                rend.innerHTML = '';
-                const iframe = document.createElement('iframe');
-                iframe.src = embed;
-                iframe.style.width = '100%';
-                iframe.style.height = '100%';
-                iframe.style.border = '0';
-                rend.appendChild(iframe);
-                // Ocultar controles que no aplican al visor de Drive
-                document.getElementById('fontSize').parentElement.classList.add('hidden');
-                // Navegación de flechas no aplica aquí
-                document.getElementById('prevBtn').classList.add('hidden');
-                document.getElementById('nextBtn').classList.add('hidden');
-                // Barra de progreso no aplica
-                document.querySelector('.footer').classList.add('hidden');
-                return; // No inicializar epub.js
+        (async () => {
+            if (!bookUrl) {
+                document.body.innerHTML = '<div style="padding:20px;">No se proporcionó URL del EPUB.</div>';
+                return;
             }
             let objectUrl = null;
             const resolvedUrl = resolveDriveDownloadUrl(bookUrl);
-            const blob = await fetchAsBlobWithCors(resolvedUrl).catch(err => null);
+            let blob = await fetchAsBlobWithCors(resolvedUrl).catch(err => null);
             if (!blob) {
+                // Si falla, y es Drive, usar visor embed de Drive como fallback
+                const driveId = extractDriveId(bookUrl);
+                if (driveId) {
+                    const embed = `https://drive.google.com/file/d/${driveId}/preview`;
+                    document.getElementById('toc').innerHTML = '';
+                    document.getElementById('spine').innerHTML = '';
+                    const rend = document.getElementById('rendition');
+                    rend.innerHTML = '';
+                    const iframe = document.createElement('iframe');
+                    iframe.src = embed;
+                    iframe.style.width = '100%';
+                    iframe.style.height = '100%';
+                    iframe.style.border = '0';
+                    rend.appendChild(iframe);
+                    const controls = document.querySelector('.controls');
+                    if (controls) controls.classList.add('hidden');
+                    const footer = document.querySelector('.footer');
+                    if (footer) footer.classList.add('hidden');
+                    return;
+                }
                 document.body.innerHTML = '<div style="padding:20px;">No se pudo descargar el EPUB debido a restricciones CORS.</div>';
-                throw new Error('CORS EPUB download failed');
+                return;
             }
             objectUrl = URL.createObjectURL(blob);
 
@@ -276,7 +275,7 @@
             window.addEventListener('beforeunload', () => { try { saveLocation(rendition?.currentLocation()?.start?.cfi); } catch(e){} try { if (objectUrl) URL.revokeObjectURL(objectUrl); } catch(err){} });
 
             init();
-        }
+        })();
     </script>
 </body>
 </html>
