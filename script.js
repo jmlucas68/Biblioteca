@@ -236,7 +236,9 @@ function populateElements() {
         uploadStatus: document.getElementById('uploadStatus'),
         importModal: document.getElementById('importModal'),
         importForm: document.getElementById('importForm'),
-        closeImportModal: document.querySelector('#importModal .close-button')
+        closeImportModal: document.querySelector('#importModal .close-button'),
+        header: document.querySelector('.header'), // Add header element
+        pinHeaderButton: document.getElementById('pinHeaderButton'), // Add pin button
     };
 }
 
@@ -1509,4 +1511,42 @@ function setupEventListeners() {
             }
         }
     });
+
+    // Header pinning logic
+    if (elements.pinHeaderButton && elements.header) {
+        elements.pinHeaderButton.addEventListener('click', toggleHeaderPin);
+        // Apply initial state on load
+        const isPinned = localStorage.getItem('headerPinned') === 'true';
+        applyHeaderPinState(isPinned);
+    }
 }
+
+function toggleHeaderPin() {
+    const isPinned = elements.header.classList.contains('header--pinned');
+    applyHeaderPinState(!isPinned);
+}
+
+function applyHeaderPinState(pin) {
+    if (pin) {
+        elements.header.classList.add('header--pinned');
+        document.body.classList.add('header-is-pinned');
+        elements.pinHeaderButton.innerHTML = '📍'; // Pinned icon
+        localStorage.setItem('headerPinned', 'true');
+    } else {
+        elements.header.classList.remove('header--pinned');
+        document.body.classList.remove('header-is-pinned');
+        elements.pinHeaderButton.innerHTML = '📌'; // Unpinned icon
+        localStorage.setItem('headerPinned', 'false');
+    }
+}
+
+// --- Auth Button Setup ---
+const authButton = document.getElementById('authButton');
+authButton.addEventListener('click', () => {
+    if (isAdmin) {
+        logoff();
+    }
+    else {
+        showLoginModal();
+    }
+});
