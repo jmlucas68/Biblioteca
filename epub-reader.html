@@ -153,6 +153,13 @@
                 document.body.innerHTML = '<div style="padding:20px;">No se proporcionó URL del EPUB.</div>';
                 return;
             }
+            // Si es Google Drive, redirigir directamente a la vista preview y no intentar descargar
+            const driveIdEarly = extractDriveId(bookUrl);
+            if (driveIdEarly) {
+                const embed = `https://drive.google.com/file/d/${driveIdEarly}/preview`;
+                window.location.replace(embed);
+                return;
+            }
             let objectUrl = null;
             const resolvedUrl = resolveDriveDownloadUrl(bookUrl);
             let blob = await fetchAsBlobWithCors(resolvedUrl).catch(err => null);

@@ -1352,6 +1352,15 @@ async function openViewer(event, formatUrl, bookTitle, formatName) {
     event.stopPropagation();
     // Si es EPUB, abrir el nuevo lector en una pestaña
     if (String(formatName || '').toLowerCase() === 'epub') {
+        const isDrive = /https?:\/\/(?:[^/]*\.)?drive\.google\.com\//i.test(formatUrl);
+        if (isDrive) {
+            const idMatch = formatUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) || formatUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
+            if (idMatch && idMatch[1]) {
+                const embed = `https://drive.google.com/file/d/${idMatch[1]}/preview`;
+                window.open(embed, '_blank', 'noopener');
+                return;
+            }
+        }
         const readerUrl = `epub-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
         window.open(readerUrl, '_blank', 'noopener');
         return;
