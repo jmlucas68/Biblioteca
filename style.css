@@ -1068,3 +1068,71 @@ body.light-mode .tag-delete-btn:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
+
+/* Estilos para la selección de tipo de usuario en el modal */
+.user-type-selection {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: var(--color-background-muted);
+    border-radius: var(--border-radius-lg);
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 1rem;
+    flex-grow: 1;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-md);
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    border: 1px solid transparent;
+}
+
+.radio-label:hover {
+    background-color: var(--color-background-hover);
+}
+
+.radio-label input[type="radio"] {
+    display: none; /* Ocultamos el radio button por defecto */
+}
+
+.radio-label .radio-custom {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--color-border);
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    display: inline-block;
+    position: relative;
+    transition: border-color 0.2s;
+}
+
+.radio-label input[type="radio"]:checked + .radio-custom {
+    border-color: var(--color-primary);
+}
+
+.radio-label input[type="radio"]:checked + .radio-custom::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background-color: var(--color-primary);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.radio-label input[type="radio"]:checked ~ span {
+    color: var(--color-primary);
+    font-weight: 500;
+}
+
+.radio-label input[type="radio"]:checked {
+    /* Estilo para el contenedor del label cuando está seleccionado */
+    background-color: var(--color-primary-light);
+    border-color: var(--color-primary);
+}

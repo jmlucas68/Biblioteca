@@ -48,6 +48,13 @@ function esc(s) {
 
 function showLoginModal() {
     document.getElementById('securityModal').style.display = 'flex';
+    const lastUserRole = getCookie('userRole');
+    if (lastUserRole) {
+        const radio = document.querySelector(`input[name="userType"][value="${lastUserRole}"]`);
+        if (radio) {
+            radio.checked = true;
+        }
+    }
 }
 
 function closeLoginModal() {
@@ -56,7 +63,11 @@ function closeLoginModal() {
 
 function logoff() {
     deleteCookie('isAdmin');
-    location.reload();
+    deleteCookie('userRole'); // Delete userRole cookie
+    isAdmin = false; // Update local state
+    disableAdminFeatures(); // Immediately disable features
+    showLoginModal(); // Show login modal after logoff
+    // No need to reload, loadInitialData will be called after successful login
 }
 
 function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i); h|=0;} return String(Math.abs(h)); }
@@ -93,15 +104,17 @@ async function enterReadOnlyMode() {
 
 async function validatePassword() {
     const password = document.getElementById('passwordInput').value;
+    const selectedUserType = document.querySelector('input[name="userType"]:checked').value; // Get selected user type
+
     try {
         const response = await fetch(GEMINI_PROXY_URL, {
-        //const response = await fetch(BIBLIOTECA_ADMIN, {    
-        method: 'POST',
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                action: 'validate_password',
+                action: 'login', // New action for login
+                userType: selectedUserType, // Send user type
                 password: password
             }),
         });
@@ -113,24 +126,24 @@ async function validatePassword() {
 
         const data = await response.json();
 
-        if (response.ok && data.isValid) {
-
-            setCookie('isAdmin', 'true', 7); // Set cookie for 7 days
-            isAdmin = true;
+        if (data.success) { // Assuming backend returns { success: true, role: 'Lector'/'Bibliotecario' }
             closeLoginModal();
-            enableAdminFeatures();
-            
-            // Re-render current view to show admin controls
-            if (elements.booksView.classList.contains('active')) {
-                renderBooks();
-            } else if (elements.subsectionsView.classList.contains('active')) {
-                showSubsections(currentSection);
-            } else if (elements.sectionsView.classList.contains('active')) {
-                showSections();
+            setCookie('userRole', data.role, 7); // Set userRole cookie for 7 days
+            if (data.role === 'Bibliotecario') {
+                setCookie('isAdmin', 'true', 7); // Set cookie for 7 days
+                isAdmin = true;
+                enableAdminFeatures();
+            } else { // Lector
+                deleteCookie('isAdmin'); // Ensure no admin cookie is set
+                isAdmin = false;
+                disableAdminFeatures();
             }
+            
+            // Load initial data and render UI based on the new role
+            await loadInitialData(); // This will call showSections() internally
 
         } else {
-            alert('Contraseña incorrecta');
+            alert('Contraseña incorrecta o tipo de usuario inválido.');
         }
     } catch (error) {
         console.error('Error validating password:', error);
@@ -265,10 +278,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const isAdminCookie = getCookie('isAdmin');
+    const userRoleCookie = getCookie('userRole'); // Get the userRole cookie
+
     if (isAdminCookie === 'true') {
+        // If admin cookie exists, enter admin mode directly
         await enterAdminMode();
+    } else if (userRoleCookie === 'Lector') {
+        // If Lector cookie exists, enter read-only mode directly
+        await enterReadOnlyMode(); // This function already sets isAdmin = false and calls loadInitialData()
     } else {
-        await enterReadOnlyMode();
+        // If neither admin nor lector cookie exists, then show the login modal
+        showLoginModal();
     }
 });
 
