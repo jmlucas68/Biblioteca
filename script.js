@@ -1350,6 +1350,12 @@ function buildPreviewUrl(viewUrl) {
 async function openViewer(event, formatUrl, bookTitle, formatName) {
     event.preventDefault();
     event.stopPropagation();
+    // Si es EPUB, abrir el nuevo lector en una pestaña
+    if (String(formatName || '').toLowerCase() === 'epub') {
+        const readerUrl = `epub-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
+        window.open(readerUrl, '_blank', 'noopener');
+        return;
+    }
     if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
     const viewerModal = document.getElementById('viewerModal');
     const viewerIframe = document.getElementById('viewerIframe');
