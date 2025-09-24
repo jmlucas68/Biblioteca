@@ -121,7 +121,8 @@
             if (!url) return '';
             const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
             if (idMatch && idMatch[1]) {
-                return `https://drive.google.com/uc?export=download&id=${idMatch[1]}`;
+                // Usar el backend en Vercel como proxy CORS
+                return `https://perplexity-proxy-backend.vercel.app/api/drive-proxy?id=${idMatch[1]}`;
             }
             return url;
         }
