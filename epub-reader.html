@@ -285,7 +285,9 @@
 
             window.addEventListener('beforeunload', () => { try { saveLocation(rendition?.currentLocation()?.start?.cfi); } catch(e){} try { if (objectUrl) URL.revokeObjectURL(objectUrl); } catch(err){} });
 
-            console.log('Calling init()');
+            console.log('Waiting for book to open...');
+            await book.opened; // Wait for the book to be fully opened and parsed
+            console.log('Book opened. Calling init()');
             init();
         })();
 
@@ -324,7 +326,6 @@
                 // sin TOC
             }
         }
-    </script>
     </script>
 </body>
 </html>
