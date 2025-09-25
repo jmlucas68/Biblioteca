@@ -188,10 +188,10 @@
                 return;
             }
             console.log('Blob fetched:', blob);
-            objectUrl = URL.createObjectURL(blob);
-            console.log('objectUrl:', objectUrl);
+            // objectUrl = URL.createObjectURL(blob); // No longer needed if passing blob directly
+            // console.log('objectUrl:', objectUrl);
 
-            const book = ePub(objectUrl);
+            const book = ePub(blob); // Pass the blob directly
             console.log('ePub book object:', book);
             const rendition = book.renderTo('rendition', { width: '100%', height: '100%', spread: 'auto' });
             const storedKey = 'epub-pos:' + bookUrl;
