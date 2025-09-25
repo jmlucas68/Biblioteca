@@ -1358,20 +1358,11 @@ function buildPreviewUrl(viewUrl) {
 async function openViewer(event, formatUrl, bookTitle, formatName) {
     event.preventDefault();
     event.stopPropagation();
-    // Si es EPUB, abrir el nuevo lector en una pestaña o el visor de Drive directamente
+    // Si es EPUB, abrir el nuevo lector en una pestaña
     if (String(formatName || '').toLowerCase() === 'epub') {
-        const driveId = extractDriveId(formatUrl);
-        if (driveId) {
-            const drivePreviewUrl = `https://drive.google.com/file/d/${driveId}/preview`;
-            console.log('Opening Google Drive preview directly:', drivePreviewUrl);
-            window.open(drivePreviewUrl, '_blank', 'noopener');
-            return;
-        } else {
-            const readerUrl = `epub-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
-            console.log('Opening EPUB reader with URL:', readerUrl);
-            window.open(readerUrl, '_blank', 'noopener');
-            return;
-        }
+        const readerUrl = `epub-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
+        window.open(readerUrl, '_blank', 'noopener');
+        return;
     }
     if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
     const viewerModal = document.getElementById('viewerModal');

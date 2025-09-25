@@ -132,6 +132,19 @@
         }
 
         async function fetchAsBlobWithCors(url) {
+            // Prioritize our own proxy for Google Drive URLs
+            const driveId = extractDriveId(url); // Need to keep extractDriveId for this
+            if (driveId) {
+                const proxyUrl = `https://perplexity-proxy-backend.vercel.app/api/drive-proxy?id=${driveId}`;
+                try {
+                    const res = await fetch(proxyUrl, { credentials: 'omit' });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return await res.blob();
+                } catch (e) {
+                    console.warn('Error fetching from custom proxy, falling back to generic CORS proxies:', e);
+                }
+            }
+
             const candidates = [
                 `https://cors.isomorphic-git.org/${url}`,
                 `https://corsproxy.io/?${encodeURIComponent(url)}`
@@ -144,7 +157,7 @@
                     return await res.blob();
                 } catch (e) {
                     lastError = e;
-                }
+                };
             }
             throw lastError || new Error('No se pudo descargar el EPUB con CORS');
         }
