@@ -163,31 +163,36 @@
         }
 
         (async () => {
+            console.log('bookUrl:', bookUrl);
             if (!bookUrl) {
                 document.body.innerHTML = '<div style="padding:20px;">No se proporcionó URL del EPUB.</div>';
                 return;
             }
-            // Si es Google Drive, la URL ya debería haber sido manejada por el script principal.
-            // Si llega aquí, es un EPUB que debe ser cargado por epub.js
             let objectUrl = null;
             const resolvedUrl = resolveDriveDownloadUrl(bookUrl);
-            let blob = await fetchAsBlobWithCors(resolvedUrl).catch(err => null);
+            console.log('resolvedUrl:', resolvedUrl);
+            let blob = await fetchAsBlobWithCors(resolvedUrl).catch(err => {
+                console.error('Error fetching blob:', err);
+                return null;
+            });
             if (!blob) {
                 // Si falla, y es Drive, usar visor embed de Drive como fallback
                 const driveId = extractDriveId(bookUrl);
                 if (driveId) {
                     const embed = `https://drive.google.com/file/d/${driveId}/preview`;
-                    try { window.open(embed, '_blank', 'noopener'); } catch(e){}
-                    try { window.close(); } catch(e){}
-                    document.body.innerHTML = `<div style="padding:20px;">Abriendo visor de Google Drive... Si no se abrió, <a href="${embed}" target="_blank" rel="noopener">haz clic aquí</a>.</div>`;
+                    document.body.innerHTML = `<div style="padding:20px;">No se pudo cargar el EPUB. Intentando abrir visor de Google Drive... Si no se abrió, <a href="${embed}" target="_blank" rel="noopener">haz clic aquí</a>.</div>`;
+                    window.open(embed, '_blank', 'noopener');
                     return;
                 }
                 document.body.innerHTML = '<div style="padding:20px;">No se pudo descargar el EPUB debido a restricciones CORS.</div>';
                 return;
             }
+            console.log('Blob fetched:', blob);
             objectUrl = URL.createObjectURL(blob);
+            console.log('objectUrl:', objectUrl);
 
             const book = ePub(objectUrl);
+            console.log('ePub book object:', book);
             const rendition = book.renderTo('rendition', { width: '100%', height: '100%', spread: 'auto' });
             const storedKey = 'epub-pos:' + bookUrl;
             const storedFontKey = 'epub-font:' + bookUrl;
