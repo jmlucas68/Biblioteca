@@ -285,8 +285,46 @@
 
             window.addEventListener('beforeunload', () => { try { saveLocation(rendition?.currentLocation()?.start?.cfi); } catch(e){} try { if (objectUrl) URL.revokeObjectURL(objectUrl); } catch(err){} });
 
+            console.log('Calling init()');
             init();
         })();
+
+        async function init() {
+            console.log('Inside init(), before rendition.display()');
+            const startCfi = loadLocation();
+            try {
+                await rendition.display(startCfi || undefined);
+                console.log('Inside init(), after rendition.display()');
+            } catch (error) {
+                console.error('Error during rendition.display():', error);
+            }
+
+            const spineEl = document.getElementById('spine');
+            spineEl.innerHTML = '';
+            book.spine.each(item => {
+                const a = document.createElement('a');
+                a.textContent = item?.label || item?.href || 'Sección';
+                a.href = '#';
+                a.onclick = (e) => { e.preventDefault(); rendition.display(item.href); };
+                spineEl.appendChild(a);
+            });
+
+            try {
+                const toc = await book.loaded.navigation;
+                const tocEl = document.getElementById('toc');
+                tocEl.innerHTML = '';
+                (toc.toc || []).forEach((item) => {
+                    const link = document.createElement('a');
+                    link.textContent = item.label;
+                    link.href = '#';
+                    link.onclick = (e) => { e.preventDefault(); rendition.display(item.href); };
+                    tocEl.appendChild(link);
+                });
+            } catch(err) {
+                // sin TOC
+            }
+        }
+    </script>
     </script>
 </body>
 </html>
