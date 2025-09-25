@@ -1353,6 +1353,7 @@ async function openViewer(event, formatUrl, bookTitle, formatName) {
     // Si es EPUB, abrir el nuevo lector en una pestaña
     if (String(formatName || '').toLowerCase() === 'epub') {
         const readerUrl = `epub-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
+        console.log('Opening EPUB reader with URL:', readerUrl);
         window.open(readerUrl, '_blank', 'noopener');
         return;
     }
