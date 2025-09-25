@@ -72,6 +72,14 @@ function logoff() {
 
 function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i); h|=0;} return String(Math.abs(h)); }
 
+function extractDriveId(inputUrl) {
+    if (!inputUrl) return null;
+    const p = inputUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (p?.[1]) return p[1];
+    const d = inputUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
+    return d?.[1] || null;
+}
+
 function resolveCoverThumb(urlPortada) {
     if (!urlPortada) return '';
     const m = urlPortada.match(/\/d\/([^\/]+)\//);
@@ -1350,12 +1358,20 @@ function buildPreviewUrl(viewUrl) {
 async function openViewer(event, formatUrl, bookTitle, formatName) {
     event.preventDefault();
     event.stopPropagation();
-    // Si es EPUB, abrir el nuevo lector en una pestaña
+    // Si es EPUB, abrir el nuevo lector en una pestaña o el visor de Drive directamente
     if (String(formatName || '').toLowerCase() === 'epub') {
-        const readerUrl = `epub-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
-        console.log('Opening EPUB reader with URL:', readerUrl);
-        window.open(readerUrl, '_blank', 'noopener');
-        return;
+        const driveId = extractDriveId(formatUrl);
+        if (driveId) {
+            const drivePreviewUrl = `https://drive.google.com/file/d/${driveId}/preview`;
+            console.log('Opening Google Drive preview directly:', drivePreviewUrl);
+            window.open(drivePreviewUrl, '_blank', 'noopener');
+            return;
+        } else {
+            const readerUrl = `epub-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
+            console.log('Opening EPUB reader with URL:', readerUrl);
+            window.open(readerUrl, '_blank', 'noopener');
+            return;
+        }
     }
     if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
     const viewerModal = document.getElementById('viewerModal');

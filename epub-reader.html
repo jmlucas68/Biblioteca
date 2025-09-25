@@ -154,17 +154,8 @@
                 document.body.innerHTML = '<div style="padding:20px;">No se proporcionó URL del EPUB.</div>';
                 return;
             }
-            // Si es Google Drive, abrir en nueva pestaña la vista preview y no intentar descargar
-            const driveIdEarly = extractDriveId(bookUrl);
-            if (driveIdEarly) {
-                const embed = `https://drive.google.com/file/d/${driveIdEarly}/preview`;
-                try { window.open(embed, '_blank', 'noopener'); } catch(e){}
-                // Intentar cerrar esta pestaña si fue abierta por script
-                try { window.close(); } catch(e){}
-                // Si no se pudo cerrar, mostrar enlace para el usuario
-                document.body.innerHTML = `<div style="padding:20px;">Abriendo visor de Google Drive... Si no se abrió, <a href="${embed}" target="_blank" rel="noopener">haz clic aquí</a>.</div>`;
-                return;
-            }
+            // Si es Google Drive, la URL ya debería haber sido manejada por el script principal.
+            // Si llega aquí, es un EPUB que debe ser cargado por epub.js
             let objectUrl = null;
             const resolvedUrl = resolveDriveDownloadUrl(bookUrl);
             let blob = await fetchAsBlobWithCors(resolvedUrl).catch(err => null);
