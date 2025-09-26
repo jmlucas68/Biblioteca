@@ -44,23 +44,23 @@
         .title { font-weight: 600; margin-right: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .controls { display: flex; gap: 8px; align-items: center; }
         button, select {
-            background: #111827;
+            background: var(--panel);
             color: var(--fg);
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 8px 12px;
             cursor: pointer;
         }
-        button:hover { background: #0b1220; }
+        button:hover { background: var(--bg); }
         #viewer { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 260px 1fr 260px; }
-        .side { border-right: 1px solid var(--border); background: #0b1220; overflow: auto; }
+        .side { border-right: 1px solid var(--border); background: var(--panel); overflow: auto; }
         .side.right { border-right: 0; border-left: 1px solid var(--border); }
         .spine, .toc { padding: 10px; font-size: 14px; }
         .spine a, .toc a { color: var(--fg); text-decoration: none; display: block; padding: 6px 8px; border-radius: 6px; }
-        .spine a:hover, .toc a:hover { background: #111827; }
+        .spine a:hover, .toc a:hover { background: var(--bg); }
         #rendition { overflow: hidden; }
         .footer { padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); display:flex; gap:12px; align-items:center; }
-        .prog { flex: 1; height: 6px; background: #111827; border-radius: 999px; overflow: hidden; }
+        .prog { flex: 1; height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
         .bar { height: 100%; background: var(--accent); width: 0%; }
         .hidden { display: none; }
     </style>
