@@ -52,12 +52,30 @@
             cursor: pointer;
         }
         button:hover { background: var(--bg); }
-        #viewer { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 260px 1fr 260px; }
-        .side { border-right: 1px solid var(--border); background: var(--panel); overflow: auto; }
-        .side.right { border-right: 0; border-left: 1px solid var(--border); }
-        .spine, .toc { padding: 10px; font-size: 14px; }
-        .spine a, .toc a { color: var(--fg); text-decoration: none; display: block; padding: 6px 8px; border-radius: 6px; }
-        .spine a:hover, .toc a:hover { background: var(--bg); }
+        
+        #viewer {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: 1fr; /* Default: rendition only */
+        }
+        .side.left {
+            display: none; /* Hidden by default */
+            border-right: 1px solid var(--border);
+            background: var(--panel);
+            overflow: auto;
+        }
+        /* When TOC is visible */
+        body.toc-visible #viewer {
+            grid-template-columns: 260px 1fr;
+        }
+        body.toc-visible .side.left {
+            display: block;
+        }
+
+        .toc { padding: 10px; font-size: 14px; }
+        .toc a { color: var(--fg); text-decoration: none; display: block; padding: 6px 8px; border-radius: 6px; }
+        .toc a:hover { background: var(--bg); }
         #rendition { overflow: hidden; }
         .footer { padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); display:flex; gap:12px; align-items:center; }
         .prog { flex: 1; height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
@@ -71,6 +89,7 @@
     <div class="topbar">
         <div class="title" id="bookTitle">Lector EPUB</div>
         <div class="controls">
+            <button id="tocBtn" title="Índice">☰</button>
             <button id="prevBtn" title="Anterior">⟨</button>
             <button id="nextBtn" title="Siguiente">⟩</button>
             <select id="fontSize">
@@ -88,9 +107,6 @@
             <div class="toc" id="toc"></div>
         </div>
         <div id="rendition"></div>
-        <div class="side right">
-            <div class="spine" id="spine"></div>
-        </div>
     </div>
     <div class="footer">
         <div id="location">0%</div>
@@ -109,19 +125,21 @@
         document.getElementById('bookTitle').textContent = bookTitle;
         document.getElementById('downloadLink').href = bookUrl;
 
-        // Sincronizar tema con la app principal
         function applyThemeFromStorage() {
-            // Forzado a modo claro
             document.body.classList.add('light-mode');
         }
         applyThemeFromStorage();
         window.addEventListener('storage', (e) => { if (e.key === 'theme') applyThemeFromStorage(); });
 
+        const tocBtn = document.getElementById('tocBtn');
+        tocBtn.onclick = () => {
+            document.body.classList.toggle('toc-visible');
+        };
+
         function resolveDriveDownloadUrl(url) {
             if (!url) return '';
             const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
             if (idMatch && idMatch[1]) {
-                // Usar el backend en Vercel como proxy CORS
                 return `https://perplexity-proxy-backend.vercel.app/api/drive-proxy?id=${idMatch[1]}`;
             }
             return url;
@@ -132,8 +150,7 @@
         }
 
         async function fetchAsBlobWithCors(url) {
-            // Prioritize our own proxy for Google Drive URLs
-            const driveId = extractDriveId(url); // Need to keep extractDriveId for this
+            const driveId = extractDriveId(url);
             if (driveId) {
                 const proxyUrl = `https://perplexity-proxy-backend.vercel.app/api/drive-proxy?id=${driveId}`;
                 try {
@@ -201,16 +218,6 @@
                 const startCfi = loadLocation();
                 await rendition.display(startCfi || undefined);
 
-                const spineEl = document.getElementById('spine');
-                spineEl.innerHTML = '';
-                book.spine.each(item => {
-                    const a = document.createElement('a');
-                    a.textContent = item?.label || item?.href || 'Sección';
-                    a.href = '#';
-                    a.onclick = (e) => { e.preventDefault(); rendition.display(item.href); };
-                    spineEl.appendChild(a);
-                });
-
                 try {
                     const toc = await book.loaded.navigation;
                     const tocEl = document.getElementById('toc');
@@ -219,11 +226,14 @@
                         const link = document.createElement('a');
                         link.textContent = item.label;
                         link.href = '#';
-                        link.onclick = (e) => { e.preventDefault(); rendition.display(item.href); };
+                        link.onclick = (e) => { 
+                            e.preventDefault(); 
+                            rendition.display(item.href); 
+                        };
                         tocEl.appendChild(link);
                     });
                 } catch(err) {
-                    // sin TOC
+                    console.error('Error loading navigation:', err);
                 }
             }
 
@@ -292,10 +302,6 @@
                 document.body.innerHTML = `<div style="padding:20px;">Error al abrir el libro: ${error.message}. El fichero puede ser demasiado grande para este dispositivo.</div>`;
             }
         })();
-
-        
     </script>
 </body>
 </html>
-
-
