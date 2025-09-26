@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lector EPUB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b1220;
+            --fg: #e5e7eb;
+            --muted: #94a3b8;
+            --accent: #2563eb;
+            --panel: #0f172a;
+            --border: #1f2937;
+        }
+        body.light-mode {
+            --bg: #ffffff;
+            --fg: #0b1220;
+            --muted: #475569;
+            --accent: #1d4ed8;
+            --panel: #f8fafc;
+            --border: #e5e7eb;
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            display: flex;
+            flex-direction: column;
+        }
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+        }
+        .title { font-weight: 600; margin-right: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .controls { display: flex; gap: 8px; align-items: center; }
+        button, select {
+            background: var(--panel);
+            color: var(--fg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        button:hover { background: var(--bg); }
+        
+        #viewer {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: 1fr; /* Default: rendition only */
+        }
+        .side.left {
+            display: none; /* Hidden by default */
+            border-right: 1px solid var(--border);
+            background: var(--panel);
+            overflow: auto;
+        }
+        /* When TOC is visible */
+        body.toc-visible #viewer {
+            grid-template-columns: 260px 1fr;
+        }
+        body.toc-visible .side.left {
+            display: block;
+        }
+
+        .toc { padding: 10px; font-size: 14px; }
+        .toc a { color: var(--fg); text-decoration: none; display: block; padding: 6px 8px; border-radius: 6px; }
+        .toc a:hover { background: var(--bg); }
+        #rendition { overflow: hidden; }
+        .footer { padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); display:flex; gap:12px; align-items:center; }
+        .prog { flex: 1; height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
+        .bar { height: 100%; background: var(--accent); width: 0%; }
+        .hidden { display: none; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+</head>
+<body>
+    <div class="topbar">
+        <div class="title" id="bookTitle">Lector EPUB</div>
+        <div class="controls">
+            <button id="tocBtn" title="Índice">☰</button>
+            <button id="prevBtn" title="Anterior">⟨</button>
+            <button id="nextBtn" title="Siguiente">⟩</button>
+            <select id="fontSize">
+                <option value="90%">A-</option>
+                <option value="100%" selected>A</option>
+                <option value="110%">A+</option>
+                <option value="125%">A++</option>
+                <option value="150%">A+++</option>
+            </select>
+            <a id="downloadLink" class="button" target="_blank" rel="noopener">Descargar</a>
+        </div>
+    </div>
+    <div id="viewer">
+        <div class="side left">
+            <div class="toc" id="toc"></div>
+        </div>
+        <div id="rendition"></div>
+    </div>
+    <div class="footer">
+        <div id="location">0%</div>
+        <div class="prog"><div class="bar" id="progressBar"></div></div>
+        <div id="cfi" class="hidden"></div>
+    </div>
+
+    <script>
+        function getParam(name) {
+            const url = new URL(window.location.href);
+            return url.searchParams.get(name) || '';
+        }
+
+        const bookUrl = getParam('url');
+        const bookTitle = decodeURIComponent(getParam('title')) || 'Lector EPUB';
+        document.getElementById('bookTitle').textContent = bookTitle;
+        document.getElementById('downloadLink').href = bookUrl;
+
+        function applyThemeFromStorage() {
+            document.body.classList.add('light-mode');
+        }
+        applyThemeFromStorage();
+        window.addEventListener('storage', (e) => { if (e.key === 'theme') applyThemeFromStorage(); });
+
+        const tocBtn = document.getElementById('tocBtn');
+        tocBtn.onclick = () => {
+            document.body.classList.toggle('toc-visible');
+        };
+
+        function resolveDriveDownloadUrl(url) {
+            if (!url) return '';
+            const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
+            if (idMatch && idMatch[1]) {
+                return `https://perplexity-proxy-backend.vercel.app/api/drive-proxy?id=${idMatch[1]}`;
+            }
+            return url;
+        }
+        function extractDriveId(url) {
+            const m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
+            return m && m[1] ? m[1] : null;
+        }
+
+        async function fetchAsBlobWithCors(url) {
+            const driveId = extractDriveId(url);
+            if (driveId) {
+                const proxyUrl = `https://perplexity-proxy-backend.vercel.app/api/drive-proxy?id=${driveId}`;
+                try {
+                    const res = await fetch(proxyUrl, { credentials: 'omit' });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return await res.blob();
+                } catch (e) {
+                    console.warn('Error fetching from custom proxy, falling back to generic CORS proxies:', e);
+                }
+            }
+
+            const candidates = [
+                `https://cors.isomorphic-git.org/${url}`,
+                `https://corsproxy.io/?${encodeURIComponent(url)}`
+            ];
+            let lastError = null;
+            for (const candidate of candidates) {
+                try {
+                    const res = await fetch(candidate, { credentials: 'omit' });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return await res.blob();
+                } catch (e) {
+                    lastError = e;
+                };
+            }
+            throw lastError || new Error('No se pudo descargar el EPUB con CORS');
+        }
+
+        (async () => {
+            console.log('bookUrl:', bookUrl);
+            if (!bookUrl) {
+                document.body.innerHTML = '<div style="padding:20px;">No se proporcionó URL del EPUB.</div>';
+                return;
+            }
+            
+            console.log('Starting fetch at', new Date().toLocaleTimeString());
+            const resolvedUrl = resolveDriveDownloadUrl(bookUrl);
+            console.log('resolvedUrl:', resolvedUrl);
+
+            let blob = await fetchAsBlobWithCors(resolvedUrl).catch(err => {
+                console.error('Error fetching blob:', err);
+                document.body.innerHTML = `<div style="padding:20px;">Error al descargar el fichero: ${err.message}.</div>`;
+                return null;
+            });
+
+            if (!blob) {
+                if (!document.body.innerHTML.includes('Error')) {
+                     document.body.innerHTML = '<div style="padding:20px;">No se pudo descargar el EPUB.</div>';
+                }
+                return;
+            }
+
+            console.log(`Blob fetched successfully at ${new Date().toLocaleTimeString()}. Size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+
+            const book = ePub(blob, { type: 'epub' });
+            console.log('ePub book object created:', book);
+            const rendition = book.renderTo('rendition', { width: '100%', height: '100%', spread: 'auto' });
+            const storedKey = 'epub-pos:' + bookUrl;
+            const storedFontKey = 'epub-font:' + bookUrl;
+
+            function saveLocation(cfi) { try { localStorage.setItem(storedKey, cfi); } catch(e){} }
+            function loadLocation() { try { return localStorage.getItem(storedKey); } catch(e){ return null; } }
+
+            async function init() {
+                const startCfi = loadLocation();
+                await rendition.display(startCfi || undefined);
+
+                try {
+                    const toc = await book.loaded.navigation;
+                    const tocEl = document.getElementById('toc');
+                    tocEl.innerHTML = '';
+                    (toc.toc || []).forEach((item) => {
+                        const link = document.createElement('a');
+                        link.textContent = item.label;
+                        link.href = '#';
+                        link.onclick = (e) => { 
+                            e.preventDefault(); 
+                            rendition.display(item.href); 
+                        };
+                        tocEl.appendChild(link);
+                    });
+                } catch(err) {
+                    console.error('Error loading navigation:', err);
+                }
+            }
+
+            rendition.on('relocated', (location) => {
+                const percent = Math.round(location?.percentage * 100) || 0;
+                document.getElementById('location').textContent = percent + '%';
+                document.getElementById('progressBar').style.width = percent + '%';
+                const cfi = location?.start?.cfi;
+                if (cfi) { saveLocation(cfi); document.getElementById('cfi').textContent = cfi; }
+            });
+
+            rendition.themes.default({ 'body': { 'color': 'var(--fg)', 'background': 'transparent' } });
+            const savedFont = (function(){ try { return localStorage.getItem(storedFontKey); } catch(e){ return null; } })();
+            const fontSelectInit = document.getElementById('fontSize');
+            if (savedFont) {
+                rendition.themes.fontSize(savedFont);
+                const idx = Array.from(fontSelectInit.options).findIndex(o => o.value === savedFont);
+                if (idx >= 0) fontSelectInit.selectedIndex = idx;
+            } else {
+                rendition.themes.fontSize('100%');
+            }
+
+            const prev = () => rendition.prev();
+            const next = () => rendition.next();
+            document.getElementById('prevBtn').onclick = prev;
+            document.getElementById('nextBtn').onclick = next;
+            const fontSelect = document.getElementById('fontSize');
+            document.getElementById('fontSize').onchange = (e) => {
+                const val = e.target.value;
+                rendition.themes.fontSize(val);
+                try { localStorage.setItem(storedFontKey, val); } catch(err){}
+            };
+
+            function changeFont(delta) {
+                const options = Array.from(fontSelect.options);
+                const idx = fontSelect.selectedIndex;
+                const nextIdx = Math.min(options.length - 1, Math.max(0, idx + delta));
+                if (nextIdx !== idx) {
+                    fontSelect.selectedIndex = nextIdx;
+                    const val = options[nextIdx].value;
+                    rendition.themes.fontSize(val);
+                    try { localStorage.setItem(storedFontKey, val); } catch(err){}
+                }
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+                if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+                else if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+                else if (e.key === '+') { e.preventDefault(); changeFont(+1); }
+                else if (e.key === '-') { e.preventDefault(); changeFont(-1); }
+            });
+
+            window.addEventListener('beforeunload', () => { try { saveLocation(rendition?.currentLocation()?.start?.cfi); } catch(e){} });
+
+            console.log('Waiting for book to open...');
+            const bookOpenPromise = book.opened;
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('El libro tardó más de 30 segundos en abrirse')), 30000));
+
+            try {
+                await Promise.race([bookOpenPromise, timeoutPromise]);
+                console.log('Book opened. Calling init()');
+                init();
+            } catch (error) {
+                console.error('Error opening EPUB book (or timeout):', error);
+                document.body.innerHTML = `<div style="padding:20px;">Error al abrir el libro: ${error.message}. El fichero puede ser demasiado grande para este dispositivo.</div>`;
+            }
+        })();
+    </script>
+</body>
+</html>
