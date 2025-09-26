@@ -168,31 +168,28 @@
                 document.body.innerHTML = '<div style="padding:20px;">No se proporcionó URL del EPUB.</div>';
                 return;
             }
-            let objectUrl = null;
+            
+            console.log('Starting fetch at', new Date().toLocaleTimeString());
             const resolvedUrl = resolveDriveDownloadUrl(bookUrl);
             console.log('resolvedUrl:', resolvedUrl);
+
             let blob = await fetchAsBlobWithCors(resolvedUrl).catch(err => {
                 console.error('Error fetching blob:', err);
+                document.body.innerHTML = `<div style="padding:20px;">Error al descargar el fichero: ${err.message}.</div>`;
                 return null;
             });
+
             if (!blob) {
-                // Si falla, y es Drive, usar visor embed de Drive como fallback
-                const driveId = extractDriveId(bookUrl);
-                if (driveId) {
-                    const embed = `https://drive.google.com/file/d/${driveId}/preview`;
-                    document.body.innerHTML = `<div style="padding:20px;">No se pudo cargar el EPUB. Intentando abrir visor de Google Drive... Si no se abrió, <a href="${embed}" target="_blank" rel="noopener">haz clic aquí</a>.</div>`;
-                    window.open(embed, '_blank', 'noopener');
-                    return;
+                if (!document.body.innerHTML.includes('Error')) {
+                     document.body.innerHTML = '<div style="padding:20px;">No se pudo descargar el EPUB.</div>';
                 }
-                document.body.innerHTML = '<div style="padding:20px;">No se pudo descargar el EPUB debido a restricciones CORS.</div>';
                 return;
             }
-            console.log('Blob fetched:', blob);
-            // objectUrl = URL.createObjectURL(blob); // No longer needed if passing blob directly
-            // console.log('objectUrl:', objectUrl);
 
-            const book = ePub(blob, { type: 'epub' }); // Pass the blob directly and specify type
-            console.log('ePub book object:', book);
+            console.log(`Blob fetched successfully at ${new Date().toLocaleTimeString()}. Size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+
+            const book = ePub(blob, { type: 'epub' });
+            console.log('ePub book object created:', book);
             const rendition = book.renderTo('rendition', { width: '100%', height: '100%', spread: 'auto' });
             const storedKey = 'epub-pos:' + bookUrl;
             const storedFontKey = 'epub-font:' + bookUrl;
@@ -243,7 +240,6 @@
             const fontSelectInit = document.getElementById('fontSize');
             if (savedFont) {
                 rendition.themes.fontSize(savedFont);
-                // Seleccionar opción correspondiente si existe
                 const idx = Array.from(fontSelectInit.options).findIndex(o => o.value === savedFont);
                 if (idx >= 0) fontSelectInit.selectedIndex = idx;
             } else {
@@ -273,7 +269,6 @@
                 }
             }
 
-            // Atajos de teclado: ←/→ y +/-
             document.addEventListener('keydown', (e) => {
                 if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
                 if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
@@ -282,53 +277,23 @@
                 else if (e.key === '-') { e.preventDefault(); changeFont(-1); }
             });
 
-            window.addEventListener('beforeunload', () => { try { saveLocation(rendition?.currentLocation()?.start?.cfi); } catch(e){} try { if (objectUrl) URL.revokeObjectURL(objectUrl); } catch(err){} });
+            window.addEventListener('beforeunload', () => { try { saveLocation(rendition?.currentLocation()?.start?.cfi); } catch(e){} });
 
             console.log('Waiting for book to open...');
+            const bookOpenPromise = book.opened;
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('El libro tardó más de 30 segundos en abrirse')), 30000));
+
             try {
-                await book.opened; // Wait for the book to be fully opened and parsed
+                await Promise.race([bookOpenPromise, timeoutPromise]);
                 console.log('Book opened. Calling init()');
                 init();
             } catch (error) {
-                console.error('Error opening EPUB book:', error);
+                console.error('Error opening EPUB book (or timeout):', error);
+                document.body.innerHTML = `<div style="padding:20px;">Error al abrir el libro: ${error.message}. El fichero puede ser demasiado grande para este dispositivo.</div>`;
             }
         })();
 
-        async function init() {
-            console.log('Inside init(), before rendition.display()');
-            const startCfi = loadLocation();
-            try {
-                await rendition.display(startCfi || undefined);
-                console.log('Inside init(), after rendition.display()');
-            } catch (error) {
-                console.error('Error during rendition.display():', error);
-            }
-
-            const spineEl = document.getElementById('spine');
-            spineEl.innerHTML = '';
-            book.spine.each(item => {
-                const a = document.createElement('a');
-                a.textContent = item?.label || item?.href || 'Sección';
-                a.href = '#';
-                a.onclick = (e) => { e.preventDefault(); rendition.display(item.href); };
-                spineEl.appendChild(a);
-            });
-
-            try {
-                const toc = await book.loaded.navigation;
-                const tocEl = document.getElementById('toc');
-                tocEl.innerHTML = '';
-                (toc.toc || []).forEach((item) => {
-                    const link = document.createElement('a');
-                    link.textContent = item.label;
-                    link.href = '#';
-                    link.onclick = (e) => { e.preventDefault(); rendition.display(item.href); };
-                    tocEl.appendChild(link);
-                });
-            } catch(err) {
-                // sin TOC
-            }
-        }
+        
     </script>
 </body>
 </html>
