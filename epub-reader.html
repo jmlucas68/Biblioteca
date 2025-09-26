@@ -257,6 +257,24 @@
                 } catch(err) {
                     console.error('Error loading navigation:', err);
                 }
+
+                // Load existing highlights after book is opened and rendered
+                try {
+                    const response = await fetch(`https://perplexity-proxy-backend.vercel.app/api/annotations?book_id=${bookId}`);
+                    if (response.ok) {
+                        const highlights = await response.json();
+                        highlights.forEach(h => {
+                            rendition.annotations.highlight(h.cfi_range, {}, (e) => {
+                                console.log("Highlight clicked", e.target);
+                            }, h.color, { "data-highlight-id": h.id });
+                        });
+                        console.log(`Loaded ${highlights.length} highlights.`);
+                    } else {
+                        console.error('Failed to load highlights:', response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error fetching existing highlights:', error);
+                }
             }
 
             rendition.on('relocated', (location) => {
