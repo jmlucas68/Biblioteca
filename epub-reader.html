@@ -81,6 +81,20 @@
         .prog { flex: 1; height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
         .bar { height: 100%; background: var(--accent); width: 0%; }
         .hidden { display: none; }
+
+        /* Highlight menu styles */
+        #highlightMenu {
+            position: absolute;
+            display: none;
+            background: var(--accent);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 0.9em;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
@@ -113,6 +127,8 @@
         <div class="prog"><div class="bar" id="progressBar"></div></div>
         <div id="cfi" class="hidden"></div>
     </div>
+
+    <div id="highlightMenu">Subrayar</div>
 
     <script>
         function getParam(name) {
@@ -181,6 +197,12 @@
 
         (async () => {
             console.log('bookUrl:', bookUrl);
+            const bookId = extractDriveId(bookUrl);
+            if (!bookId) {
+                document.body.innerHTML = '<div style="padding:20px;">Error: No se pudo obtener el ID del libro de la URL.</div>';
+                return;
+            }
+
             if (!bookUrl) {
                 document.body.innerHTML = '<div style="padding:20px;">No se proporcionó URL del EPUB.</div>';
                 return;
@@ -289,6 +311,77 @@
 
             window.addEventListener('beforeunload', () => { try { saveLocation(rendition?.currentLocation()?.start?.cfi); } catch(e){} });
 
+            // --- Highlight functionality start ---
+            const highlightMenu = document.getElementById('highlightMenu');
+            let currentSelectionRange = null;
+            let currentSelectionText = '';
+
+            rendition.on('selected', (cfiRange, contents) => {
+                currentSelectionRange = cfiRange;
+                currentSelectionText = rendition.getRange(cfiRange).toString();
+
+                const range = contents.window.getSelection().getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                
+                if (rect && rect.width > 0 && rect.height > 0) {
+                    highlightMenu.style.left = `${rect.left + contents.window.scrollX}px`;
+                    highlightMenu.style.top = `${rect.top + contents.window.scrollY - 30}px`; // Above selection
+                    highlightMenu.style.display = 'block';
+                } else {
+                    highlightMenu.style.display = 'none';
+                }
+            });
+
+            rendition.on('selectionCleared', () => {
+                highlightMenu.style.display = 'none';
+                currentSelectionRange = null;
+                currentSelectionText = '';
+            });
+
+            highlightMenu.onclick = async () => {
+                if (currentSelectionRange && bookId) {
+                    const color = 'yellow'; // Default highlight color
+
+                    // Apply highlight visually
+                    rendition.annotations.highlight(currentSelectionRange, {}, (e) => {
+                        console.log("Highlight clicked", e.target);
+                    }, color);
+
+                    // Save highlight to backend
+                    try {
+                        const response = await fetch('https://perplexity-proxy-backend.vercel.app/api/annotations', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                book_id: bookId,
+                                cfi_range: currentSelectionRange,
+                                highlighted_text: currentSelectionText,
+                                color: color,
+                                note_content: null,
+                            }),
+                        });
+
+                        if (response.ok) {
+                            const newHighlight = await response.json();
+                            console.log('Highlight saved:', newHighlight);
+                        } else {
+                            console.error('Failed to save highlight:', response.statusText);
+                            alert('Error al guardar el subrayado.');
+                        }
+                    } catch (error) {
+                        console.error('Error saving highlight:', error);
+                        alert('Error de red al guardar el subrayado.');
+                    }
+
+                    highlightMenu.style.display = 'none';
+                    currentSelectionRange = null;
+                    currentSelectionText = '';
+                }
+            };
+            // --- Highlight functionality end ---
+
             console.log('Waiting for book to open...');
             const bookOpenPromise = book.opened;
             const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('El libro tardó más de 30 segundos en abrirse')), 30000));
@@ -297,6 +390,25 @@
                 await Promise.race([bookOpenPromise, timeoutPromise]);
                 console.log('Book opened. Calling init()');
                 init();
+
+                // Load existing highlights after book is opened and rendered
+                try {
+                    const response = await fetch(`https://perplexity-proxy-backend.vercel.app/api/annotations?book_id=${bookId}`);
+                    if (response.ok) {
+                        const highlights = await response.json();
+                        highlights.forEach(h => {
+                            rendition.annotations.highlight(h.cfi_range, {}, (e) => {
+                                console.log("Highlight clicked", e.target);
+                            }, h.color, { "data-highlight-id": h.id });
+                        });
+                        console.log(`Loaded ${highlights.length} highlights.`);
+                    } else {
+                        console.error('Failed to load highlights:', response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error fetching existing highlights:', error);
+                }
+
             } catch (error) {
                 console.error('Error opening EPUB book (or timeout):', error);
                 document.body.innerHTML = `<div style="padding:20px;">Error al abrir el libro: ${error.message}. El fichero puede ser demasiado grande para este dispositivo.</div>`;
