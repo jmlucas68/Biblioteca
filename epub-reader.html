@@ -111,9 +111,8 @@
 
         // Sincronizar tema con la app principal
         function applyThemeFromStorage() {
-            const theme = localStorage.getItem('theme');
-            const isLight = theme === 'light';
-            document.body.classList.toggle('light-mode', isLight);
+            // Forzado a modo claro
+            document.body.classList.add('light-mode');
         }
         applyThemeFromStorage();
         window.addEventListener('storage', (e) => { if (e.key === 'theme') applyThemeFromStorage(); });
