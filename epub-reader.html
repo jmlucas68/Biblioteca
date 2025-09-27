@@ -315,10 +315,18 @@
             }
 
             rendition.on('relocated', (location) => {
-                const percent = Math.round(location?.percentage * 100) || 0;
-                document.getElementById('location').textContent = percent + '%';
-                document.getElementById('progressBar').style.width = percent + '%';
                 const cfi = location?.start?.cfi;
+                console.log('Relocated CFI:', cfi);
+                if (book.locations) {
+                    console.log('Book locations:', book.locations);
+                    const percentage = book.locations.percentageFromCfi(cfi);
+                    const percent = Math.round(percentage * 100);
+                    console.log('Updating progress bar. Manual Percentage:', percent);
+                    document.getElementById('location').textContent = percent + '%';
+                    document.getElementById('progressBar').style.width = percent + '%';
+                } else {
+                    console.log('Book locations not available.');
+                }
                 if (cfi) { saveLocation(cfi); document.getElementById('cfi').textContent = cfi; }
             });
 

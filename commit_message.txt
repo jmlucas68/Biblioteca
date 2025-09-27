@@ -1,3 +1,3 @@
-fix(epub-reader): Corregir la actualización de la barra de progreso
+chore(epub-reader): Añadir logs para depurar CFI y book.locations
 
-Se ha movido la generación de localizaciones antes de la inicialización para asegurar que estén disponibles cuando se dispare el evento relocated.
+Se han añadido logs para depurar el CFI y el objeto book.locations dentro del manejador del evento relocated.
