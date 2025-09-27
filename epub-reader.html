@@ -144,6 +144,10 @@
                 <option value="150%">A+++</option>
             </select>
             <a id="downloadLink" class="button" target="_blank" rel="noopener">Descargar</a>
+            <div id="highlightMenu">
+                <button id="highlightBtn">Subrayar</button>
+                <button id="addNoteBtn">Añadir Nota</button>
+            </div>
         </div>
     </div>
     <div id="viewer">
@@ -174,6 +178,7 @@
         }
 
         const bookUrl = getParam('url');
+        const bookId = extractDriveId(bookUrl);
         const bookTitle = decodeURIComponent(getParam('title')) || 'Lector EPUB';
         document.getElementById('bookTitle').textContent = bookTitle;
         document.getElementById('downloadLink').href = bookUrl;
