@@ -125,8 +125,41 @@
             cursor: pointer;
         }
         .prog:hover {
-    opacity: 0.8;
-}
+            opacity: 0.8;
+            cursor: pointer;
+        }
+        .highlight {
+            background-color: yellow !important;
+            opacity: 0.3;
+        }
+
+        .highlight.blue {
+            background-color: #007bff !important;
+        }
+
+        .highlight.green {
+            background-color: #28a745 !important;
+        }
+
+        .highlight.red {
+            background-color: #dc3545 !important;
+        }
+
+        #highlightMenu {
+            display: none;
+            position: absolute;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px;
+            z-index: 1000;
+        }
+
+        #highlightMenu button {
+            margin: 2px;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
 
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
@@ -478,6 +511,111 @@ progressContainer.style.cursor = 'pointer';
             loadBookmarks();
             renderBookmarks();
             // --- Bookmarks functionality end ---
+
+            // --- Highlights functionality start ---
+            const highlightsKey = `epub-highlights:${bookId}`;
+            let highlights = [];
+
+            const loadHighlights = () => {
+                try {
+                    const storedHighlights = localStorage.getItem(highlightsKey);
+                    if (storedHighlights) {
+                        highlights = JSON.parse(storedHighlights);
+                    }
+                } catch (e) {
+                    console.error('Error loading highlights:', e);
+                }
+            };
+
+            const saveHighlights = () => {
+                try {
+                    localStorage.setItem(highlightsKey, JSON.stringify(highlights));
+                } catch (e) {
+                    console.error('Error saving highlights:', e);
+                }
+            };
+
+            const addHighlight = (cfiRange, selectedText, className = 'highlight') => {
+                const highlight = {
+                    cfiRange,
+                    selectedText,
+                    className,
+                    timestamp: Date.now()
+                };
+                
+                highlights.push(highlight);
+                saveHighlights();
+                renderHighlight(highlight);
+            };
+
+            const renderHighlight = (highlight) => {
+                try {
+                    rendition.annotations.add("highlight", highlight.cfiRange, {}, null, highlight.className);
+                } catch (e) {
+                    console.error('Error rendering highlight:', e);
+                }
+            };
+
+            const renderAllHighlights = () => {
+                highlights.forEach(highlight => {
+                    renderHighlight(highlight);
+                });
+            };
+
+            // Event listener para selección de texto
+            rendition.on("selected", (cfiRange, contents) => {
+                const selectedText = contents.window.getSelection().toString();
+                if (selectedText.trim()) {
+                    showHighlightMenu(cfiRange, selectedText);
+                }
+            });
+
+            const highlightMenu = document.getElementById('highlightMenu');
+            const highlightBtn = document.getElementById('highlightBtn');
+            let currentSelection = null;
+
+            const showHighlightMenu = (cfiRange, selectedText) => {
+                currentSelection = { cfiRange, selectedText };
+                
+                // Posicionar el menú cerca del texto seleccionado
+                const selection = contents.window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const rect = range.getBoundingClientRect();
+                    
+                    highlightMenu.style.display = 'block';
+                    highlightMenu.style.left = rect.left + 'px';
+                    highlightMenu.style.top = (rect.bottom + 5) + 'px';
+                }
+            };
+
+            const hideHighlightMenu = () => {
+                highlightMenu.style.display = 'none';
+                currentSelection = null;
+            };
+
+            // Event listeners para los botones de highlight
+            highlightBtn.addEventListener('click', () => {
+                if (currentSelection) {
+                    addHighlight(currentSelection.cfiRange, currentSelection.selectedText);
+                    hideHighlightMenu();
+                }
+            });
+
+            // Ocultar menú al hacer click fuera
+            document.addEventListener('click', (e) => {
+                if (!highlightMenu.contains(e.target) && !e.target.closest('#rendition')) {
+                    hideHighlightMenu();
+                }
+            });
+
+            // Cargar y renderizar highlights al inicializar
+            loadHighlights();
+            rendition.on("rendered", () => {
+                renderAllHighlights();
+            });
+            // --- Highlights functionality end ---
+
 
             console.log('Waiting for book to open...');
             const bookOpenPromise = book.opened;
