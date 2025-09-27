@@ -1,3 +1,3 @@
-fix(epub-reader): Permitir scripts en iframes anidados
+chore(epub-reader): Añadir más logs para depurar la barra de progreso
 
-Se ha reemplazado el MutationObserver anterior por uno nuevo que se ejecuta dentro del iframe del libro para detectar iframes anidados y eliminar su atributo sandbox.
+Se han añadido más console.log para depurar el evento relocated y comprobar si se están actualizando correctamente los elementos de la barra de progreso.

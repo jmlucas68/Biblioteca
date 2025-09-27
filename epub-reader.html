@@ -296,8 +296,19 @@
 
             rendition.on('relocated', (location) => {
                 const percent = Math.round(location?.percentage * 100) || 0;
-                document.getElementById('location').textContent = percent + '%';
-                document.getElementById('progressBar').style.width = percent + '%';
+                console.log('Updating progress bar. Percentage:', percent);
+                const locationEl = document.getElementById('location');
+                const progressBarEl = document.getElementById('progressBar');
+                if (locationEl) {
+                    locationEl.textContent = percent + '%';
+                } else {
+                    console.error('Element with id "location" not found.');
+                }
+                if (progressBarEl) {
+                    progressBarEl.style.width = percent + '%';
+                } else {
+                    console.error('Element with id "progressBar" not found.');
+                }
                 const cfi = location?.start?.cfi;
                 if (cfi) { saveLocation(cfi); document.getElementById('cfi').textContent = cfi; }
             });
