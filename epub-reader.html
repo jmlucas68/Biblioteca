@@ -237,6 +237,7 @@
                     if (mutation.type === 'childList') {
                         mutation.addedNodes.forEach(node => {
                             if (node.tagName === 'IFRAME') {
+                                console.log('IFRAME detected, removing sandbox.');
                                 node.removeAttribute('sandbox');
                             }
                         });
@@ -293,7 +294,6 @@
             }
 
             rendition.on('relocated', (location) => {
-                console.log('relocated event:', location);
                 const percent = Math.round(location?.percentage * 100) || 0;
                 document.getElementById('location').textContent = percent + '%';
                 document.getElementById('progressBar').style.width = percent + '%';
