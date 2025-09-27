@@ -306,6 +306,18 @@
                 if (cfi) { saveLocation(cfi); document.getElementById('cfi').textContent = cfi; }
             });
 
+            const progBar = document.querySelector('.prog');
+            if (progBar) {
+                progBar.addEventListener('click', (event) => {
+                    const rect = progBar.getBoundingClientRect();
+                    const x = event.clientX - rect.left; //x position within the element.
+                    const width = rect.width;
+                    const percent = x / width;
+                    const cfi = book.locations.cfiFromPercentage(percent);
+                    rendition.display(cfi);
+                });
+            }
+
             rendition.themes.default({ 'body': { 'color': 'var(--fg)', 'background': 'transparent' } });
             const savedFont = (function(){ try { return localStorage.getItem(storedFontKey); } catch(e){ return null; } })();
             const fontSelectInit = document.getElementById('fontSize');

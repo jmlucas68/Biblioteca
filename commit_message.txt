@@ -1,3 +1,3 @@
-fix(epub-reader): Calcular manualmente el porcentaje de progreso
+feat(epub-reader): Navegación por clic en la barra de progreso
 
-Se ha modificado el manejador de eventos relocated para calcular manualmente el porcentaje de progreso a partir del CFI de la ubicación actual.
+Se ha añadido la funcionalidad de que al hacer clic en la barra de progreso se desplace al lugar correspondiente en el texto.
