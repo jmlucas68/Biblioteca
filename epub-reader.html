@@ -230,6 +230,14 @@
             const book = ePub(blob, { type: 'epub' });
             console.log('ePub book object created:', book);
             const rendition = book.renderTo('rendition', { width: '100%', height: '100%', spread: 'auto' });
+
+            rendition.on('rendered', (section, view) => {
+                if (view && view.iframe) {
+                    // Allow scripts in the sandboxed iframe
+                    view.iframe.sandbox.add('allow-scripts');
+                }
+            });
+
             const storedKey = 'epub-pos:' + bookUrl;
             const storedFontKey = 'epub-font:' + bookUrl;
 
