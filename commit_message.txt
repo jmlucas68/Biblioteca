@@ -1,3 +1,0 @@
-feat(epub-reader): Navegación por clic en la barra de progreso
-
-Se ha añadido la funcionalidad de que al hacer clic en la barra de progreso se desplace al lugar correspondiente en el texto.
