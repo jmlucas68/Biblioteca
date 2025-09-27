@@ -1,3 +1,3 @@
-fix(epub-reader): Permitir scripts en el iframe del lector (cuarto intento)
+chore(epub-reader): Añadir log para depurar el evento relocated
 
-Se ha eliminado completamente el atributo sandbox del iframe del lector de EPUB para intentar solucionar el error 'Blocked script execution in \'about:srcdoc\''.
+Se ha añadido un console.log para depurar el evento relocated y entender por qué no funciona el cálculo del porcentaje de la barra de progreso.
