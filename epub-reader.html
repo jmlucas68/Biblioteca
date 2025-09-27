@@ -420,7 +420,9 @@
 
             try {
                 await Promise.race([bookOpenPromise, timeoutPromise]);
-                console.log('Book opened. Calling init()');
+                console.log('Book opened. Generating locations...');
+                await book.locations.generate(1650);
+                console.log('Locations generated. Calling init()');
                 init();
 
                 // Load existing highlights after book is opened and rendered

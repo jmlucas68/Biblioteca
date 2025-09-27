@@ -1,5 +1,3 @@
-fix(epub-reader): Ocultar el menú de subrayado al hacer clic fuera
+fix(epub-reader): Solucionar el problema de la barra de progreso
 
-El menú de subrayado no se ocultaba si el usuario decidía no realizar ninguna acción después de seleccionar el texto.
-
-Ahora, al hacer clic en cualquier lugar fuera del menú, este desaparecerá sin necesidad de subrayar nada.
+La barra de progreso y el porcentaje de lectura no se actualizaban porque no se generaban las localizaciones del libro. Se ha añadido la llamada a `book.locations.generate()` para solucionar este problema.
