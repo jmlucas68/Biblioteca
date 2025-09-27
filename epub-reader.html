@@ -237,7 +237,7 @@
                     if (mutation.type === 'childList') {
                         mutation.addedNodes.forEach(node => {
                             if (node.tagName === 'IFRAME') {
-                                node.setAttribute('sandbox', 'allow-same-origin allow-scripts');
+                                node.removeAttribute('sandbox');
                             }
                         });
                     }
