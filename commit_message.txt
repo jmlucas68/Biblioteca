@@ -1,0 +1,3 @@
+feat(epub-reader): Añadir funcionalidad de marcadores
+
+Se ha añadido la posibilidad de añadir, ver y eliminar marcadores. Los marcadores se guardan en el localStorage del navegador.

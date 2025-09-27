@@ -73,7 +73,8 @@
             display: block;
         }
 
-        .toc { padding: 10px; font-size: 14px; }
+        .toc { font-size: 14px; }
+        .tab-content { padding: 10px; }
         .toc a { color: var(--fg); text-decoration: none; display: block; padding: 6px 8px; border-radius: 6px; }
         .toc a:hover { background: var(--bg); }
         #rendition { overflow: hidden; }
@@ -81,6 +82,48 @@
         .prog { flex: 1; height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
         .bar { height: 100%; background: var(--accent); width: 0%; }
         .hidden { display: none; }
+
+        .side-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            color: var(--muted);
+            font-weight: 600;
+        }
+        .tab-btn.active {
+            color: var(--fg);
+            border-bottom: 2px solid var(--accent);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .bookmarks { font-size: 14px; }
+        .bookmark-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .bookmark-item:hover {
+            background: var(--bg);
+        }
+        .bookmark-delete {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
@@ -90,6 +133,7 @@
         <div class="title" id="bookTitle">Lector EPUB</div>
         <div class="controls">
             <button id="tocBtn" title="Índice">☰</button>
+            <button id="bookmarkBtn" title="Añadir marcador">🔖</button>
             <button id="prevBtn" title="Anterior">⟨</button>
             <button id="nextBtn" title="Siguiente">⟩</button>
             <select id="fontSize">
@@ -104,7 +148,16 @@
     </div>
     <div id="viewer">
         <div class="side left">
-            <div class="toc" id="toc"></div>
+            <div class="side-tabs">
+                <button class="tab-btn active" data-tab="toc-content">Índice</button>
+                <button class="tab-btn" data-tab="bookmarks-content">Marcadores</button>
+            </div>
+            <div class="tab-content active" id="toc-content">
+                <div class="toc" id="toc"></div>
+            </div>
+            <div class="tab-content" id="bookmarks-content">
+                <div class="bookmarks" id="bookmarks"></div>
+            </div>
         </div>
         <div id="rendition"></div>
     </div>
@@ -135,6 +188,25 @@
         tocBtn.onclick = () => {
             document.body.classList.toggle('toc-visible');
         };
+
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const tabId = btn.getAttribute('data-tab');
+                tabContents.forEach(content => {
+                    if (content.id === tabId) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+            });
+        });
 
         function resolveDriveDownloadUrl(url) {
             if (!url) return '';
@@ -288,6 +360,80 @@
             });
 
             window.addEventListener('beforeunload', () => { try { saveLocation(rendition?.currentLocation()?.start?.cfi); } catch(e){} });
+
+            // --- Bookmarks functionality start ---
+            const bookmarksKey = `epub-bookmarks:${bookId}`;
+            let bookmarks = [];
+
+            const loadBookmarks = () => {
+                try {
+                    const storedBookmarks = localStorage.getItem(bookmarksKey);
+                    if (storedBookmarks) {
+                        bookmarks = JSON.parse(storedBookmarks);
+                    }
+                } catch (e) {
+                    console.error('Error loading bookmarks:', e);
+                }
+            };
+
+            const saveBookmarks = () => {
+                try {
+                    localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+                } catch (e) {
+                    console.error('Error saving bookmarks:', e);
+                }
+            };
+
+            const renderBookmarks = () => {
+                const bookmarksContainer = document.getElementById('bookmarks');
+                bookmarksContainer.innerHTML = '';
+                bookmarks.forEach((bookmark, index) => {
+                    const item = document.createElement('div');
+                    item.classList.add('bookmark-item');
+                    
+                    const label = document.createElement('span');
+                    label.textContent = bookmark.label;
+                    label.addEventListener('click', () => {
+                        rendition.display(bookmark.cfi);
+                    });
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.classList.add('bookmark-delete');
+                    deleteBtn.textContent = '🗑️';
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        bookmarks.splice(index, 1);
+                        saveBookmarks();
+                        renderBookmarks();
+                    });
+
+                    item.appendChild(label);
+                    item.appendChild(deleteBtn);
+                    bookmarksContainer.appendChild(item);
+                });
+            };
+
+            const bookmarkBtn = document.getElementById('bookmarkBtn');
+            bookmarkBtn.addEventListener('click', () => {
+                if (book.locations) {
+                    const cfi = rendition.currentLocation().start.cfi;
+                    const bookProgress = book.locations.percentageFromCfi(cfi);
+                    const label = `Progreso: ${Math.round(bookProgress * 100)}%`; // Simple label
+                    
+                    // Avoid duplicate bookmarks
+                    if (!bookmarks.some(b => b.cfi === cfi)) {
+                        bookmarks.push({ cfi, label });
+                        saveBookmarks();
+                        renderBookmarks();
+                    }
+                } else {
+                    alert('Las localizaciones del libro aún no se han generado. Por favor, espere un momento.');
+                }
+            });
+
+            loadBookmarks();
+            renderBookmarks();
+            // --- Bookmarks functionality end ---
 
             console.log('Waiting for book to open...');
             const bookOpenPromise = book.opened;
