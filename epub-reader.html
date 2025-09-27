@@ -234,7 +234,7 @@
             rendition.on('rendered', (section, view) => {
                 if (view && view.iframe) {
                     // Allow scripts in the sandboxed iframe
-                    view.iframe.sandbox.add('allow-scripts');
+                    view.iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts');
                 }
             });
 
