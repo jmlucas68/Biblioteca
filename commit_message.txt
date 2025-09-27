@@ -1,3 +1,3 @@
-chore(epub-reader): Añadir más logs para depurar la barra de progreso
+chore(epub-reader): Añadir log para depurar book.locations
 
-Se han añadido más console.log para depurar el evento relocated y comprobar si se están actualizando correctamente los elementos de la barra de progreso.
+Se ha añadido un console.log para depurar el objeto book.locations y comprobar si se están generando correctamente las localizaciones del libro.
