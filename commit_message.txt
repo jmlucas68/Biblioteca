@@ -1,3 +1,3 @@
-fix(epub-reader): Permitir scripts en el iframe del lector (segundo intento)
+fix(epub-reader): Permitir scripts en el iframe del lector (tercer intento)
 
-Se ha modificado la forma en que se añade el permiso 'allow-scripts' al iframe del lector de EPUB para intentar solucionar el error 'Blocked script execution in \'about:srcdoc\''.
+Se ha reemplazado el método anterior por un MutationObserver para asegurar que el atributo sandbox se modifica en cuanto se crea el iframe y así intentar solucionar el error 'Blocked script execution in \'about:srcdoc\'.
