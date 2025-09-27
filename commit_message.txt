@@ -1,3 +1,0 @@
-chore(epub-reader): Añadir logs para depurar CFI y book.locations
-
-Se han añadido logs para depurar el CFI y el objeto book.locations dentro del manejador del evento relocated.

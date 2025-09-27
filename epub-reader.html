@@ -124,6 +124,10 @@
             color: var(--muted);
             cursor: pointer;
         }
+        .prog:hover {
+    opacity: 0.8;
+}
+
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
@@ -345,6 +349,33 @@
             const next = () => rendition.next();
             document.getElementById('prevBtn').onclick = prev;
             document.getElementById('nextBtn').onclick = next;
+            // Agregar funcionalidad de click a la barra de progreso
+const progressContainer = document.querySelector('.prog');
+progressContainer.addEventListener('click', (e) => {
+    if (!book.locations) {
+        console.log('Book locations not available for navigation');
+        return;
+    }
+    
+    // Calcular el porcentaje basado en donde hizo click
+    const rect = progressContainer.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const progressWidth = rect.width;
+    const clickPercentage = Math.max(0, Math.min(1, clickX / progressWidth));
+    
+    // Navegar a la posición correspondiente
+    try {
+        const targetCfi = book.locations.cfiFromPercentage(clickPercentage);
+        console.log('Navigating to CFI:', targetCfi, 'at', Math.round(clickPercentage * 100) + '%');
+        rendition.display(targetCfi);
+    } catch (error) {
+        console.error('Error navigating to clicked position:', error);
+    }
+});
+
+// Hacer la barra de progreso visualmente clickeable
+progressContainer.style.cursor = 'pointer';
+
             const fontSelect = document.getElementById('fontSize');
             document.getElementById('fontSize').onchange = (e) => {
                 const val = e.target.value;
