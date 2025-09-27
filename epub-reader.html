@@ -446,7 +446,14 @@
 
             try {
                 await Promise.race([bookOpenPromise, timeoutPromise]);
-                console.log('Book opened. Calling init()');
+                console.log('Book opened. Generating locations...');
+                try {
+                    await book.locations.generate(1650);
+                    console.log('Locations generated:', book.locations);
+                } catch (e) {
+                    console.error('Error generating locations:', e);
+                }
+                console.log('Calling init()');
                 init();
             } catch (error) {
                 console.error('Error opening EPUB book (or timeout):', error);
