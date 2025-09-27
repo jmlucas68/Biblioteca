@@ -345,6 +345,20 @@
                     highlightMenu.style.left = `${rect.left + contents.window.scrollX}px`;
                     highlightMenu.style.top = `${rect.top + contents.window.scrollY - 30}px`; // Above selection
                     highlightMenu.style.display = 'block';
+
+                    const listener = (event) => {
+                        if (highlightMenu.contains(event.target)) {
+                            return;
+                        }
+                        
+                        highlightMenu.style.display = 'none';
+                        contents.window.document.removeEventListener('mousedown', listener);
+                        document.removeEventListener('mousedown', listener);
+                    };
+
+                    contents.window.document.addEventListener('mousedown', listener);
+                    document.addEventListener('mousedown', listener);
+
                 } else {
                     highlightMenu.style.display = 'none';
                 }
