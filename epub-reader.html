@@ -295,19 +295,12 @@
             }
 
             rendition.on('relocated', (location) => {
-                const percent = Math.round(location?.percentage * 100) || 0;
-                console.log('Updating progress bar. Percentage:', percent);
-                const locationEl = document.getElementById('location');
-                const progressBarEl = document.getElementById('progressBar');
-                if (locationEl) {
-                    locationEl.textContent = percent + '%';
-                } else {
-                    console.error('Element with id "location" not found.');
-                }
-                if (progressBarEl) {
-                    progressBarEl.style.width = percent + '%';
-                } else {
-                    console.error('Element with id "progressBar" not found.');
+                if (book.locations) {
+                    const percentage = book.locations.percentageFromCfi(location.start.cfi);
+                    const percent = Math.round(percentage * 100);
+                    console.log('Updating progress bar. Manual Percentage:', percent);
+                    document.getElementById('location').textContent = percent + '%';
+                    document.getElementById('progressBar').style.width = percent + '%';
                 }
                 const cfi = location?.start?.cfi;
                 if (cfi) { saveLocation(cfi); document.getElementById('cfi').textContent = cfi; }
