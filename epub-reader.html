@@ -233,8 +233,9 @@
 
             console.log(`Blob fetched successfully at ${new Date().toLocaleTimeString()}. Size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
 
-            const book = ePub(blob, { type: 'epub', allowScriptedContent: true  // Permite scripts en el contenido });
+            const book = ePub(blob, { type: 'epub', allowScriptedContent: true});
 
+            
             // Después de cargar el libro
             await book.ready;
             // Generar locations para el cálculo del porcentaje
