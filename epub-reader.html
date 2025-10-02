@@ -82,25 +82,18 @@
         .bar { height: 100%; background: var(--accent); width: 0%; }
         .hidden { display: none; }
 
-        /* Highlight button styles */
-        #highlightBtn {
+        /* Highlight menu styles */
+        #highlightMenu {
+            position: absolute;
+            display: none;
             background: var(--accent);
             color: white;
-            border: none;
             padding: 5px 10px;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 1em;
-            transition: opacity 0.3s;
-        }
-
-        #highlightBtn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        #highlightBtn:not(:disabled):hover {
-            opacity: 0.9;
+            z-index: 1000;
+            font-size: 0.9em;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
@@ -113,7 +106,6 @@
             <button id="tocBtn" title="Índice">☰</button>
             <button id="prevBtn" title="Anterior">⟨</button>
             <button id="nextBtn" title="Siguiente">⟩</button>
-            <button id="highlightBtn" title="Subrayar texto seleccionado" disabled>📝</button>
             <select id="fontSize">
                 <option value="90%">A-</option>
                 <option value="100%" selected>A</option>
@@ -135,6 +127,8 @@
         <div class="prog"><div class="bar" id="progressBar"></div></div>
         <div id="cfi" class="hidden"></div>
     </div>
+
+    <div id="highlightMenu">Subrayar</div>
 
     <script>
         function getParam(name) {
@@ -233,14 +227,7 @@
 
             console.log(`Blob fetched successfully at ${new Date().toLocaleTimeString()}. Size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
 
-            const book = ePub(blob, { type: 'epub', allowScriptedContent: true});
-
-            
-            // Después de cargar el libro
-            await book.ready;
-            // Generar locations para el cálculo del porcentaje
-            await book.locations.generate(1024); // El número indica caracteres por "página"
-
+            const book = ePub(blob, { type: 'epub', allowScriptedContent: true });
             console.log('ePub book object created:', book);
             const rendition = book.renderTo('rendition', { width: '100%', height: '100%', spread: 'auto' });
             const storedKey = 'epub-pos:' + bookUrl;
@@ -251,7 +238,6 @@
 
             async function init() {
                 const startCfi = loadLocation();
-                await book.locations.generate(1024);
                 await rendition.display(startCfi || undefined);
 
                 try {
@@ -352,26 +338,26 @@
                 currentSelectionRange = cfiRange;
                 currentSelectionText = rendition.getRange(cfiRange).toString();
 
-                // Enable the highlight button in the header
-                const highlightBtn = document.getElementById('highlightBtn');
-                if (highlightBtn && currentSelectionText.trim().length > 0) {
-                    highlightBtn.disabled = false;
+                const range = contents.window.getSelection().getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                
+                if (rect && rect.width > 0 && rect.height > 0) {
+                    highlightMenu.style.left = `${rect.left + contents.window.scrollX}px`;
+                    highlightMenu.style.top = `${rect.top + contents.window.scrollY - 30}px`; // Above selection
+                    highlightMenu.style.display = 'block';
+                } else {
+                    highlightMenu.style.display = 'none';
                 }
             });
 
             rendition.on('selectionCleared', () => {
-                // Disable the highlight button when selection is cleared
-                const highlightBtn = document.getElementById('highlightBtn');
-                if (highlightBtn) {
-                    highlightBtn.disabled = true;
-                }
+                highlightMenu.style.display = 'none';
                 currentSelectionRange = null;
                 currentSelectionText = '';
             });
 
-            // Highlight button click handler
-            document.getElementById('highlightBtn').addEventListener('click', async () => {
-                if (currentSelectionRange && bookId && currentSelectionText) {
+            highlightMenu.onclick = async () => {
+                if (currentSelectionRange && bookId) {
                     const color = 'yellow'; // Default highlight color
 
                     // Apply highlight visually
@@ -379,7 +365,7 @@
                         console.log("Highlight clicked", e.target);
                     }, color);
 
-                    // Save highlight to database
+                    // Save highlight to backend
                     try {
                         const response = await fetch('https://perplexity-proxy-backend.vercel.app/api/annotations', {
                             method: 'POST',
@@ -404,16 +390,14 @@
                         }
                     } catch (error) {
                         console.error('Error saving highlight:', error);
-                        alert('Error al guardar el subrayado.');
+                        alert('Error de red al guardar el subrayado.');
                     }
 
-                    // Clear selection and disable button
-                    rendition.getContents().forEach(c => c.window.getSelection().removeAllRanges());
-                    document.getElementById('highlightBtn').disabled = true;
+                    highlightMenu.style.display = 'none';
                     currentSelectionRange = null;
                     currentSelectionText = '';
                 }
-            });
+            };
             // --- Highlight functionality end ---
 
             console.log('Waiting for book to open...');
