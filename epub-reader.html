@@ -251,6 +251,7 @@
 
             async function init() {
                 const startCfi = loadLocation();
+                await book.locations.generate(1024);
                 await rendition.display(startCfi || undefined);
 
                 try {
