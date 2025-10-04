@@ -244,6 +244,21 @@
                     }
                 });
                 observer.observe(view.document.body, { childList: true, subtree: true });
+
+                // Add a listener to manually disable the highlight button on deselection
+                view.document.body.addEventListener('mouseup', () => {
+                    // Use a timeout to allow the browser's selection to clear first
+                    setTimeout(() => {
+                        const selection = view.document.getSelection();
+                        if (selection && selection.isCollapsed) {
+                            if (!highlightBtn.disabled) {
+                                highlightBtn.disabled = true;
+                                currentSelectionRange = null;
+                                currentSelectionText = '';
+                            }
+                        }
+                    }, 10);
+                });
             });
 
             const storedKey = 'epub-pos:' + bookUrl;
