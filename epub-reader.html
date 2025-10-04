@@ -359,8 +359,7 @@
                                 h.cfi_range,
                                 data,
                                 (e) => { showNote(e.target.dataset.note); },
-                                null,
-                                { "background-color": h.color || 'yellow' }
+                                h.color
                             );
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
@@ -397,7 +396,11 @@
             }
 
             rendition.themes.default({ 'body': { 'color': 'var(--fg)', 'background': 'transparent' } });
-            rendition.themes.override('note-style', {
+            // Define styles for notes and highlight colors
+            rendition.themes.override('annotations', {
+                '.yellow': {
+                    'background-color': 'yellow',
+                },
                 '[data-note]': {
                     'border-bottom': '2px solid orange',
                     'cursor': 'help'
@@ -457,12 +460,12 @@
                     data['data-note'] = noteContent;
                 }
 
+                // Add highlight with CLASS NAME for color
                 rendition.annotations.highlight(
                     cfiRangeToSave,
                     data,
                     (e) => { showNote(e.target.dataset.note); },
-                    null,
-                    { 'background-color': color }
+                    color
                 );
 
                 rendition.getContents().forEach(content => content.window.getSelection().removeAllRanges());
