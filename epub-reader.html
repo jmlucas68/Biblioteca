@@ -352,14 +352,16 @@
                         const highlights = await response.json();
                         highlights.forEach(h => {
                             const data = { highlightId: h.id };
+                            let colorClass = h.color || 'yellow';
                             if (h.note_content) {
                                 data.note = h.note_content;
+                                colorClass = 'green';
                             }
                             rendition.annotations.highlight(
                                 h.cfi_range,
                                 data,
                                 (e) => { showNote(e.target.dataset.note); },
-                                h.color
+                                colorClass
                             );
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
@@ -396,14 +398,13 @@
             }
 
             rendition.themes.default({ 'body': { 'color': 'var(--fg)', 'background': 'transparent' } });
-            // Define styles for notes and highlight colors
+            // Define styles for highlight colors
             rendition.themes.override('annotations', {
                 '.yellow': {
                     'background-color': 'yellow',
                 },
-                'span.yellow[data-note]': {
-                    'border-bottom': '2px solid orange',
-                    'cursor': 'help'
+                '.green': {
+                    'background-color': 'lightgreen',
                 }
             });
 
@@ -453,19 +454,20 @@
 
                 const cfiRangeToSave = currentSelectionRange;
                 const textToSave = currentSelectionText;
-                const color = 'yellow';
-
+                
                 const data = {};
+                let colorClass = 'yellow';
                 if (noteContent) {
                     data.note = noteContent;
+                    colorClass = 'green';
                 }
 
-                // Add highlight with CLASS NAME for color
+                // Add highlight with dynamic CLASS NAME for color
                 rendition.annotations.highlight(
                     cfiRangeToSave,
                     data,
                     (e) => { showNote(e.target.dataset.note); },
-                    color
+                    colorClass
                 );
 
                 rendition.getContents().forEach(content => content.window.getSelection().removeAllRanges());
@@ -478,7 +480,7 @@
                             book_id: bookId,
                             cfi_range: cfiRangeToSave,
                             highlighted_text: textToSave,
-                            color: color,
+                            color: 'yellow', // Keep saving yellow to DB, color is decided on render
                             note_content: noteContent,
                         }),
                     });
