@@ -357,12 +357,11 @@
                                 data.note = h.note_content;
                             }
                             rendition.annotations.highlight(
-                            h.cfi_range,
-                            data,
-                            (e) => { showNote(e.target.dataset.note); },
-                            { fill: h.color || '#ffff00', 'fill-opacity': '0.6', 'mix-blend-mode': 'multiply' }
-                        );
-
+                                h.cfi_range,
+                                data,
+                                (e) => { showNote(e.target.dataset.note); },
+                                h.color // Use color from DB as class name
+                            );
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
                     } else {
@@ -399,7 +398,7 @@
 
             rendition.themes.default({ 'body': { 'color': 'var(--fg)', 'background': 'transparent' } });
             // Define styles for highlight colors
-            rendition.themes.override('highlight', {
+            rendition.themes.override('annotations', {
                 '.yellow': {
                     'background-color': 'yellow',
                 },
@@ -456,19 +455,19 @@
                 const textToSave = currentSelectionText;
                 
                 const data = {};
+                let colorClass = 'yellow';
                 if (noteContent) {
                     data.note = noteContent;
+                    colorClass = 'green';
                 }
 
-                const color = noteContent ? '#90ee90' : '#ffff00'; // verde claro si tiene nota, amarillo si no
-
+                // Add highlight with dynamic CLASS NAME for color
                 rendition.annotations.highlight(
                     cfiRangeToSave,
                     data,
                     (e) => { showNote(e.target.dataset.note); },
-                    { fill: color, 'fill-opacity': '0.6', 'mix-blend-mode': 'multiply' }
+                    colorClass
                 );
-
 
                 rendition.getContents().forEach(content => content.window.getSelection().removeAllRanges());
                 
