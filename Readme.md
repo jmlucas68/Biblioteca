@@ -60,3 +60,4 @@ Corregida funcion de sacar % de avance
 
 Corregido no subraya nada si se deselecciona texto.
 
+Estable, muestra nota en ventana. Pte. mostrar que existe una nota.
