@@ -82,22 +82,6 @@
         .bar { height: 100%; background: var(--accent); width: 0%; }
         .hidden { display: none; }
 
-        /* Style for highlights that have a note */
-        [data-note] {
-            position: relative;
-        }
-        [data-note]::after {
-            content: ' 📝'; /* Note icon */
-            font-size: 0.7em;
-            vertical-align: super;
-            cursor: pointer;
-            /* Prevent the icon from being selected as text */
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-
         /* Highlight menu styles */
         #highlightMenu {
             position: absolute;
@@ -153,6 +137,16 @@
             <div style="margin-top: 10px; text-align: right;">
                 <button id="cancelNoteBtn">Cancelar</button>
                 <button id="saveNoteBtn" style="background: var(--accent); color: white;">Guardar Nota</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="displayNoteModal" style="display: none; position: fixed; z-index: 2001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+        <div style="background-color: var(--panel); margin: 15% auto; padding: 20px; border: 1px solid var(--border); width: 80%; max-width: 500px; border-radius: 8px;">
+            <h3>Nota</h3>
+            <div id="displayNoteContent" style="padding: 10px 0; color: var(--fg); white-space: pre-wrap; max-height: 300px; overflow-y: auto;"></div>
+            <div style="margin-top: 10px; text-align: right;">
+                <button id="closeDisplayNoteBtn">Cerrar</button>
             </div>
         </div>
     </div>
@@ -265,6 +259,9 @@
             const noteTextarea = document.getElementById('noteTextarea');
             const saveNoteBtn = document.getElementById('saveNoteBtn');
             const cancelNoteBtn = document.getElementById('cancelNoteBtn');
+            const displayNoteModal = document.getElementById('displayNoteModal');
+            const displayNoteContent = document.getElementById('displayNoteContent');
+            const closeDisplayNoteBtn = document.getElementById('closeDisplayNoteBtn');
 
             let currentSelectionRange = null;
             let currentSelectionText = '';
@@ -305,6 +302,12 @@
             function saveLocation(cfi) { try { localStorage.setItem(storedKey, cfi); } catch(e){} }
             function loadLocation() { try { return localStorage.getItem(storedKey); } catch(e){ return null; } }
 
+            function showNote(noteText) {
+                if (!noteText) return;
+                displayNoteContent.textContent = noteText;
+                displayNoteModal.style.display = 'block';
+            }
+
             async function init() {
                 const startCfi = loadLocation();
                 await rendition.display(startCfi || undefined);
@@ -337,10 +340,7 @@
                                 options['data-note'] = h.note_content;
                             }
                             rendition.annotations.highlight(h.cfi_range, {}, (e) => {
-                                const note = e.target.dataset.note;
-                                if (note) {
-                                    alert('Nota: ' + note);
-                                }
+                                showNote(e.target.dataset.note);
                             }, h.color, options);
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
@@ -377,6 +377,17 @@
             }
 
             rendition.themes.default({ 'body': { 'color': 'var(--fg)', 'background': 'transparent' } });
+            // Inject styles for the note icon into the rendition iframe
+            rendition.themes.override('note-style', {
+                '[data-note]::after': {
+                    content: "' 📝'",
+                    'font-size': '0.7em',
+                    'vertical-align': 'super',
+                    'cursor': 'pointer',
+                    '-webkit-user-select': 'none',
+                    'user-select': 'none'
+                }
+            });
             const savedFont = (() => { try { return localStorage.getItem(storedFontKey); } catch(e){ return null; } })();
             if (savedFont) {
                 rendition.themes.fontSize(savedFont);
@@ -428,8 +439,7 @@
                 const highlightOptions = { 'data-note': noteContent };
 
                 rendition.annotations.highlight(cfiRangeToSave, {}, (e) => {
-                    const note = e.target.dataset.note;
-                    if (note) alert('Nota: ' + note);
+                    showNote(e.target.dataset.note);
                 }, color, noteContent ? highlightOptions : {});
 
                 rendition.getContents().forEach(content => content.window.getSelection().removeAllRanges());
@@ -477,6 +487,10 @@
                     addAnnotation(note);
                     noteModal.style.display = 'none';
                 }
+            };
+
+            closeDisplayNoteBtn.onclick = () => {
+                displayNoteModal.style.display = 'none';
             };
 
             // --- Book Loading ---
