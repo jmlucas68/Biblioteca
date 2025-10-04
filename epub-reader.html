@@ -360,7 +360,7 @@
                                 h.cfi_range,
                                 data,
                                 (e) => { showNote(e.target.dataset.note); },
-                                h.color // Use color from DB as class name
+                                'highlight ' + h.color // Añadir 'highlight ' antes del color
                             );
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
@@ -399,10 +399,10 @@
             rendition.themes.default({ 'body': { 'color': 'var(--fg)', 'background': 'transparent' } });
             // Define styles for highlight colors
             rendition.themes.override('annotations', {
-                '.yellow': {
+                '.highlight.yellow': {
                     'background-color': 'yellow',
                 },
-                '.green': {
+                '.highlight.green': {
                     'background-color': 'lightgreen',
                 }
             });
@@ -466,7 +466,7 @@
                     cfiRangeToSave,
                     data,
                     (e) => { showNote(e.target.dataset.note); },
-                    colorClass
+                    'highlight ' + colorClass
                 );
 
                 rendition.getContents().forEach(content => content.window.getSelection().removeAllRanges());
