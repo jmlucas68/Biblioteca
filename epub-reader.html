@@ -351,6 +351,7 @@
                     if (response.ok) {
                         const highlights = await response.json();
                         highlights.forEach(h => {
+                            console.log("Rendering highlight from DB:", h);
                             const data = { highlightId: h.id };
                             if (h.note_content) {
                                 data.note = h.note_content;
