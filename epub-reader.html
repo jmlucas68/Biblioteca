@@ -335,13 +335,16 @@
                     if (response.ok) {
                         const highlights = await response.json();
                         highlights.forEach(h => {
-                            const options = { "data-highlight-id": h.id };
+                            const data = { "data-highlight-id": h.id };
                             if (h.note_content) {
-                                options['data-note'] = h.note_content;
+                                data['data-note'] = h.note_content;
                             }
-                            rendition.annotations.highlight(h.cfi_range, {}, (e) => {
-                                showNote(e.target.dataset.note);
-                            }, h.color, options);
+                            rendition.annotations.highlight(
+                                h.cfi_range,
+                                data,
+                                (e) => { showNote(e.target.dataset.note); },
+                                h.color
+                            );
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
                     } else {
@@ -377,17 +380,13 @@
             }
 
             rendition.themes.default({ 'body': { 'color': 'var(--fg)', 'background': 'transparent' } });
-            // Inject styles for the note icon into the rendition iframe
             rendition.themes.override('note-style', {
-                '[data-note]::after': {
-                    content: "' 📝'",
-                    'font-size': '0.7em',
-                    'vertical-align': 'super',
-                    'cursor': 'pointer',
-                    '-webkit-user-select': 'none',
-                    'user-select': 'none'
+                '[data-note]': {
+                    'border-bottom': '2px solid orange',
+                    'cursor': 'help'
                 }
             });
+
             const savedFont = (() => { try { return localStorage.getItem(storedFontKey); } catch(e){ return null; } })();
             if (savedFont) {
                 rendition.themes.fontSize(savedFont);
@@ -436,11 +435,17 @@
                 const textToSave = currentSelectionText;
                 const color = 'yellow';
 
-                const highlightOptions = { 'data-note': noteContent };
+                const data = {};
+                if (noteContent) {
+                    data['data-note'] = noteContent;
+                }
 
-                rendition.annotations.highlight(cfiRangeToSave, {}, (e) => {
-                    showNote(e.target.dataset.note);
-                }, color, noteContent ? highlightOptions : {});
+                rendition.annotations.highlight(
+                    cfiRangeToSave,
+                    data,
+                    (e) => { showNote(e.target.dataset.note); },
+                    color
+                );
 
                 rendition.getContents().forEach(content => content.window.getSelection().removeAllRanges());
                 
