@@ -82,6 +82,22 @@
         .bar { height: 100%; background: var(--accent); width: 0%; }
         .hidden { display: none; }
 
+        /* Style for highlights that have a note */
+        [data-note] {
+            position: relative;
+        }
+        [data-note]::after {
+            content: ' 📝'; /* Note icon */
+            font-size: 0.7em;
+            vertical-align: super;
+            cursor: pointer;
+            /* Prevent the icon from being selected as text */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
         /* Highlight menu styles */
         #highlightMenu {
             position: absolute;
