@@ -359,7 +359,8 @@
                                 h.cfi_range,
                                 data,
                                 (e) => { showNote(e.target.dataset.note); },
-                                h.color
+                                null,
+                                { "background-color": h.color || 'yellow' }
                             );
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
@@ -460,7 +461,8 @@
                     cfiRangeToSave,
                     data,
                     (e) => { showNote(e.target.dataset.note); },
-                    color
+                    null,
+                    { 'background-color': color }
                 );
 
                 rendition.getContents().forEach(content => content.window.getSelection().removeAllRanges());
