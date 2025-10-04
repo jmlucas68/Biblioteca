@@ -356,20 +356,12 @@
                             if (h.note_content) {
                                 data.note = h.note_content;
                             }
-                            rendition.annotations.highlight(h.cfirange, data, (e) => showNote(e.target.dataset.note));
-                            // Apply the color style directly
-                            const range = rendition.getRange(h.cfirange);
-                            if (range) {
-                            const elements = range.commonAncestorContainer.parentElement.querySelectorAll('[data-epubcfi]') || [range.commonAncestorContainer.parentElement];
-                            elements.forEach(el => {
-                                if (h.color === 'green') {
-                                el.style.backgroundColor = 'lightgreen';
-                                } else if (h.color === 'yellow') {
-                                el.style.backgroundColor = 'yellow';
-                                }
-                            });
-                            }
-
+                            rendition.annotations.highlight(
+                                h.cfi_range,
+                                data,
+                                (e) => { showNote(e.target.dataset.note); },
+                                h.color // Use color from DB as class name
+                            );
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
                     } else {
@@ -470,21 +462,12 @@
                 }
 
                 // Add highlight with dynamic CLASS NAME for color
-                const mark = rendition.annotations.highlight(
-                cfiRangeToSave,
-                data,
-                (e) => showNote(e.target.dataset.note)
+                rendition.annotations.highlight(
+                    cfiRangeToSave,
+                    data,
+                    (e) => { showNote(e.target.dataset.note); },
+                    colorClass
                 );
-
-                // Apply the background color directly to the highlighted element
-                if (mark && mark.mark && mark.mark.element) {
-                if (colorClass === 'green') {
-                    mark.mark.element.style.backgroundColor = 'lightgreen';
-                } else {
-                    mark.mark.element.style.backgroundColor = 'yellow';
-                }
-                }
-
 
                 rendition.getContents().forEach(content => content.window.getSelection().removeAllRanges());
                 
