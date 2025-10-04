@@ -351,9 +351,9 @@
                     if (response.ok) {
                         const highlights = await response.json();
                         highlights.forEach(h => {
-                            const data = { "data-highlight-id": h.id };
+                            const data = { highlightId: h.id };
                             if (h.note_content) {
-                                data['data-note'] = h.note_content;
+                                data.note = h.note_content;
                             }
                             rendition.annotations.highlight(
                                 h.cfi_range,
@@ -457,7 +457,7 @@
 
                 const data = {};
                 if (noteContent) {
-                    data['data-note'] = noteContent;
+                    data.note = noteContent;
                 }
 
                 // Add highlight with CLASS NAME for color
