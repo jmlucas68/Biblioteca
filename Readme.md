@@ -64,3 +64,4 @@ Estable, muestra nota en ventana. Pte. mostrar que existe una nota.
 
 Corregido problema de que no salía ningún subrayado.
 
+Vuelta a versión más estable: todos marcados en amarillo
