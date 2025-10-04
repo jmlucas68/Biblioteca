@@ -356,26 +356,12 @@
                             if (h.note_content) {
                                 data.note = h.note_content;
                             }
-                            const color = h.color || '#ffff00';  
-                            const colorClass = 'hl-' + color.replace('#','');  
-
                             rendition.annotations.highlight(
-                                h.cfi_range,
-                                data,
-                                (e) => { showNote(e.target.dataset.note); },
-                                colorClass
-                            );
-
-                            // registrar estilo dinámico
-                            rendition.themes.override('highlight', {
-                                [`.${colorClass}`]: { 'background-color': color }
-                            });
-
-
-                            // registrar estilo dinámico
-                            rendition.themes.override('highlight', {
-                                [`.${colorClass}`]: { 'background-color': color }
-                            });
+                            h.cfi_range,
+                            data,
+                            (e) => { showNote(e.target.dataset.note); },
+                            { fill: h.color || '#ffff00', 'fill-opacity': '0.6', 'mix-blend-mode': 'multiply' }
+                        );
 
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
