@@ -357,11 +357,12 @@
                                 data.note = h.note_content;
                             }
                             rendition.annotations.highlight(
-                                h.cfi_range,
-                                data,
-                                (e) => { showNote(e.target.dataset.note); },
-                                h.color // Use color from DB as class name
-                            );
+                            h.cfi_range,
+                            data,
+                            (e) => { showNote(e.target.dataset.note); },
+                            { fill: h.color || '#ffff00', 'fill-opacity': '0.6', 'mix-blend-mode': 'multiply' }
+                        );
+
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
                     } else {
@@ -455,19 +456,19 @@
                 const textToSave = currentSelectionText;
                 
                 const data = {};
-                let colorClass = 'yellow';
                 if (noteContent) {
                     data.note = noteContent;
-                    colorClass = 'green';
                 }
 
-                // Add highlight with dynamic CLASS NAME for color
+                const color = noteContent ? '#90ee90' : '#ffff00'; // verde claro si tiene nota, amarillo si no
+
                 rendition.annotations.highlight(
                     cfiRangeToSave,
                     data,
                     (e) => { showNote(e.target.dataset.note); },
-                    colorClass
+                    { fill: color, 'fill-opacity': '0.6', 'mix-blend-mode': 'multiply' }
                 );
+
 
                 rendition.getContents().forEach(content => content.window.getSelection().removeAllRanges());
                 
