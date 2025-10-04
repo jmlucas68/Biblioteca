@@ -352,16 +352,14 @@
                         const highlights = await response.json();
                         highlights.forEach(h => {
                             const data = { highlightId: h.id };
-                            let colorClass = h.color || 'yellow';
                             if (h.note_content) {
                                 data.note = h.note_content;
-                                colorClass = 'green';
                             }
                             rendition.annotations.highlight(
                                 h.cfi_range,
                                 data,
                                 (e) => { showNote(e.target.dataset.note); },
-                                colorClass
+                                h.color // Use color from DB
                             );
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
@@ -480,7 +478,7 @@
                             book_id: bookId,
                             cfi_range: cfiRangeToSave,
                             highlighted_text: textToSave,
-                            color: 'yellow', // Keep saving yellow to DB, color is decided on render
+                            color: colorClass, // Save the correct color to the DB
                             note_content: noteContent,
                         }),
                     });
