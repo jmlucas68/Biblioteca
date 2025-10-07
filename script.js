@@ -1169,7 +1169,7 @@ function showBookDetails(bookId) {
                 ${subseccionesHtml}
             </div>
         </div>
-        ${book.descripcion ? `<div class="modal-description"><h3>Descripción</h3><div id="description-content"></div></div>` : ''}
+        ${book.descripcion ? `<div class="modal-description"><div style="display: flex; justify-content: space-between; align-items: center;"><h3>Descripción</h3><button id="addNoteButton" class="btn btn--outline" style="padding: 4px 10px; font-size: 12px;">📝 Añadir Nota</button></div><div id="description-content"></div></div>` : ''}
         ${formats.length > 0 ? `
             <div class="modal-formats">
                 ${formats.map(format => {
@@ -1198,6 +1198,39 @@ function showBookDetails(bookId) {
             descriptionContainer.innerHTML = book.descripcion;
         } else {
             descriptionContainer.innerHTML = marked.parse(book.descripcion);
+        }
+
+        const addNoteButton = document.getElementById('addNoteButton');
+        if (addNoteButton) {
+            addNoteButton.addEventListener('click', () => {
+                const selection = window.getSelection();
+                if (!selection.rangeCount || selection.isCollapsed) {
+                    alert('Por favor, selecciona el texto en la descripción donde quieres añadir la nota.');
+                    return;
+                }
+
+                const range = selection.getRangeAt(0);
+                const descriptionContentDiv = document.getElementById('description-content');
+
+                if (!descriptionContentDiv.contains(range.commonAncestorContainer)) {
+                     alert('La nota solo se puede añadir sobre el texto de la descripción.');
+                     return;
+                }
+
+                const noteIndicator = document.createElement('span');
+                noteIndicator.className = 'note-indicator';
+                noteIndicator.title = 'Hay una nota aquí';
+                noteIndicator.textContent = '📝';
+
+                range.collapse(false);
+                range.insertNode(noteIndicator);
+
+                book.descripcion = descriptionContentDiv.innerHTML;
+                
+                selection.removeAllRanges();
+
+                alert('Icono de nota añadido.');
+            });
         }
     }
     elements.bookModal.classList.add('show');
