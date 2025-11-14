@@ -362,10 +362,15 @@ async function loadData() {
 async function loadClassification() {
     try {
         const { data, error } = await supabaseClient.from('clasificacion').select('data').limit(1).single();
-        if (error) throw error;
+        if (error) {
+            // Re-throw the specific Supabase error so the caller can see it
+            throw error;
+        }
         classification = data.data;
     } catch (error) {
-        console.error('Error loading classification:', error);
+        // Log the specific error and then throw a new, more informative error
+        console.error('Error caught in loadClassification:', error);
+        throw new Error(`Fallo al cargar la clasificación desde Supabase: ${error.message}`);
     }
 }
 
