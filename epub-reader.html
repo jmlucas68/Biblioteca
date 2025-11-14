@@ -404,6 +404,9 @@
                 },
                 '.green': {
                     'background-color': 'lightgreen',
+                },
+                '.note-icon': {
+                    'background-color': 'transparent',
                 }
             });
 
@@ -458,7 +461,7 @@
                 let colorClass = 'yellow';
                 if (noteContent) {
                     data.note = noteContent;
-                    colorClass = 'green';
+                    colorClass = 'note-icon';
                 }
 
                 // Add highlight with dynamic CLASS NAME for color
