@@ -190,14 +190,29 @@ function enableAdminFeatures() {
 }
 
 async function loadInitialData() {
-    await loadData();
-    await loadClassification();
-    if(isAdmin) {
-        await sincronizarClasificacion();
+    try {
+        // Run data loading in parallel for efficiency
+        await Promise.all([loadData(), loadClassification()]);
+
+        // Add a critical check to ensure classification data is loaded
+        if (!classification) {
+            throw new Error("La clasificación de la biblioteca no pudo ser cargada. No se puede mostrar la interfaz.");
+        }
+
+        if(isAdmin) {
+            await sincronizarClasificacion();
+        }
+        populateSearchFilters();
+        showSections();
+        setupEventListeners();
+    } catch (error) {
+        console.error("Error fatal durante la carga de datos inicial:", error);
+        const loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+            loadingElement.style.display = 'flex'; // Make sure it's visible
+            loadingElement.innerHTML = `⚠ Error: ${error.message}. Por favor, recarga la página.`;
+        }
     }
-    populateSearchFilters();
-    showSections();
-    setupEventListeners();
 }
 
 // Global variables
