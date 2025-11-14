@@ -458,11 +458,10 @@
                 const textToSave = currentSelectionText;
                 
                 const data = {};
-                let colorClass = 'yellow';
-                if (noteContent) {
-                    data.note = noteContent;
-                    colorClass = 'note-icon';
-                }
+                // --- START TEMPORARY CHANGE ---
+                data.note = noteContent || 'test note'; // Always add a note
+                let colorClass = 'note-icon'; // Always use note-icon
+                // --- END TEMPORARY CHANGE ---
 
                 // Add highlight with dynamic CLASS NAME for color
                 rendition.annotations.highlight(
