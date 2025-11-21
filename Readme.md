@@ -55,3 +55,13 @@ Corregida validacion clave (rama Import)
 Nueva funcionalidad importar libro (sin alta en BBDD)
 
 Nueva funcionalidad: Importa ebook en PDF
+
+Corregida funcion de sacar % de avance
+
+Corregido no subraya nada si se deselecciona texto.
+
+Estable, muestra nota en ventana. Pte. mostrar que existe una nota.
+
+Corregido problema de que no salía ningún subrayado.
+
+Vuelta a versión más estable: todos marcados en amarillo

@@ -190,14 +190,29 @@ function enableAdminFeatures() {
 }
 
 async function loadInitialData() {
-    await loadData();
-    await loadClassification();
-    if(isAdmin) {
-        await sincronizarClasificacion();
+    try {
+        // Run data loading in parallel for efficiency
+        await Promise.all([loadData(), loadClassification()]);
+
+        // Add a critical check to ensure classification data is loaded
+        if (!classification) {
+            throw new Error("La clasificación de la biblioteca no pudo ser cargada. No se puede mostrar la interfaz.");
+        }
+
+        if(isAdmin) {
+            await sincronizarClasificacion();
+        }
+        populateSearchFilters();
+        showSections();
+        setupEventListeners();
+    } catch (error) {
+        console.error("Error fatal durante la carga de datos inicial:", error);
+        const loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+            loadingElement.style.display = 'flex'; // Make sure it's visible
+            loadingElement.innerHTML = `⚠ Error: ${error.message}. Por favor, recarga la página.`;
+        }
     }
-    populateSearchFilters();
-    showSections();
-    setupEventListeners();
 }
 
 // Global variables
@@ -347,10 +362,15 @@ async function loadData() {
 async function loadClassification() {
     try {
         const { data, error } = await supabaseClient.from('clasificacion').select('data').limit(1).single();
-        if (error) throw error;
+        if (error) {
+            // Re-throw the specific Supabase error so the caller can see it
+            throw error;
+        }
         classification = data.data;
     } catch (error) {
-        console.error('Error loading classification:', error);
+        // Log the specific error and then throw a new, more informative error
+        console.error('Error caught in loadClassification:', error);
+        throw new Error(`Fallo al cargar la clasificación desde Supabase: ${error.message}`);
     }
 }
 
@@ -1169,7 +1189,7 @@ function showBookDetails(bookId) {
                 ${subseccionesHtml}
             </div>
         </div>
-        ${book.descripcion ? `<div class="modal-description"><h3>Descripción</h3><div id="description-content"></div></div>` : ''}
+        ${book.descripcion ? `<div class="modal-description"><div style="display: flex; justify-content: space-between; align-items: center;"><h3>Descripción</h3><button id="addNoteButton" class="btn btn--outline" style="padding: 4px 10px; font-size: 12px;">📝 Añadir Nota</button></div><div id="description-content"></div></div>` : ''}
         ${formats.length > 0 ? `
             <div class="modal-formats">
                 ${formats.map(format => {
@@ -1198,6 +1218,39 @@ function showBookDetails(bookId) {
             descriptionContainer.innerHTML = book.descripcion;
         } else {
             descriptionContainer.innerHTML = marked.parse(book.descripcion);
+        }
+
+        const addNoteButton = document.getElementById('addNoteButton');
+        if (addNoteButton) {
+            addNoteButton.addEventListener('click', () => {
+                const selection = window.getSelection();
+                if (!selection.rangeCount || selection.isCollapsed) {
+                    alert('Por favor, selecciona el texto en la descripción donde quieres añadir la nota.');
+                    return;
+                }
+
+                const range = selection.getRangeAt(0);
+                const descriptionContentDiv = document.getElementById('description-content');
+
+                if (!descriptionContentDiv.contains(range.commonAncestorContainer)) {
+                     alert('La nota solo se puede añadir sobre el texto de la descripción.');
+                     return;
+                }
+
+                const noteIndicator = document.createElement('span');
+                noteIndicator.className = 'note-indicator';
+                noteIndicator.title = 'Hay una nota aquí';
+                noteIndicator.textContent = '📝';
+
+                range.collapse(false);
+                range.insertNode(noteIndicator);
+
+                book.descripcion = descriptionContentDiv.innerHTML;
+                
+                selection.removeAllRanges();
+
+                alert('Icono de nota añadido.');
+            });
         }
     }
     elements.bookModal.classList.add('show');
