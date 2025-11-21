@@ -254,6 +254,38 @@
             border-left: 2px solid var(--accent);
             white-space: pre-wrap;
         }
+
+        .annotation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            line-height: 1;
+            opacity: 0;
+            /* Hidden by default */
+            transition: opacity 0.2s, color 0.2s;
+            font-size: 1.1em;
+        }
+
+        .annotation-item:hover .delete-btn {
+            opacity: 1;
+            /* Show on hover */
+        }
+
+        .delete-btn:hover {
+            color: #ef4444;
+            /* Red color on hover */
+            background: rgba(239, 68, 68, 0.1);
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
@@ -485,21 +517,72 @@
                     const item = document.createElement('div');
                     item.className = 'annotation-item';
 
+                    // Header container for text and delete button
+                    const header = document.createElement('div');
+                    header.className = 'annotation-header';
+
                     let html = '';
                     if (ann.highlighted_text) {
                         html += `<div class="annotation-text">"${ann.highlighted_text}"</div>`;
-                    }
-                    if (ann.note_content) {
-                        html += `<div class="annotation-note">${ann.note_content}</div>`;
+                    } else {
+                        html += `<div class="annotation-text" style="font-style:italic; color:var(--muted)">(Sin texto seleccionado)</div>`;
                     }
 
-                    item.innerHTML = html;
-                    item.onclick = () => {
-                        rendition.display(ann.cfi_range);
-                        // Optional: highlight the item in the list to show it's active
+                    // Delete button
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'delete-btn';
+                    delBtn.innerHTML = '🗑️';
+                    delBtn.title = 'Eliminar';
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation(); // Prevent navigation when clicking delete
+                        if (confirm('¿Eliminar esta nota?')) {
+                            deleteAnnotation(ann.id, ann.cfi_range);
+                        }
+                    };
+
+                    header.innerHTML = html;
+                    header.appendChild(delBtn);
+                    item.appendChild(header);
+
+                    if (ann.note_content) {
+                        const noteDiv = document.createElement('div');
+                        noteDiv.className = 'annotation-note';
+                        noteDiv.textContent = ann.note_content;
+                        item.appendChild(noteDiv);
+                    }
+
+                    item.onclick = (e) => {
+                        if (!e.target.closest('.delete-btn')) {
+                            rendition.display(ann.cfi_range);
+                        }
                     };
                     annotationsList.appendChild(item);
                 });
+            }
+
+            async function deleteAnnotation(id, cfiRange) {
+                if (!id) return;
+                try {
+                    const response = await fetch(`https://perplexity-proxy-backend.vercel.app/api/annotations?id=${id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        // Remove from local list
+                        allAnnotations = allAnnotations.filter(a => a.id !== id);
+                        // Remove from rendition
+                        rendition.annotations.remove(cfiRange, 'highlight');
+                        // Re-render list
+                        renderAnnotationsList();
+                        console.log('Annotation deleted:', id);
+                    } else {
+                        console.error('Failed to delete annotation:', response.statusText);
+                        alert('Error al eliminar la anotación.');
+                    }
+                } catch (error) {
+                    console.error('Error deleting annotation:', error);
+                    alert('Error de red al eliminar la anotación.');
+                }
             }
 
             let currentSelectionRange = null;
