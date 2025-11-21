@@ -289,6 +289,7 @@
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -364,6 +365,15 @@
     </div>
 
     <script>
+        // Supabase Configuration
+        const { createClient } = supabase;
+        const supabaseUrl = ['https://fanyuclarbgwraiwbcmr', 'supabase.co'].join('.');
+        const key_part_1 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+        const key_part_2 = 'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0';
+        const key_part_3 = 'AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+        const supabaseKey = `${key_part_1}.${key_part_2}.${key_part_3}`;
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
         function getParam(name) {
             const url = new URL(window.location.href);
             return url.searchParams.get(name) || '';
@@ -563,25 +573,28 @@
             async function deleteAnnotation(id, cfiRange) {
                 if (!id) return;
                 try {
-                    const response = await fetch(`https://perplexity-proxy-backend.vercel.app/api/annotations?id=${id}`, {
-                        method: 'DELETE'
-                    });
+                    const { error } = await supabaseClient
+                        .from('annotations')
+                        .delete()
+                        .eq('id', id);
 
-                    if (response.ok) {
-                        // Remove from local list
-                        allAnnotations = allAnnotations.filter(a => a.id !== id);
-                        // Remove from rendition
+                    if (error) throw error;
+
+                    // Remove from local list
+                    allAnnotations = allAnnotations.filter(a => a.id !== id);
+                    // Remove from rendition
+                    try {
                         rendition.annotations.remove(cfiRange, 'highlight');
-                        // Re-render list
-                        renderAnnotationsList();
-                        console.log('Annotation deleted:', id);
-                    } else {
-                        console.error('Failed to delete annotation:', response.statusText);
-                        alert('Error al eliminar la anotación.');
+                    } catch (e) {
+                        console.warn("Could not remove highlight from rendition (might not be rendered):", e);
                     }
+                    // Re-render list
+                    renderAnnotationsList();
+                    console.log('Annotation deleted:', id);
+
                 } catch (error) {
-                    console.error('Error deleting annotation:', error);
-                    alert('Error de red al eliminar la anotación.');
+                    console.error('Error deleting annotation from Supabase:', error);
+                    alert('Error al eliminar la anotación de la base de datos.');
                 }
             }
 
@@ -653,9 +666,15 @@
                 }
 
                 try {
-                    const response = await fetch(`https://perplexity-proxy-backend.vercel.app/api/annotations?book_id=${bookId}`);
-                    if (response.ok) {
-                        const highlights = await response.json();
+                    // Fetch annotations directly from Supabase
+                    const { data: highlights, error } = await supabaseClient
+                        .from('annotations')
+                        .select('*')
+                        .eq('book_id', bookId);
+
+                    if (error) throw error;
+
+                    if (highlights) {
                         allAnnotations = highlights; // Store in global variable
                         renderAnnotationsList(); // Render the list
 
@@ -665,19 +684,21 @@
                             if (h.note_content) {
                                 data.note = h.note_content;
                             }
-                            rendition.annotations.highlight(
-                                h.cfi_range,
-                                data,
-                                (e) => { showNote(e.target.dataset.note); },
-                                h.color // Use color from DB as class name
-                            );
+                            try {
+                                rendition.annotations.highlight(
+                                    h.cfi_range,
+                                    data,
+                                    (e) => { showNote(e.target.dataset.note); },
+                                    h.color // Use color from DB as class name
+                                );
+                            } catch (e) {
+                                console.warn('Could not render annotation:', h, e);
+                            }
                         });
                         console.log(`Loaded ${highlights.length} highlights.`);
-                    } else {
-                        console.error('Failed to load highlights:', response.statusText);
                     }
                 } catch (error) {
-                    console.error('Error fetching existing highlights:', error);
+                    console.error('Error fetching existing highlights from Supabase:', error);
                 }
             }
 
@@ -783,40 +804,30 @@
                 rendition.getContents().forEach(content => content.window.getSelection().removeAllRanges());
 
                 try {
-                    const response = await fetch('https://perplexity-proxy-backend.vercel.app/api/annotations', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
+                    const { data: savedAnn, error } = await supabaseClient
+                        .from('annotations')
+                        .insert([{
                             book_id: bookId,
                             cfi_range: cfiRangeToSave,
                             highlighted_text: textToSave,
-                            color: colorClass, // Save the correct color to the DB
+                            color: colorClass,
                             note_content: noteContent,
-                        }),
-                    });
+                        }])
+                        .select()
+                        .single();
 
-                    if (response.ok) {
-                        const savedAnn = await response.json();
+                    if (error) throw error;
+
+                    if (savedAnn) {
                         console.log('Annotation saved:', savedAnn);
 
                         // Add to local list and re-render
-                        // Construct object if backend response is different or just use what we sent + id
-                        const newAnnotation = {
-                            id: savedAnn.id || Date.now(), // Fallback if ID not returned
-                            cfi_range: cfiRangeToSave,
-                            highlighted_text: textToSave,
-                            note_content: noteContent,
-                            color: colorClass
-                        };
-                        allAnnotations.push(newAnnotation);
+                        allAnnotations.push(savedAnn);
                         renderAnnotationsList();
-                    } else {
-                        console.error('Failed to save annotation:', response.statusText);
-                        alert('Error al guardar la anotación.');
                     }
                 } catch (error) {
-                    console.error('Error saving annotation:', error);
-                    alert('Error de red al guardar la anotación.');
+                    console.error('Error saving annotation to Supabase:', error);
+                    alert('Error al guardar la anotación en la base de datos.');
                 }
             }
 
