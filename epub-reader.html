@@ -359,6 +359,8 @@
                 style="padding: 10px 0; color: var(--fg); white-space: pre-wrap; max-height: 300px; overflow-y: auto;">
             </div>
             <div style="margin-top: 10px; text-align: right;">
+                <button id="deleteNoteModalBtn"
+                    style="float: left; background: transparent; border: 1px solid #ef4444; color: #ef4444;">Eliminar</button>
                 <button id="closeDisplayNoteBtn">Cerrar</button>
             </div>
         </div>
@@ -484,6 +486,7 @@
             const displayNoteModal = document.getElementById('displayNoteModal');
             const displayNoteContent = document.getElementById('displayNoteContent');
             const closeDisplayNoteBtn = document.getElementById('closeDisplayNoteBtn');
+            const deleteNoteModalBtn = document.getElementById('deleteNoteModalBtn');
 
             // Sidebar Elements
             const tabToc = document.getElementById('tabToc');
@@ -637,10 +640,17 @@
             function saveLocation(cfi) { try { localStorage.setItem(storedKey, cfi); } catch (e) { } }
             function loadLocation() { try { return localStorage.getItem(storedKey); } catch (e) { return null; } }
 
-            function showNote(noteText) {
+            function showNote(noteText, id, cfiRange) {
                 if (!noteText) return;
                 displayNoteContent.textContent = noteText;
                 displayNoteModal.style.display = 'block';
+
+                deleteNoteModalBtn.onclick = () => {
+                    if (confirm('¿Eliminar esta nota?')) {
+                        deleteAnnotation(id, cfiRange);
+                        displayNoteModal.style.display = 'none';
+                    }
+                };
             }
 
             async function init() {
@@ -688,7 +698,7 @@
                                 rendition.annotations.highlight(
                                     h.cfi_range,
                                     data,
-                                    (e) => { showNote(e.target.dataset.note); },
+                                    (e) => { showNote(e.target.dataset.note, h.id, h.cfi_range); },
                                     h.color // Use color from DB as class name
                                 );
                             } catch (e) {
@@ -794,12 +804,12 @@
                 // --- END TEMPORARY CHANGE ---
 
                 // Add highlight with dynamic CLASS NAME for color
-                rendition.annotations.highlight(
-                    cfiRangeToSave,
-                    data,
-                    (e) => { showNote(e.target.dataset.note); },
-                    colorClass
-                );
+                // rendition.annotations.highlight(
+                //     cfiRangeToSave,
+                //     data,
+                //     (e) => { showNote(e.target.dataset.note); },
+                //     colorClass
+                // );
 
                 rendition.getContents().forEach(content => content.window.getSelection().removeAllRanges());
 
@@ -824,6 +834,14 @@
                         // Add to local list and re-render
                         allAnnotations.push(savedAnn);
                         renderAnnotationsList();
+
+                        // Add highlight to rendition NOW that we have the ID
+                        rendition.annotations.highlight(
+                            savedAnn.cfi_range,
+                            data,
+                            (e) => { showNote(e.target.dataset.note, savedAnn.id, savedAnn.cfi_range); },
+                            savedAnn.color
+                        );
                     }
                 } catch (error) {
                     console.error('Error saving annotation to Supabase:', error);
