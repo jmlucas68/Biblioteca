@@ -38,6 +38,7 @@ let showBookDetails;
 let showEditModal;
 let searchByAuthor;
 let searchBySerie;
+let setCookie;
 
 
 export function initUI(dependencies) {
@@ -80,6 +81,7 @@ export function initUI(dependencies) {
     showEditModal = dependencies.showEditModal;
     searchByAuthor = dependencies.searchByAuthor;
     searchBySerie = dependencies.searchBySerie;
+    setCookie = dependencies.setCookie;
 }
 
 export function populateElements() {
@@ -184,4 +186,23 @@ export function hideAllViews() {
 
 export function updateBreadcrumb(path) {
     elements.breadcrumb.innerHTML = path.length === 0 ? '' : path.map((item, index) => `<span class="breadcrumb-item">${esc(item)}</span>`).join('<span class="breadcrumb-separator"> › </span>');
+}
+
+export function applyHeaderPinState(isPinned) {
+    if (isPinned) {
+        elements.header.classList.add('header--pinned');
+        elements.pinHeaderButton.innerHTML = '📌 Fijado';
+        elements.pinHeaderButton.classList.add('active');
+    } else {
+        elements.header.classList.remove('header--pinned');
+        elements.pinHeaderButton.innerHTML = '📌 Fijar';
+        elements.pinHeaderButton.classList.remove('active');
+    }
+}
+
+export function toggleHeaderPin() {
+    const isCurrentlyPinned = elements.header.classList.contains('header--pinned');
+    const newState = !isCurrentlyPinned;
+    applyHeaderPinState(newState);
+    setCookie('headerPinned', newState.toString(), 365);
 }
