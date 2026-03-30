@@ -143,7 +143,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         showEditModal,
         searchByAuthor,
         searchBySerie,
+        setCookie,
     });
+
+    // Initial state for pinned header
+    const isPinned = getCookie('headerPinned') === 'true';
+    applyHeaderPinState(isPinned);
 
     initImporter({
         elements: state.elements,
@@ -180,6 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         generateAiDescription,
         currentEditingBook: state.currentEditingBook,
         toggleHeaderPin,
+        applyHeaderPinState,
         logoff,
         showLoginModal,
         isAdmin: state.isAdmin,
