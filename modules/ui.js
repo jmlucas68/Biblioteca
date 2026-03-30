@@ -188,6 +188,44 @@ export function updateBreadcrumb(path) {
     elements.breadcrumb.innerHTML = path.length === 0 ? '' : path.map((item, index) => `<span class="breadcrumb-item">${esc(item)}</span>`).join('<span class="breadcrumb-separator"> › </span>');
 }
 
+export function populateSearchFilters() {
+    const authors = new Set();
+    const genres = new Set();
+    const series = new Set();
+    const publishers = new Set();
+    const years = new Set();
+    const formats = new Set();
+
+    allBooks.forEach(book => {
+        if (book.autor) authors.add(book.autor.trim());
+        if (book.genero) {
+            book.genero.split(',').forEach(g => genres.add(g.trim()));
+        }
+        if (book.serie) series.add(book.serie.trim());
+        if (book.editorial) publishers.add(book.editorial.trim());
+        if (book.anio) years.add(book.anio.toString());
+    });
+
+    allFormats.forEach(f => {
+        if (f.formato) formats.add(f.formato.trim());
+    });
+
+    const populateSelect = (id, items, defaultText) => {
+        const select = document.getElementById(id);
+        if (!select) return;
+        const sortedItems = Array.from(items).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        select.innerHTML = `<option value="">${defaultText}</option>` + 
+            sortedItems.map(item => `<option value="${esc(item)}">${esc(item)}</option>`).join('');
+    };
+
+    populateSelect('searchAutor', authors, 'Todos los autores');
+    populateSelect('searchGenero', genres, 'Todos los géneros');
+    populateSelect('searchSerie', series, 'Todas las series');
+    populateSelect('searchEditorial', publishers, 'Todas las editoriales');
+    populateSelect('searchYear', years, 'Todos los años');
+    populateSelect('searchFormato', formats, 'Todos');
+}
+
 export function applyHeaderPinState(isPinned) {
     if (isPinned) {
         elements.header.classList.add('header--pinned');
