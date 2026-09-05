@@ -326,7 +326,7 @@
     <input type="file" id="ebookImporter" accept=".epub,.mobi,.pdf,.azw3" style="display:none;" multiple>
     <div id="uploadStatus" class="upload-status"></div>
 
-    <script src="script.js?v=1898dfa"></script>
+    <script src="script.js?v=category-autocomplete-3"></script>
 
     <!-- Modal para Importar Libro -->
     <div id="importModal" class="modal">
@@ -341,7 +341,8 @@
                 <input type="text" id="modalAuthor" required>
 
                 <label for="modalCategory">Categoría:</label>
-                <input type="text" id="modalCategory" required>
+                <input type="text" id="modalCategory" list="bookCategories" autocomplete="off" required>
+                <datalist id="bookCategories"></datalist>
 
                 <label for="modalDescription">Descripción:</label>
                 <textarea id="modalDescription"></textarea>

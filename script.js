@@ -693,6 +693,52 @@ function closeImportModal() {
     selectedFileForImport = null;
 }
 
+// Sugiere las categorías ya utilizadas y permite crear una nueva desde el mismo campo.
+function setupCategoryAutocomplete() {
+    const input = document.getElementById('modalCategory');
+    const datalist = document.getElementById('bookCategories');
+    if (!input || !datalist || input.dataset.autocompleteReady) return;
+    const createPrefix = 'Crear nueva categoría: ';
+    const refreshOptions = () => {
+        const parts = input.value.split(',');
+        const currentPart = parts.pop().trim();
+        const typed = currentPart.toLocaleLowerCase();
+        const previousCategories = parts.map(category => category.trim()).filter(Boolean);
+        input.dataset.categoryPrefix = previousCategories.length ? `${previousCategories.join(', ')}, ` : '';
+        const categories = [...new Set(allBooks.flatMap(book =>
+            String(book.genero || '').split(',').map(category => category.trim()).filter(Boolean)
+        ))].sort((a, b) => a.localeCompare(b, 'es'));
+        datalist.replaceChildren(...categories
+            .filter(category => !typed || category.toLocaleLowerCase().includes(typed))
+            .map(category => Object.assign(document.createElement('option'), {
+                value: `${previousCategories.length ? `${previousCategories.join(', ')}, ` : ''}${category}`
+            })));
+        if (typed && !categories.some(category => category.toLocaleLowerCase() === typed)) {
+            datalist.appendChild(Object.assign(document.createElement('option'), {
+                value: `${createPrefix}${previousCategories.length ? `${previousCategories.join(', ')}, ` : ''}${currentPart}`
+            }));
+        }
+    };
+    input.addEventListener('focus', refreshOptions);
+    input.addEventListener('input', refreshOptions);
+    input.addEventListener('change', () => {
+        if (input.value.startsWith(createPrefix)) {
+            const proposed = input.value.slice(createPrefix.length).split(',').pop().trim();
+            const name = window.prompt('Nombre de la nueva categoría:', proposed);
+            const previous = input.dataset.categoryPrefix || '';
+            input.value = name ? `${previous} ${name.trim()}` : previous.trim();
+            refreshOptions();
+        } else if (input.value.includes(',')) {
+            // Al elegir una sugerencia, conserva las categorías ya introducidas.
+            const parts = input.value.split(',');
+            const selected = parts.pop().trim();
+            input.value = `${parts.filter(part => part.trim()).join(',')}${parts.length ? ', ' : ''}${selected}`;
+        }
+    });
+    input.dataset.autocompleteReady = 'true';
+    refreshOptions();
+}
+
 
 // Business Logic
 function normalizeText(str) {
@@ -1514,6 +1560,7 @@ function showRandomBookDetails() {
 
 // Event Listeners
 function setupEventListeners() {
+    setupCategoryAutocomplete();
     document.getElementById('importButton').addEventListener('click', () => {
         elements.ebookImporter.click();
     });
