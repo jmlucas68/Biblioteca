@@ -728,6 +728,35 @@ textarea.form-control {
 }
 
 /* Responsive */
+@media (min-width: 769px) and (max-width: 1199px) {
+    .header-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .header-left {
+        text-align: center;
+    }
+
+    .breadcrumb {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .header-right {
+        width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .stats {
+        border-left: none;
+        padding-left: 0;
+        justify-content: center;
+    }
+}
+
 @media (min-width: 769px) {
     .header {
         position: sticky;
