@@ -747,6 +747,10 @@ async function sincronizarClasificacion() {
 
 // AI Description Function
 async function generateAiDescription(title, author) {
+    if (!title || !author) {
+        alert('El libro debe tener título y autor para generar una descripción.');
+        return '';
+    }
     const prompt = `Dame un resumen detallado de la obra \"${title}\" del autor \"${author}\" en formato Markdown, incluyendo los puntos clave de la trama, los temas principales y el estilo literario.`;
     try {
         const response = await fetch(GEMINI_PROXY_URL, {
@@ -763,10 +767,14 @@ async function generateAiDescription(title, author) {
         }
 
         const data = await response.json();
-        if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+        // The proxy normally returns an OpenAI-compatible response, while
+        // local/proxy versions may return Gemini's native candidates shape.
+        const description = data.choices?.[0]?.message?.content
+            || data.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('').trim();
+        if (!description) {
             throw new Error('La respuesta de la IA no tiene el formato esperado.');
         }
-        return data.choices[0].message.content;
+        return description;
 
     } catch (error) {
         console.error('Error al generar descripción con IA:', error);
@@ -1571,11 +1579,18 @@ function setupEventListeners() {
         generoSelect.addEventListener('change', () => { generoInput.value = generoSelect.value; });
     }
     elements.aiDescriptionButton.addEventListener('click', async () => {
-        if (currentEditingBook) {
+        if (!currentEditingBook) return;
+
+        const button = elements.aiDescriptionButton;
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Generando…';
+        try {
             const description = await generateAiDescription(currentEditingBook.titulo, currentEditingBook.autor);
-            if (description) {
-                document.getElementById('editDescripcion').value = description;
-            }
+            if (description) document.getElementById('editDescripcion').value = description;
+        } finally {
+            button.disabled = false;
+            button.textContent = originalText;
         }
     });
 
