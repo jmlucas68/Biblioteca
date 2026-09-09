@@ -1462,6 +1462,17 @@ function buildPreviewUrl(viewUrl) {
     return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(viewUrl || '')}`;
 }
 
+// La URL de previsualización de Drive no fuerza una descarga. El proxy entrega
+// el fichero como adjunto para que el navegador lo guarde, en vez de abrirlo.
+function buildDownloadUrl(fileUrl) {
+    const url = String(fileUrl || '');
+    const driveId = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
+    if (driveId && driveId[1] && url.includes('drive.google.com')) {
+        return `${PROXY_BASE_URL}/api/drive-proxy?id=${encodeURIComponent(driveId[1])}`;
+    }
+    return url;
+}
+
 async function openViewer(event, formatUrl, bookTitle, formatName) {
     event.preventDefault();
     event.stopPropagation();
@@ -1479,7 +1490,8 @@ async function openViewer(event, formatUrl, bookTitle, formatName) {
     viewerTitle.textContent = `Cargando: ${esc(bookTitle)}...`;
     viewerIframe.src = 'about:blank';
     viewerModal.style.display = 'flex';
-    viewerDownloadLink.href = formatUrl;
+    viewerDownloadLink.href = buildDownloadUrl(formatUrl);
+    viewerDownloadLink.download = `${String(bookTitle || 'libro').trim() || 'libro'}${String(formatName || '').toLowerCase() === 'pdf' ? '.pdf' : ''}`;
 
     let embedUrl = formatUrl; // Default to original URL
     const googleDriveIdMatch = formatUrl.match(/id=([a-zA-Z0-9_-]+)/);
