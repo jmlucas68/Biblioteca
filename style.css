@@ -1016,7 +1016,8 @@ body.light-mode .tag-delete-btn:hover {
 }
 
 /* Estilos para el Modal de Importación */
-#importModal.modal {
+#importModal.modal,
+#driveRegisterModal.modal {
     display: none; /* Oculto por defecto */
     position: fixed; 
     z-index: 1001; /* Asegurarse que está sobre otros elementos */
@@ -1029,7 +1030,8 @@ body.light-mode .tag-delete-btn:hover {
     backdrop-filter: blur(5px);
 }
 
-#importModal .modal-content {
+#importModal .modal-content,
+#driveRegisterModal .modal-content {
     background-color: var(--color-surface);
     margin: 10% auto; 
     padding: 24px;
@@ -1041,7 +1043,8 @@ body.light-mode .tag-delete-btn:hover {
     position: relative;
 }
 
-#importModal .close-button {
+#importModal .close-button,
+#driveRegisterModal .close-button {
     color: var(--color-text-secondary);
     position: absolute;
     top: 16px;
@@ -1052,26 +1055,31 @@ body.light-mode .tag-delete-btn:hover {
 }
 
 #importModal .close-button:hover,
-#importModal .close-button:focus {
+#importModal .close-button:focus,
+#driveRegisterModal .close-button:hover,
+#driveRegisterModal .close-button:focus {
     color: var(--color-text);
     text-decoration: none;
     cursor: pointer;
     transform: rotate(90deg);
 }
 
-#importModal h2 {
+#importModal h2,
+#driveRegisterModal h2 {
     color: var(--color-text);
     margin-bottom: 24px;
 }
 
-#importForm label {
+#importForm label,
+#driveRegisterForm label {
     display: block;
     margin-top: 16px;
     font-weight: 500;
     color: var(--color-text-secondary);
 }
 
-#importForm input, #importForm textarea {
+#importForm input, #importForm textarea,
+#driveRegisterForm input, #driveRegisterForm textarea {
     width: 100%;
     padding: 12px;
     margin-top: 8px;
@@ -1081,12 +1089,14 @@ body.light-mode .tag-delete-btn:hover {
     color: var(--color-text);
 }
 
-#importForm textarea {
+#importForm textarea,
+#driveRegisterForm textarea {
     min-height: 100px;
     resize: vertical;
 }
 
-#importForm button[type="submit"] {
+#importForm button[type="submit"],
+#driveRegisterForm button[type="submit"] {
     margin-top: 24px;
     width: 100%;
     padding: 12px 15px;
@@ -1100,7 +1110,8 @@ body.light-mode .tag-delete-btn:hover {
     transition: all 0.3s ease;
 }
 
-#importForm button[type="submit"]:hover {
+#importForm button[type="submit"]:hover,
+#driveRegisterForm button[type="submit"]:hover {
     background-color: var(--color-primary-light);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
@@ -1206,4 +1217,10 @@ body.header-is-pinned {
 
 .note-indicator:hover {
     transform: scale(1.2);
+}
+
+.modal-help {
+    margin: -8px 32px 20px 0;
+    color: var(--color-text-secondary);
+    font-size: 14px;
 }

@@ -32,6 +32,9 @@
                     <button id="importButton" class="btn btn--primary admin-control" style="display: none; margin-right: 1rem;" title="Importar nuevos libros desde archivos">
                         📥 Importar Libros
                     </button>
+                    <button id="registerDriveButton" class="btn btn--outline admin-control" style="display: none; margin-right: 1rem;" title="Registrar un archivo ya subido a Google Drive">
+                        ☁️ Registrar archivo de Drive
+                    </button>
                     <button class="btn btn--outline" id="pinHeaderButton" title="Fijar/Desfijar cabecera">
                         📌
                     </button>
@@ -326,7 +329,7 @@
     <input type="file" id="ebookImporter" accept=".epub,.mobi,.pdf,.azw3" style="display:none;" multiple>
     <div id="uploadStatus" class="upload-status"></div>
 
-    <script src="script.js?v=category-autocomplete-3"></script>
+    <script src="script.js?v=drive-register-1"></script>
 
     <!-- Modal para Importar Libro -->
     <div id="importModal" class="modal">
@@ -348,6 +351,26 @@
                 <textarea id="modalDescription"></textarea>
 
                 <button type="submit">Guardar Libro</button>
+            </form>
+        </div>
+    </div>
+    <div id="driveRegisterModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Registrar archivo de Drive</h2>
+            <p class="modal-help">Sube primero el PDF a la carpeta de Drive <strong>Pendientes</strong> y pega aquí su enlace. El archivo se moverá a la biblioteca sin volver a subirse.</p>
+            <form id="driveRegisterForm">
+                <label for="driveFileUrl">Enlace de Google Drive:</label>
+                <input type="url" id="driveFileUrl" placeholder="https://drive.google.com/file/d/.../view" required>
+                <label for="driveTitle">Título:</label>
+                <input type="text" id="driveTitle" required>
+                <label for="driveAuthor">Autor:</label>
+                <input type="text" id="driveAuthor" required>
+                <label for="driveCategory">Categoría:</label>
+                <input type="text" id="driveCategory" list="bookCategories" autocomplete="off" required>
+                <label for="driveDescription">Descripción:</label>
+                <textarea id="driveDescription"></textarea>
+                <button type="submit">Registrar y mover a la biblioteca</button>
             </form>
         </div>
     </div>

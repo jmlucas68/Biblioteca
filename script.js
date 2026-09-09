@@ -12,6 +12,7 @@ const supabaseClient = createClient(supabaseUrl, supabaseKey);
 const PROXY_BASE_URL = 'https://perplexity-proxy-backend.vercel.app'; 
 const GEMINI_PROXY_URL = 'https://perplexity-proxy-backend.vercel.app/api/proxy'; 
 const UPLOAD_URL = `${PROXY_BASE_URL}/api/upload`;
+const REGISTER_DRIVE_FILE_URL = `${PROXY_BASE_URL}/api/register-drive-file`;
 
 // --- Cookie Functions ---
 function setCookie(name, value, days) {
@@ -260,6 +261,10 @@ function populateElements() {
         importModal: document.getElementById('importModal'),
         importForm: document.getElementById('importForm'),
         closeImportModal: document.querySelector('#importModal .close-button'),
+        registerDriveButton: document.getElementById('registerDriveButton'),
+        driveRegisterModal: document.getElementById('driveRegisterModal'),
+        driveRegisterForm: document.getElementById('driveRegisterForm'),
+        closeDriveRegisterModal: document.querySelector('#driveRegisterModal .close-button'),
         header: document.querySelector('.header'), // Add header element
         pinHeaderButton: document.getElementById('pinHeaderButton'), // Add pin button
     };
@@ -691,6 +696,100 @@ function closeImportModal() {
     elements.importModal.style.display = 'none';
     elements.importForm.reset();
     selectedFileForImport = null;
+}
+
+function openDriveRegisterModal() {
+    elements.driveRegisterForm.reset();
+    elements.driveRegisterModal.style.display = 'block';
+}
+
+function closeDriveRegisterModal() {
+    elements.driveRegisterModal.style.display = 'none';
+    elements.driveRegisterForm.reset();
+}
+
+function refreshLibraryAfterImport(book, format) {
+    allBooks.push(book);
+    allFormats.push(format);
+    updateGlobalStats();
+    if (elements.booksView.classList.contains('active')) {
+        applyTagFilters(classification.sections[currentSection].subsections[currentSubsection].tags);
+    } else if (elements.subsectionsView.classList.contains('active')) {
+        showSubsections(currentSection);
+    } else {
+        showSections();
+    }
+}
+
+async function registerDriveFile(event) {
+    event.preventDefault();
+    const fileUrl = document.getElementById('driveFileUrl').value.trim();
+    const title = document.getElementById('driveTitle').value.trim();
+    const author = document.getElementById('driveAuthor').value.trim();
+    const category = document.getElementById('driveCategory').value.trim();
+    const description = document.getElementById('driveDescription').value.trim();
+
+    if (!fileUrl || !title || !author || !category) {
+        alert('Por favor, complete el enlace, título, autor y categoría.');
+        return;
+    }
+
+    elements.loading.style.display = 'flex';
+    elements.loading.textContent = 'Validando y moviendo el archivo de Drive...';
+    try {
+        const response = await fetch(REGISTER_DRIVE_FILE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileUrl })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'No se pudo registrar el archivo de Drive.');
+
+        const { data: existingFormat, error: existingFormatError } = await supabaseClient
+            .from('book_formats')
+            .select('id')
+            .eq('url_download', result.downloadUrl)
+            .limit(1);
+        if (existingFormatError) throw existingFormatError;
+        if (existingFormat && existingFormat.length) {
+            throw new Error('Este archivo de Drive ya está registrado en la biblioteca.');
+        }
+
+        const newBookData = {
+            titulo: title,
+            autor: author,
+            genero: category,
+            descripcion: description,
+            carpeta_obra: '.IMPORTADOS',
+            tamanio_total: result.size ? `${Math.round(Number(result.size) / 1024)} KB` : null
+        };
+        const { data: insertedBook, error: bookError } = await supabaseClient
+            .from('books')
+            .insert([newBookData])
+            .select()
+            .single();
+        if (bookError) throw bookError;
+
+        const extension = (result.name || '').split('.').pop().toUpperCase() || 'ARCHIVO';
+        const newFormat = {
+            book_id: insertedBook.id,
+            formato: extension,
+            url: result.viewUrl,
+            url_download: result.downloadUrl
+        };
+        const { error: formatError } = await supabaseClient.from('book_formats').insert([newFormat]);
+        if (formatError) throw formatError;
+
+        refreshLibraryAfterImport(insertedBook, newFormat);
+        alert(`¡${result.name} se ha registrado y movido a la biblioteca!`);
+        closeDriveRegisterModal();
+    } catch (error) {
+        console.error('Error al registrar el archivo de Drive:', error);
+        alert(`Error al registrar el archivo de Drive: ${error.message}`);
+    } finally {
+        elements.loading.style.display = 'none';
+        elements.loading.textContent = 'Cargando biblioteca...';
+    }
 }
 
 // Sugiere las categorías ya utilizadas y permite crear una nueva desde el mismo campo.
@@ -1576,6 +1675,9 @@ function setupEventListeners() {
     document.getElementById('importButton').addEventListener('click', () => {
         elements.ebookImporter.click();
     });
+    if (elements.registerDriveButton) {
+        elements.registerDriveButton.addEventListener('click', openDriveRegisterModal);
+    }
     // MODIFIED: Use handleFileSelect for the new import modal flow
     elements.ebookImporter.addEventListener('change', handleFileSelect);
 
@@ -1591,6 +1693,17 @@ function setupEventListeners() {
             if (e.target === elements.importModal) {
                 closeImportModal();
             }
+        });
+    }
+    if (elements.closeDriveRegisterModal) {
+        elements.closeDriveRegisterModal.addEventListener('click', closeDriveRegisterModal);
+    }
+    if (elements.driveRegisterForm) {
+        elements.driveRegisterForm.addEventListener('submit', registerDriveFile);
+    }
+    if (elements.driveRegisterModal) {
+        elements.driveRegisterModal.addEventListener('click', (e) => {
+            if (e.target === elements.driveRegisterModal) closeDriveRegisterModal();
         });
     }
 
@@ -1615,6 +1728,7 @@ function setupEventListeners() {
             closeSearchModal();
             closeViewer();
             closeImportModal(); // MODIFIED: Also close import modal on escape
+            closeDriveRegisterModal();
         }
     });
     const autorInput = document.getElementById('searchAutorInput');
