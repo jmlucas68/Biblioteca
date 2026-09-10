@@ -761,6 +761,8 @@ async function registerDriveFile(event) {
             genero: category,
             descripcion: description,
             carpeta_obra: '.IMPORTADOS',
+            url_portada: result.coverViewUrl || null,
+            url_download_portada: result.coverDownloadUrl || null,
             tamanio_total: result.size ? `${Math.round(Number(result.size) / 1024)} KB` : null
         };
         const { data: insertedBook, error: bookError } = await supabaseClient
