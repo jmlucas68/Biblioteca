@@ -1052,19 +1052,31 @@ function renderSearchResults(results) {
     container.innerHTML = `<h3 style="margin-bottom: 16px;">${results.length} libro(s) encontrado(s)</h3><div class="grid grid--books">${results.map(renderBook).join('')}</div>`;
 }
 
+function renderFormatLinks(format, bookTitle, detailed = false) {
+    const downloadUrl = format.url_download || format.ruta_archivo || '#';
+    const hasValidUrl = downloadUrl && downloadUrl !== '#';
+    const formatName = esc(format.formato);
+    const escapedUrl = esc(downloadUrl);
+    const escapedTitle = esc(bookTitle);
+    const disabledClass = !hasValidUrl ? ' format-link--disabled' : '';
+    const size = detailed && format.tamano_mb ? ` (${format.tamano_mb} MB)` : '';
+    const prefix = detailed ? '📄 ' : '';
+    const standardLink = `<a href="#" onclick="openViewer(event, '${escapedUrl}', '${escapedTitle}', '${formatName}')" class="format-link${disabledClass}">${prefix}${formatName}${size}</a>`;
+
+    if (String(format.formato || '').trim().toLowerCase() !== 'pdf') {
+        return standardLink;
+    }
+
+    return `${standardLink}<a href="#" onclick="openPdfReader(event, '${escapedUrl}', '${escapedTitle}')" class="format-link${disabledClass}">${detailed ? '✍ ' : ''}PDF nuevo · anotable</a>`;
+}
+
 function renderBook(book) {
     const formats = getBookFormats(book.id);
     const genres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
     const portadaSrc = resolveCoverThumb(book.url_portada);
     const coverHref = book.url_portada || '#';
 
-    const formatLinks = formats.map(f => {
-        const downloadUrl = f.url_download || f.ruta_archivo || '#';
-        const hasValidUrl = downloadUrl && downloadUrl !== '#';
-        const formatName = esc(f.formato);
-        const bookTitle = esc(book.titulo);
-        return `<a href="#" onclick="openViewer(event, '${esc(downloadUrl)}', '${bookTitle}', '${formatName}')" class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}">${formatName}</a>`;
-    }).join('');
+    const formatLinks = formats.map(format => renderFormatLinks(format, book.titulo)).join('');
 
     return `
         <div class="book-card" onclick="showBookDetails(${book.id})">
@@ -1346,19 +1358,7 @@ function showBookDetails(bookId) {
         ${book.descripcion ? `<div class="modal-description"><div style="display: flex; justify-content: space-between; align-items: center;"><h3>Descripción</h3><button id="addNoteButton" class="btn btn--outline" style="padding: 4px 10px; font-size: 12px;">📝 Añadir Nota</button></div><div id="description-content"></div></div>` : ''}
         ${formats.length > 0 ? `
             <div class="modal-formats">
-                ${formats.map(format => {
-                    const downloadUrl = format.url_download || format.ruta_archivo || '#';
-                    const hasValidUrl = downloadUrl && downloadUrl !== '#';
-                    const formatName = esc(format.formato);
-                    const bookTitle = esc(book.titulo);
-                    return `
-                        <a href="#" 
-                           onclick="openViewer(event, '${esc(downloadUrl)}', '${bookTitle}', '${formatName}')"
-                           class="format-link${!hasValidUrl ? ' format-link--disabled' : ''}">
-                            📄 ${formatName}
-                            ${format.tamano_mb ? ` (${format.tamano_mb} MB)` : ''}
-                        </a>`;
-                }).join('')}
+                ${formats.map(format => renderFormatLinks(format, book.titulo, true)).join('')}
             </div>` : ''}
         <div class="modal-footer">
             ${isAdmin ? `<button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>` : ''}
@@ -1576,11 +1576,10 @@ function buildDownloadUrl(fileUrl) {
 async function openViewer(event, formatUrl, bookTitle, formatName) {
     event.preventDefault();
     event.stopPropagation();
-    // EPUB y PDF usan lectores propios para conservar navegación y anotaciones.
+    // EPUB conserva su lector propio; PDF usa este visor clásico salvo que se pulse el acceso anotable.
     const normalizedFormat = String(formatName || '').toLowerCase();
-    if (normalizedFormat === 'epub' || normalizedFormat === 'pdf') {
-        const reader = normalizedFormat === 'pdf' ? 'pdf-reader.html' : 'epub-reader.html';
-        const readerUrl = `${reader}?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
+    if (normalizedFormat === 'epub') {
+        const readerUrl = `epub-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
         window.open(readerUrl, '_blank', 'noopener');
         return;
     }
@@ -1618,6 +1617,15 @@ async function openViewer(event, formatUrl, bookTitle, formatName) {
             <p>Puedes intentar <a href="${formatUrl}" target="_blank" rel="noopener" style="color: #2563eb;">descargarlo directamente</a>.</p>
         </div>`;
     };
+}
+
+function openPdfReader(event, formatUrl, bookTitle) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!formatUrl || formatUrl === '#') return;
+
+    const readerUrl = `pdf-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl)}`;
+    window.open(readerUrl, '_blank', 'noopener');
 }
 
 function closeViewer() {
