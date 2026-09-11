@@ -252,6 +252,82 @@
             return element?.closest('.pdf-page') || null;
         }
 
+        function textNodes(root) {
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+            const nodes = [];
+            let node;
+            while ((node = walker.nextNode())) nodes.push(node);
+            return nodes;
+        }
+
+        function textOffset(root, target, offset) {
+            let total = 0;
+            for (const node of textNodes(root)) {
+                if (node === target) return total + offset;
+                total += node.textContent.length;
+            }
+            return null;
+        }
+
+        function rangeFromOffsets(root, start, end) {
+            const nodes = textNodes(root);
+            let total = 0;
+            let startPoint = null;
+            let endPoint = null;
+            for (const node of nodes) {
+                const next = total + node.textContent.length;
+                if (!startPoint && start >= total && start <= next) startPoint = { node, offset: start - total };
+                if (!endPoint && end >= total && end <= next) endPoint = { node, offset: end - total };
+                total = next;
+            }
+            if (!startPoint || !endPoint) return null;
+            const range = document.createRange();
+            range.setStart(startPoint.node, startPoint.offset);
+            range.setEnd(endPoint.node, endPoint.offset);
+            return range;
+        }
+
+        function rangeFromStoredText(root, text) {
+            const needle = String(text || '').trim().replace(/\s+/g, ' ');
+            if (!needle) return null;
+            let normalized = '';
+            const rawOffsets = [];
+            let rawOffset = 0;
+            for (const node of textNodes(root)) {
+                for (const character of node.textContent) {
+                    if (/\s/.test(character)) {
+                        if (normalized && !normalized.endsWith(' ')) {
+                            normalized += ' ';
+                            rawOffsets.push(rawOffset);
+                        }
+                    } else {
+                        normalized += character;
+                        rawOffsets.push(rawOffset);
+                    }
+                    rawOffset += 1;
+                }
+            }
+            const start = normalized.indexOf(needle);
+            if (start < 0) return null;
+            const end = start + needle.length;
+            const rawStart = rawOffsets[start];
+            const rawEnd = end < rawOffsets.length ? rawOffsets[end] : rawOffset;
+            return rangeFromOffsets(root, rawStart, rawEnd);
+        }
+
+        function normalizedRects(range, bounds) {
+            return [...range.getClientRects()]
+                .map(rect => ({
+                    left: Math.max(rect.left, bounds.left), top: Math.max(rect.top, bounds.top),
+                    right: Math.min(rect.right, bounds.right), bottom: Math.min(rect.bottom, bounds.bottom)
+                }))
+                .filter(rect => rect.right > rect.left && rect.bottom > rect.top)
+                .map(rect => ({
+                    x: (rect.left - bounds.left) / bounds.width, y: (rect.top - bounds.top) / bounds.height,
+                    w: (rect.right - rect.left) / bounds.width, h: (rect.bottom - rect.top) / bounds.height
+                }));
+        }
+
         function captureSelection() {
             const selection = window.getSelection();
             if (!selection || selection.isCollapsed || !selection.rangeCount) return clearSelection();
@@ -259,26 +335,30 @@
             const firstPage = pageForNode(range.startContainer);
             const lastPage = pageForNode(range.endContainer);
             if (!firstPage || firstPage !== lastPage) return clearSelection();
+            const textLayer = firstPage.querySelector('.textLayer');
+            if (!textLayer) return clearSelection();
             const bounds = firstPage.getBoundingClientRect();
-            const rects = [...range.getClientRects()]
-                .filter(rect => rect.width > 0 && rect.height > 0 && rect.right > bounds.left && rect.left < bounds.right && rect.bottom > bounds.top && rect.top < bounds.bottom)
-                .map(rect => ({
-                    x: Math.max(0, (rect.left - bounds.left) / bounds.width), y: Math.max(0, (rect.top - bounds.top) / bounds.height),
-                    w: Math.min(1, rect.width / bounds.width), h: Math.min(1, rect.height / bounds.height)
-                }));
+            const rects = normalizedRects(range, bounds);
             const text = selection.toString().trim().replace(/\s+/g, ' ');
-            if (!rects.length || !text) return clearSelection();
-            selectionAnchor = { page: Number(firstPage.dataset.page), rects, text };
+            const start = textOffset(textLayer, range.startContainer, range.startOffset);
+            const end = textOffset(textLayer, range.endContainer, range.endOffset);
+            if (!rects.length || !text || start === null || end === null) return clearSelection();
+            selectionAnchor = { page: Number(firstPage.dataset.page), rects, text, start, end };
             ui.highlight.disabled = false;
             ui.note.disabled = false;
         }
 
-        function drawAnnotations(layer) {
+        function drawAnnotations(layer, textLayer) {
             const page = Number(layer.closest('.pdf-page')?.dataset.page);
+            const bounds = layer.getBoundingClientRect();
             annotations.forEach(annotation => {
                 const anchor = parsedAnchor(annotation);
                 if (!anchor || anchor.page !== page) return;
-                anchor.rects.forEach(rect => {
+                const range = Number.isInteger(anchor.start) && Number.isInteger(anchor.end)
+                    ? rangeFromOffsets(textLayer, anchor.start, anchor.end)
+                    : rangeFromStoredText(textLayer, annotation.highlighted_text);
+                const rects = range ? normalizedRects(range, bounds) : anchor.rects;
+                (rects || []).forEach(rect => {
                     const mark = document.createElement('span');
                     mark.className = 'pdf-highlight';
                     mark.style.left = `${rect.x * 100}%`;
@@ -325,7 +405,7 @@
             const textTask = pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayer, viewport, textDivs: [] });
             await Promise.all([canvasTask, textTask.promise || textTask]);
             if (version !== renderVersion) return;
-            drawAnnotations(annotationsLayer);
+            drawAnnotations(annotationsLayer, textLayer);
             updatePageControls();
             setStatus('');
         }
