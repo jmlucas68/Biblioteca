@@ -384,7 +384,7 @@
         const bookUrl = getParam('url');
         const bookTitle = decodeURIComponent(getParam('title')) || 'Lector EPUB';
         document.getElementById('bookTitle').textContent = bookTitle;
-        document.getElementById('downloadLink').href = bookUrl;
+        document.getElementById('downloadLink').href = resolveDriveDownloadUrl(bookUrl);
 
         function applyThemeFromStorage() {
             document.body.classList.add('light-mode');

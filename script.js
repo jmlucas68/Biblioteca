@@ -83,10 +83,9 @@ function extractDriveId(inputUrl) {
 
 function resolveCoverThumb(urlPortada) {
     if (!urlPortada) return '';
-    const m = urlPortada.match(/\/d\/([^\/]+)\//);
-    const id = m ? m[1] : null;
+    const id = extractDriveId(urlPortada);
     if (!id) return urlPortada;
-    return `https://drive.google.com/thumbnail?id=${id}&sz=w400`;
+    return `${PROXY_BASE_URL}/api/drive-proxy?id=${encodeURIComponent(id)}&inline=1`;
 }
 
 function openClassificationEditor() {
@@ -1577,9 +1576,11 @@ function buildDownloadUrl(fileUrl) {
 async function openViewer(event, formatUrl, bookTitle, formatName) {
     event.preventDefault();
     event.stopPropagation();
-    // Si es EPUB, abrir el nuevo lector en una pestaña
-    if (String(formatName || '').toLowerCase() === 'epub') {
-        const readerUrl = `epub-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
+    // EPUB y PDF usan lectores propios para conservar navegación y anotaciones.
+    const normalizedFormat = String(formatName || '').toLowerCase();
+    if (normalizedFormat === 'epub' || normalizedFormat === 'pdf') {
+        const reader = normalizedFormat === 'pdf' ? 'pdf-reader.html' : 'epub-reader.html';
+        const readerUrl = `${reader}?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
         window.open(readerUrl, '_blank', 'noopener');
         return;
     }

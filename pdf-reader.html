@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lector PDF</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg:#0b1220; --fg:#e5e7eb; --muted:#94a3b8; --accent:#2563eb; --panel:#0f172a; --border:#1f2937; --paper:#fff; --shadow:rgba(0,0,0,.26); }
+        body.light-mode { --bg:#f1f5f9; --fg:#0b1220; --muted:#475569; --accent:#1d4ed8; --panel:#fff; --border:#e2e8f0; --shadow:rgba(15,23,42,.15); }
+        * { box-sizing:border-box; }
+        html, body { height:100%; margin:0; }
+        body { min-width:320px; overflow:hidden; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--fg); display:flex; flex-direction:column; }
+        button, select, input { font:inherit; }
+        button, select { color:var(--fg); background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:8px 11px; cursor:pointer; }
+        button:hover:not(:disabled), select:hover { background:var(--bg); }
+        button:focus-visible, select:focus-visible, input:focus-visible { outline:3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset:2px; }
+        button:disabled { cursor:not-allowed; opacity:.45; }
+        .topbar { min-height:58px; display:flex; align-items:center; gap:8px; padding:9px 12px; background:var(--panel); border-bottom:1px solid var(--border); }
+        .title { min-width:0; margin-right:auto; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .controls { display:flex; align-items:center; gap:7px; }
+        .compact { min-width:38px; padding:8px 10px; }
+        #downloadLink { color:var(--fg); text-decoration:none; font-size:14px; }
+        #reader { min-height:0; flex:1; display:grid; grid-template-columns:1fr; }
+        body.sidebar-visible #reader { grid-template-columns:278px minmax(0, 1fr); }
+        .side { display:none; min-height:0; overflow:auto; background:var(--panel); border-right:1px solid var(--border); }
+        body.sidebar-visible .side { display:block; }
+        .sidebar-tabs { display:flex; border-bottom:1px solid var(--border); }
+        .sidebar-tabs button { flex:1; border:0; border-radius:0; color:var(--muted); background:transparent; padding:12px 8px; font-size:14px; font-weight:600; border-bottom:2px solid transparent; }
+        .sidebar-tabs button.active { color:var(--accent); border-bottom-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, transparent); }
+        .page-jump { padding:20px 16px; color:var(--muted); font-size:14px; line-height:1.55; }
+        .page-jump label { display:block; margin:0 0 7px; color:var(--fg); font-weight:600; }
+        .page-jump input { width:100%; padding:9px; color:var(--fg); background:var(--bg); border:1px solid var(--border); border-radius:7px; }
+        .annotations-list { padding:0; }
+        .annotations-empty { padding:24px 18px; text-align:center; color:var(--muted); font-size:14px; line-height:1.55; }
+        .annotation-item { width:100%; display:block; padding:13px 14px; border:0; border-bottom:1px solid var(--border); border-radius:0; text-align:left; background:transparent; color:var(--fg); }
+        .annotation-item:hover { background:var(--bg); }
+        .annotation-header { display:flex; align-items:flex-start; gap:8px; }
+        .annotation-text { flex:1; font-size:13px; line-height:1.5; font-style:italic; color:var(--fg); display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; }
+        .annotation-page { display:block; margin:0 0 6px; color:var(--accent); font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+        .annotation-note { margin:8px 0 0; padding-left:8px; border-left:2px solid var(--accent); color:var(--muted); font-size:12px; line-height:1.55; white-space:pre-wrap; }
+        .delete-btn { flex:0 0 auto; opacity:.68; min-width:30px; padding:3px; border:0; background:transparent; color:var(--muted); }
+        .delete-btn:hover { color:#dc2626; background:rgba(220,38,38,.08); }
+        #stage { position:relative; min-width:0; min-height:0; overflow:auto; display:flex; justify-content:center; align-items:flex-start; padding:24px; background:var(--bg); }
+        .pdf-page { position:relative; flex:0 0 auto; background:var(--paper); box-shadow:0 10px 30px var(--shadow); }
+        .pdf-page canvas { position:absolute; inset:0; display:block; z-index:1; }
+        .textLayer { position:absolute; inset:0; z-index:2; overflow:hidden; line-height:1; text-size-adjust:none; forced-color-adjust:none; }
+        .textLayer span, .textLayer br { position:absolute; color:transparent; white-space:pre; cursor:text; transform-origin:0 0; }
+        .textLayer ::selection { background:rgba(37,99,235,.32); }
+        .annotation-layer { position:absolute; inset:0; z-index:3; pointer-events:none; }
+        .pdf-highlight { position:absolute; background:rgba(250,204,21,.42); border-radius:2px; mix-blend-mode:multiply; }
+        .status { position:fixed; z-index:20; right:16px; bottom:16px; max-width:min(420px, calc(100vw - 32px)); padding:10px 13px; border:1px solid var(--border); border-radius:8px; background:var(--panel); color:var(--muted); font-size:13px; box-shadow:0 8px 24px var(--shadow); }
+        .status.error { color:#b91c1c; border-color:#fca5a5; }
+        .footer { min-height:42px; display:flex; align-items:center; gap:12px; padding:8px 12px; background:var(--panel); border-top:1px solid var(--border); color:var(--muted); font-size:12px; }
+        .prog { height:6px; flex:1; overflow:hidden; border-radius:999px; background:var(--border); cursor:pointer; }
+        .bar { height:100%; width:0; background:var(--accent); }
+        .hidden { display:none !important; }
+        .modal-backdrop { position:fixed; z-index:30; inset:0; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.48); }
+        .modal-backdrop.open { display:flex; }
+        .modal { width:min(500px, 100%); padding:20px; border:1px solid var(--border); border-radius:10px; background:var(--panel); box-shadow:0 20px 46px var(--shadow); }
+        .modal h2 { margin:0 0 14px; font-size:18px; }
+        .modal p { margin:0 0 13px; color:var(--muted); font-size:13px; line-height:1.55; }
+        .modal textarea { display:block; width:100%; min-height:120px; resize:vertical; padding:10px; color:var(--fg); background:var(--bg); border:1px solid var(--border); border-radius:7px; }
+        .modal-actions { display:flex; justify-content:space-between; gap:9px; margin-top:13px; }
+        .modal-actions .right { display:flex; gap:9px; margin-left:auto; }
+        .danger { color:#b91c1c; border-color:#ef4444; }
+        .primary { color:#fff; border-color:var(--accent); background:var(--accent); }
+        .primary:hover:not(:disabled) { filter:brightness(.92); background:var(--accent); }
+        @media (max-width:760px) {
+            .topbar { flex-wrap:wrap; }
+            .title { order:-1; width:calc(100% - 48px); }
+            .controls { width:100%; justify-content:space-between; gap:5px; }
+            .controls select { max-width:74px; }
+            #downloadLink { padding:8px 7px; }
+            body.sidebar-visible #reader { grid-template-columns:1fr; }
+            .side { position:absolute; z-index:10; top:105px; bottom:42px; width:min(280px, 85vw); box-shadow:8px 0 24px var(--shadow); }
+            #stage { padding:15px 8px; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <header class="topbar">
+        <button id="sidebarBtn" class="compact" title="Páginas y anotaciones" aria-label="Mostrar páginas y anotaciones" aria-expanded="false">☰</button>
+        <div class="title" id="bookTitle">Lector PDF</div>
+        <div class="controls">
+            <button id="prevBtn" class="compact" title="Página anterior" aria-label="Página anterior">⟨</button>
+            <button id="nextBtn" class="compact" title="Página siguiente" aria-label="Página siguiente">⟩</button>
+            <button id="highlightBtn" title="Subrayar la selección" disabled>Subrayar</button>
+            <button id="noteBtn" title="Añadir una nota a la selección" disabled>Nota</button>
+            <select id="zoom" title="Tamaño de página" aria-label="Tamaño de página">
+                <option value="0.9">90%</option>
+                <option value="1" selected>100%</option>
+                <option value="1.25">125%</option>
+                <option value="1.5">150%</option>
+            </select>
+            <a id="downloadLink" href="#" target="_blank" rel="noopener">Descargar</a>
+        </div>
+    </header>
+    <div id="reader">
+        <aside class="side" aria-label="Panel del lector">
+            <div class="sidebar-tabs">
+                <button id="tabPages" class="active">Páginas</button>
+                <button id="tabNotes">Notas</button>
+            </div>
+            <section id="pagesPanel" class="page-jump">
+                <label for="pageInput">Ir a la página</label>
+                <input id="pageInput" type="number" min="1" value="1">
+                <p id="pageSummary">Cargando documento…</p>
+            </section>
+            <section id="notesPanel" class="hidden">
+                <div id="annotationsList" class="annotations-list"></div>
+            </section>
+        </aside>
+        <main id="stage" aria-label="Documento PDF"></main>
+    </div>
+    <footer class="footer">
+        <span id="location">Página 0 de 0</span>
+        <div id="progressBar" class="prog" role="slider" aria-label="Progreso del documento" tabindex="0"><div id="progressFill" class="bar"></div></div>
+        <span>Las anotaciones se guardan aparte del PDF</span>
+    </footer>
+    <div id="status" class="status" role="status">Preparando el lector…</div>
+
+    <div id="noteModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="noteHeading">
+        <div class="modal"><h2 id="noteHeading">Añadir nota</h2><p id="noteSelection"></p><textarea id="noteTextarea" placeholder="Escribe tu anotación…"></textarea><div class="modal-actions"><button id="cancelNoteBtn">Cancelar</button><button id="saveNoteBtn" class="primary">Guardar nota</button></div></div>
+    </div>
+    <div id="displayNoteModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="displayNoteHeading">
+        <div class="modal"><h2 id="displayNoteHeading">Anotación</h2><p id="displaySelection"></p><div id="displayNoteContent" style="white-space:pre-wrap;line-height:1.6"></div><div class="modal-actions"><button id="deleteNoteBtn" class="danger">Eliminar</button><div class="right"><button id="closeDisplayNoteBtn">Cerrar</button></div></div></div>
+    </div>
+
+    <script>
+        const { createClient } = supabase;
+        const supabaseUrl = ['https://fanyuclarbgwraiwbcmr', 'supabase.co'].join('.');
+        const keyPart1 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+        const keyPart2 = 'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0';
+        const keyPart3 = 'AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q';
+        const supabaseClient = createClient(supabaseUrl, `${keyPart1}.${keyPart2}.${keyPart3}`);
+
+        const params = new URL(window.location.href).searchParams;
+        const bookUrl = params.get('url') || '';
+        const bookTitle = params.get('title') || 'Lector PDF';
+        const bookId = extractDriveId(bookUrl) || `pdf-url-${stableId(bookUrl)}`;
+        let pdfDocument = null;
+        let currentPage = 1;
+        let currentZoom = 1;
+        let renderVersion = 0;
+        let selectionAnchor = null;
+        let annotations = [];
+        let shownAnnotation = null;
+        let resizeTimer = null;
+
+        const ui = {
+            title: document.getElementById('bookTitle'), stage: document.getElementById('stage'), status: document.getElementById('status'),
+            sidebarBtn: document.getElementById('sidebarBtn'), prev: document.getElementById('prevBtn'), next: document.getElementById('nextBtn'),
+            highlight: document.getElementById('highlightBtn'), note: document.getElementById('noteBtn'), zoom: document.getElementById('zoom'),
+            pageInput: document.getElementById('pageInput'), pageSummary: document.getElementById('pageSummary'), location: document.getElementById('location'),
+            progress: document.getElementById('progressBar'), progressFill: document.getElementById('progressFill'), annotations: document.getElementById('annotationsList'),
+            tabPages: document.getElementById('tabPages'), tabNotes: document.getElementById('tabNotes'), pagesPanel: document.getElementById('pagesPanel'), notesPanel: document.getElementById('notesPanel'),
+            noteModal: document.getElementById('noteModal'), noteSelection: document.getElementById('noteSelection'), noteTextarea: document.getElementById('noteTextarea'),
+            displayModal: document.getElementById('displayNoteModal'), displaySelection: document.getElementById('displaySelection'), displayContent: document.getElementById('displayNoteContent'),
+            download: document.getElementById('downloadLink')
+        };
+
+        ui.title.textContent = bookTitle;
+        ui.download.href = proxyUrl(bookUrl);
+        document.title = `${bookTitle} · Lector PDF`;
+        document.body.classList.add('light-mode');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        function extractDriveId(url) {
+            const match = String(url || '').match(/[?&]id=([a-zA-Z0-9_-]+)/) || String(url || '').match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
+            return match ? match[1] : null;
+        }
+
+        function stableId(value) {
+            let hash = 2166136261;
+            for (const character of String(value || '')) {
+                hash ^= character.charCodeAt(0);
+                hash = Math.imul(hash, 16777619);
+            }
+            return (hash >>> 0).toString(36);
+        }
+
+        function proxyUrl(url) {
+            const id = extractDriveId(url);
+            return id ? `https://perplexity-proxy-backend.vercel.app/api/drive-proxy?id=${encodeURIComponent(id)}` : url;
+        }
+
+        async function fetchPdf() {
+            const direct = proxyUrl(bookUrl);
+            const candidates = [...new Set([direct, bookUrl].filter(Boolean))];
+            let lastError = null;
+            for (const url of candidates) {
+                try {
+                    const response = await fetch(url, { credentials: 'omit' });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return await response.arrayBuffer();
+                } catch (error) { lastError = error; }
+            }
+            throw lastError || new Error('No se pudo descargar el PDF.');
+        }
+
+        function setStatus(message, error = false) {
+            ui.status.textContent = message;
+            ui.status.classList.toggle('error', error);
+            ui.status.classList.toggle('hidden', !message);
+        }
+
+        function switchTab(tab) {
+            const pages = tab === 'pages';
+            ui.tabPages.classList.toggle('active', pages);
+            ui.tabNotes.classList.toggle('active', !pages);
+            ui.pagesPanel.classList.toggle('hidden', !pages);
+            ui.notesPanel.classList.toggle('hidden', pages);
+        }
+
+        function parsedAnchor(annotation) {
+            if (!String(annotation.cfi_range || '').startsWith('pdf:')) return null;
+            try { return JSON.parse(annotation.cfi_range.slice(4)); } catch (_) { return null; }
+        }
+
+        function annotationAnchor(page, rects) { return `pdf:${JSON.stringify({ page, rects })}`; }
+
+        function updatePageControls() {
+            if (!pdfDocument) return;
+            const total = pdfDocument.numPages;
+            ui.prev.disabled = currentPage <= 1;
+            ui.next.disabled = currentPage >= total;
+            ui.pageInput.max = String(total);
+            ui.pageInput.value = String(currentPage);
+            ui.pageSummary.textContent = `Página ${currentPage} de ${total}`;
+            ui.location.textContent = `Página ${currentPage} de ${total}`;
+            ui.progressFill.style.width = `${(currentPage / total) * 100}%`;
+            ui.progress.setAttribute('aria-valuenow', String(currentPage));
+            ui.progress.setAttribute('aria-valuemax', String(total));
+        }
+
+        function clearSelection() {
+            selectionAnchor = null;
+            ui.highlight.disabled = true;
+            ui.note.disabled = true;
+            window.getSelection()?.removeAllRanges();
+        }
+
+        function pageForNode(node) {
+            const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+            return element?.closest('.pdf-page') || null;
+        }
+
+        function captureSelection() {
+            const selection = window.getSelection();
+            if (!selection || selection.isCollapsed || !selection.rangeCount) return clearSelection();
+            const range = selection.getRangeAt(0);
+            const firstPage = pageForNode(range.startContainer);
+            const lastPage = pageForNode(range.endContainer);
+            if (!firstPage || firstPage !== lastPage) return clearSelection();
+            const bounds = firstPage.getBoundingClientRect();
+            const rects = [...range.getClientRects()]
+                .filter(rect => rect.width > 0 && rect.height > 0 && rect.right > bounds.left && rect.left < bounds.right && rect.bottom > bounds.top && rect.top < bounds.bottom)
+                .map(rect => ({
+                    x: Math.max(0, (rect.left - bounds.left) / bounds.width), y: Math.max(0, (rect.top - bounds.top) / bounds.height),
+                    w: Math.min(1, rect.width / bounds.width), h: Math.min(1, rect.height / bounds.height)
+                }));
+            const text = selection.toString().trim().replace(/\s+/g, ' ');
+            if (!rects.length || !text) return clearSelection();
+            selectionAnchor = { page: Number(firstPage.dataset.page), rects, text };
+            ui.highlight.disabled = false;
+            ui.note.disabled = false;
+        }
+
+        function drawAnnotations(layer) {
+            const page = Number(layer.closest('.pdf-page')?.dataset.page);
+            annotations.forEach(annotation => {
+                const anchor = parsedAnchor(annotation);
+                if (!anchor || anchor.page !== page) return;
+                anchor.rects.forEach(rect => {
+                    const mark = document.createElement('span');
+                    mark.className = 'pdf-highlight';
+                    mark.style.left = `${rect.x * 100}%`;
+                    mark.style.top = `${rect.y * 100}%`;
+                    mark.style.width = `${rect.w * 100}%`;
+                    mark.style.height = `${rect.h * 100}%`;
+                    layer.appendChild(mark);
+                });
+            });
+        }
+
+        async function renderPage() {
+            if (!pdfDocument) return;
+            const version = ++renderVersion;
+            clearSelection();
+            setStatus('Renderizando página…');
+            const page = await pdfDocument.getPage(currentPage);
+            if (version !== renderVersion) return;
+            const baseViewport = page.getViewport({ scale: 1 });
+            const availableWidth = Math.max(280, Math.min(920, ui.stage.clientWidth - 32));
+            const scale = Math.max(.55, availableWidth / baseViewport.width) * currentZoom;
+            const viewport = page.getViewport({ scale });
+            const pixelRatio = window.devicePixelRatio || 1;
+            const surface = document.createElement('section');
+            surface.className = 'pdf-page';
+            surface.dataset.page = String(currentPage);
+            surface.style.width = `${viewport.width}px`;
+            surface.style.height = `${viewport.height}px`;
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.floor(viewport.width * pixelRatio);
+            canvas.height = Math.floor(viewport.height * pixelRatio);
+            canvas.style.width = `${viewport.width}px`;
+            canvas.style.height = `${viewport.height}px`;
+            const textLayer = document.createElement('div');
+            textLayer.className = 'textLayer';
+            const annotationsLayer = document.createElement('div');
+            annotationsLayer.className = 'annotation-layer';
+            surface.append(canvas, textLayer, annotationsLayer);
+            ui.stage.replaceChildren(surface);
+            const context = canvas.getContext('2d', { alpha: false });
+            const canvasTask = page.render({ canvasContext: context, transform: [pixelRatio, 0, 0, pixelRatio, 0, 0], viewport }).promise;
+            const textContent = await page.getTextContent();
+            if (version !== renderVersion) return;
+            const textTask = pdfjsLib.renderTextLayer({ textContentSource: textContent, container: textLayer, viewport, textDivs: [] });
+            await Promise.all([canvasTask, textTask.promise || textTask]);
+            if (version !== renderVersion) return;
+            drawAnnotations(annotationsLayer);
+            updatePageControls();
+            setStatus('');
+        }
+
+        async function showPage(pageNumber) {
+            if (!pdfDocument) return;
+            const next = Math.max(1, Math.min(pdfDocument.numPages, Number(pageNumber) || 1));
+            if (next !== currentPage) currentPage = next;
+            await renderPage();
+            ui.stage.scrollTop = 0;
+        }
+
+        function renderAnnotationsList() {
+            ui.annotations.replaceChildren();
+            const sorted = annotations.slice().sort((a, b) => (parsedAnchor(a)?.page || 0) - (parsedAnchor(b)?.page || 0));
+            if (!sorted.length) {
+                const empty = document.createElement('p');
+                empty.className = 'annotations-empty';
+                empty.textContent = 'No hay notas ni subrayados en este PDF.';
+                ui.annotations.appendChild(empty);
+                return;
+            }
+            sorted.forEach(annotation => {
+                const anchor = parsedAnchor(annotation);
+                if (!anchor) return;
+                const item = document.createElement('button');
+                item.className = 'annotation-item';
+                item.type = 'button';
+                const header = document.createElement('div');
+                header.className = 'annotation-header';
+                const copy = document.createElement('div');
+                copy.className = 'annotation-text';
+                const page = document.createElement('span');
+                page.className = 'annotation-page';
+                page.textContent = `Página ${anchor.page}`;
+                const excerpt = document.createElement('div');
+                excerpt.textContent = `“${annotation.highlighted_text || 'Sin texto seleccionado'}”`;
+                copy.append(page, excerpt);
+                const remove = document.createElement('button');
+                remove.className = 'delete-btn';
+                remove.type = 'button';
+                remove.title = 'Eliminar anotación';
+                remove.setAttribute('aria-label', 'Eliminar anotación');
+                remove.textContent = '×';
+                remove.addEventListener('click', event => { event.stopPropagation(); if (confirm('¿Eliminar esta anotación?')) void deleteAnnotation(annotation); });
+                header.append(copy, remove);
+                item.appendChild(header);
+                if (annotation.note_content) {
+                    const note = document.createElement('p');
+                    note.className = 'annotation-note';
+                    note.textContent = annotation.note_content;
+                    item.appendChild(note);
+                }
+                item.addEventListener('click', () => { void showPage(anchor.page); if (annotation.note_content) showStoredNote(annotation); });
+                ui.annotations.appendChild(item);
+            });
+        }
+
+        async function loadAnnotations() {
+            if (!bookId) return;
+            const { data, error } = await supabaseClient.from('annotations').select('*').eq('book_id', bookId).like('cfi_range', 'pdf:%');
+            if (error) throw error;
+            annotations = (data || []).filter(parsedAnchor);
+            renderAnnotationsList();
+        }
+
+        async function saveAnnotation(noteContent = null) {
+            if (!selectionAnchor || !bookId) return;
+            const anchor = selectionAnchor;
+            setStatus('Guardando anotación…');
+            const { data, error } = await supabaseClient.from('annotations').insert([{
+                book_id: bookId, cfi_range: annotationAnchor(anchor.page, anchor.rects), highlighted_text: anchor.text,
+                color: 'yellow', note_content: noteContent
+            }]).select().single();
+            if (error) throw error;
+            annotations.push(data);
+            renderAnnotationsList();
+            clearSelection();
+            await renderPage();
+            setStatus('Anotación guardada aparte del PDF.');
+            window.setTimeout(() => setStatus(''), 2400);
+        }
+
+        async function deleteAnnotation(annotation) {
+            const { error } = await supabaseClient.from('annotations').delete().eq('id', annotation.id);
+            if (error) { setStatus('No se ha podido eliminar la anotación.', true); return; }
+            annotations = annotations.filter(item => item.id !== annotation.id);
+            renderAnnotationsList();
+            ui.displayModal.classList.remove('open');
+            await renderPage();
+        }
+
+        function openNoteDialog() {
+            if (!selectionAnchor) return;
+            ui.noteSelection.textContent = `“${selectionAnchor.text.slice(0, 180)}${selectionAnchor.text.length > 180 ? '…' : ''}”`;
+            ui.noteTextarea.value = '';
+            ui.noteModal.classList.add('open');
+            ui.noteTextarea.focus();
+        }
+
+        function showStoredNote(annotation) {
+            shownAnnotation = annotation;
+            ui.displaySelection.textContent = `“${annotation.highlighted_text || ''}”`;
+            ui.displayContent.textContent = annotation.note_content || '';
+            ui.displayModal.classList.add('open');
+        }
+
+        function bindEvents() {
+            ui.sidebarBtn.addEventListener('click', () => {
+                document.body.classList.toggle('sidebar-visible');
+                ui.sidebarBtn.setAttribute('aria-expanded', String(document.body.classList.contains('sidebar-visible')));
+            });
+            ui.tabPages.addEventListener('click', () => switchTab('pages'));
+            ui.tabNotes.addEventListener('click', () => switchTab('notes'));
+            ui.prev.addEventListener('click', () => void showPage(currentPage - 1));
+            ui.next.addEventListener('click', () => void showPage(currentPage + 1));
+            ui.pageInput.addEventListener('change', () => void showPage(ui.pageInput.value));
+            ui.zoom.addEventListener('change', () => { currentZoom = Number(ui.zoom.value); void renderPage(); });
+            ui.highlight.addEventListener('click', () => { void saveAnnotation().catch(error => setStatus(`No se ha podido guardar la anotación: ${error.message}`, true)); });
+            ui.note.addEventListener('click', openNoteDialog);
+            document.getElementById('cancelNoteBtn').addEventListener('click', () => ui.noteModal.classList.remove('open'));
+            document.getElementById('saveNoteBtn').addEventListener('click', () => {
+                const note = ui.noteTextarea.value.trim();
+                if (!note) { ui.noteTextarea.focus(); return; }
+                ui.noteModal.classList.remove('open');
+                void saveAnnotation(note).catch(error => setStatus(`No se ha podido guardar la anotación: ${error.message}`, true));
+            });
+            document.getElementById('closeDisplayNoteBtn').addEventListener('click', () => ui.displayModal.classList.remove('open'));
+            document.getElementById('deleteNoteBtn').addEventListener('click', () => { if (shownAnnotation && confirm('¿Eliminar esta anotación?')) void deleteAnnotation(shownAnnotation); });
+            [ui.noteModal, ui.displayModal].forEach(modal => modal.addEventListener('click', event => { if (event.target === modal) modal.classList.remove('open'); }));
+            ui.stage.addEventListener('mouseup', () => window.setTimeout(captureSelection, 0));
+            ui.stage.addEventListener('touchend', () => window.setTimeout(captureSelection, 0));
+            ui.progress.addEventListener('click', event => { if (!pdfDocument) return; const rect = ui.progress.getBoundingClientRect(); void showPage(Math.ceil(((event.clientX - rect.left) / rect.width) * pdfDocument.numPages)); });
+            ui.progress.addEventListener('keydown', event => { if (event.key === 'ArrowLeft') { event.preventDefault(); void showPage(currentPage - 1); } if (event.key === 'ArrowRight') { event.preventDefault(); void showPage(currentPage + 1); } });
+            document.addEventListener('keydown', event => {
+                if (event.target?.matches('textarea,input')) return;
+                if (event.key === 'ArrowLeft') { event.preventDefault(); void showPage(currentPage - 1); }
+                if (event.key === 'ArrowRight') { event.preventDefault(); void showPage(currentPage + 1); }
+                if (event.key === 'Escape') { ui.noteModal.classList.remove('open'); ui.displayModal.classList.remove('open'); }
+            });
+            window.addEventListener('resize', () => { window.clearTimeout(resizeTimer); resizeTimer = window.setTimeout(() => void renderPage(), 150); });
+        }
+
+        async function init() {
+            if (!bookUrl) throw new Error('No se ha proporcionado la URL del archivo PDF.');
+            bindEvents();
+            setStatus('Descargando PDF…');
+            const data = await fetchPdf();
+            pdfDocument = await pdfjsLib.getDocument({ data }).promise;
+            await loadAnnotations();
+            await showPage(1);
+        }
+
+        init().catch(error => {
+            console.error(error);
+            setStatus(`No se ha podido abrir el PDF: ${error.message}`, true);
+            ui.stage.textContent = 'No se ha podido abrir este PDF. Comprueba que el archivo esté disponible en Google Drive.';
+            ui.stage.style.cssText = 'display:grid;place-items:center;padding:32px;text-align:center;color:var(--muted);';
+        });
+    </script>
+</body>
+
+</html>
