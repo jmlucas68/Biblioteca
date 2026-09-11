@@ -329,7 +329,7 @@
     <input type="file" id="ebookImporter" accept=".epub,.mobi,.pdf,.azw3" style="display:none;" multiple>
     <div id="uploadStatus" class="upload-status"></div>
 
-    <script src="script.js?v=drive-cover-1"></script>
+    <script src="script.js?v=delete-book-1"></script>
 
     <!-- Modal para Importar Libro -->
     <div id="importModal" class="modal">
@@ -372,6 +372,28 @@
                 <textarea id="driveDescription"></textarea>
                 <button type="submit">Registrar y mover a la biblioteca</button>
             </form>
+        </div>
+
+        <!-- Confirmación de borrado, solo se abre desde el modo Bibliotecario -->
+        <div class="modal-backdrop" id="deleteBookModal" role="dialog" aria-modal="true" aria-labelledby="deleteBookModalTitle">
+            <div class="modal modal--delete">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="deleteBookModalTitle">🗑️ Borrar libro</h2>
+                    <button class="modal-close" type="button" onclick="closeDeleteBookModal()" aria-label="Cerrar">×</button>
+                </div>
+                <div class="modal-body">
+                    <p>Vas a borrar <strong id="deleteBookTitle"></strong>. Esta acción no se puede deshacer.</p>
+                    <p id="deleteBookFormats" class="delete-book-formats"></p>
+                    <label class="delete-drive-option" for="deleteBookDriveFiles">
+                        <input type="checkbox" id="deleteBookDriveFiles">
+                        <span><strong>Borrar también los ficheros de Google Drive</strong><small>Se eliminarán todos los formatos asociados al libro. Si no lo marcas, los ficheros permanecerán en Drive.</small></span>
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn--outline" onclick="closeDeleteBookModal()">Cancelar</button>
+                    <button type="button" class="btn btn--danger" id="confirmDeleteBookButton">Borrar definitivamente</button>
+                </div>
+            </div>
         </div>
     </div>
 </body>

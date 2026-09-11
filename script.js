@@ -13,6 +13,7 @@ const PROXY_BASE_URL = 'https://perplexity-proxy-backend.vercel.app';
 const GEMINI_PROXY_URL = 'https://perplexity-proxy-backend.vercel.app/api/proxy'; 
 const UPLOAD_URL = `${PROXY_BASE_URL}/api/upload`;
 const REGISTER_DRIVE_FILE_URL = `${PROXY_BASE_URL}/api/register-drive-file`;
+const DELETE_BOOK_FILES_URL = `${PROXY_BASE_URL}/api/delete-book-files`;
 
 // --- Cookie Functions ---
 function setCookie(name, value, days) {
@@ -65,6 +66,7 @@ function closeLoginModal() {
 function logoff() {
     deleteCookie('isAdmin');
     deleteCookie('userRole'); // Delete userRole cookie
+    deleteCookie('libraryAdminToken');
     isAdmin = false; // Update local state
     disableAdminFeatures(); // Immediately disable features
     showLoginModal(); // Show login modal after logoff
@@ -139,10 +141,12 @@ async function validatePassword() {
             setCookie('userRole', data.role, 7); // Set userRole cookie for 7 days
             if (data.role === 'Bibliotecario') {
                 setCookie('isAdmin', 'true', 7); // Set cookie for 7 days
+                if (data.adminToken) setCookie('libraryAdminToken', data.adminToken, 7);
                 isAdmin = true;
                 enableAdminFeatures();
             } else { // Lector
                 deleteCookie('isAdmin'); // Ensure no admin cookie is set
+                deleteCookie('libraryAdminToken');
                 isAdmin = false;
                 disableAdminFeatures();
             }
@@ -264,6 +268,9 @@ function populateElements() {
         driveRegisterModal: document.getElementById('driveRegisterModal'),
         driveRegisterForm: document.getElementById('driveRegisterForm'),
         closeDriveRegisterModal: document.querySelector('#driveRegisterModal .close-button'),
+        deleteBookModal: document.getElementById('deleteBookModal'),
+        deleteBookDriveFiles: document.getElementById('deleteBookDriveFiles'),
+        confirmDeleteBookButton: document.getElementById('confirmDeleteBookButton'),
         header: document.querySelector('.header'), // Add header element
         pinHeaderButton: document.getElementById('pinHeaderButton'), // Add pin button
     };
@@ -1361,7 +1368,10 @@ function showBookDetails(bookId) {
                 ${formats.map(format => renderFormatLinks(format, book.titulo, true)).join('')}
             </div>` : ''}
         <div class="modal-footer">
-            ${isAdmin ? `<button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>` : ''}
+            ${isAdmin ? `
+                <button type="button" class="btn btn--success" onclick="showEditModal(${book.id})">✏️ Editar</button>
+                <button type="button" class="btn btn--danger" onclick="showDeleteBookModal(${book.id})">🗑️ Borrar libro</button>
+            ` : ''}
         </div>
     `;
     
@@ -1552,6 +1562,76 @@ function closeEditModal() { elements.editModal.classList.remove('show'); }
 function openSearchModal() { elements.searchModal.classList.add('show'); }
 function closeSearchModal() { elements.searchModal.classList.remove('show'); }
 
+function showDeleteBookModal(bookId) {
+    if (!isAdmin) return;
+    const book = allBooks.find(item => item.id === bookId);
+    if (!book) return;
+
+    const formats = getBookFormats(bookId);
+    document.getElementById('deleteBookTitle').textContent = book.titulo || 'este libro';
+    document.getElementById('deleteBookFormats').textContent = formats.length
+        ? `Se eliminarán ${formats.length} formato${formats.length === 1 ? '' : 's'} de la base de datos.`
+        : 'No hay formatos registrados para este libro.';
+    document.getElementById('deleteBookDriveFiles').checked = false;
+    document.getElementById('confirmDeleteBookButton').dataset.bookId = String(bookId);
+    elements.deleteBookModal.classList.add('show');
+}
+
+function closeDeleteBookModal() {
+    elements.deleteBookModal.classList.remove('show');
+    elements.confirmDeleteBookButton.disabled = false;
+    elements.confirmDeleteBookButton.textContent = 'Borrar definitivamente';
+}
+
+async function deleteBook() {
+    if (!isAdmin) return;
+    const bookId = Number(elements.confirmDeleteBookButton.dataset.bookId);
+    const book = allBooks.find(item => item.id === bookId);
+    if (!book) return;
+
+    const deleteDriveFiles = elements.deleteBookDriveFiles.checked;
+    elements.confirmDeleteBookButton.disabled = true;
+    elements.confirmDeleteBookButton.textContent = 'Borrando…';
+
+    try {
+        const adminToken = getCookie('libraryAdminToken');
+        if (!adminToken) throw new Error('La sesión de bibliotecario ha caducado. Vuelve a iniciar sesión.');
+        const response = await fetch(DELETE_BOOK_FILES_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
+            },
+            body: JSON.stringify({ bookId, deleteDriveFiles })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'No se pudo borrar el libro.');
+
+        allFormats = allFormats.filter(format => format.book_id !== bookId);
+        allBooks = allBooks.filter(item => item.id !== bookId);
+        filteredBooks = filteredBooks.filter(item => item.id !== bookId);
+        currentBooks = currentBooks.filter(item => item.id !== bookId);
+        updateGlobalStats();
+        populateSearchFilters();
+        closeDeleteBookModal();
+        closeModal();
+
+        if (elements.booksView.classList.contains('active')) {
+            applyTagFilters(classification.sections[currentSection].subsections[currentSubsection].tags);
+        } else if (elements.subsectionsView.classList.contains('active')) {
+            showSubsections(currentSection);
+        } else {
+            showSections();
+        }
+        alert(`Libro \"${book.titulo}\" borrado correctamente${deleteDriveFiles ? ' junto con sus ficheros de Drive.' : '.'}`);
+    } catch (error) {
+        console.error('Error al borrar el libro:', error);
+        alert(`No se pudo borrar el libro: ${error.message}`);
+        elements.confirmDeleteBookButton.disabled = false;
+        elements.confirmDeleteBookButton.textContent = 'Borrar definitivamente';
+    }
+}
+
 // Visor embebido
 function buildPreviewUrl(viewUrl) {
     const m = String(viewUrl || '').match(/https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\/view/i);
@@ -1717,6 +1797,14 @@ function setupEventListeners() {
             if (e.target === elements.driveRegisterModal) closeDriveRegisterModal();
         });
     }
+    if (elements.confirmDeleteBookButton) {
+        elements.confirmDeleteBookButton.addEventListener('click', () => void deleteBook());
+    }
+    if (elements.deleteBookModal) {
+        elements.deleteBookModal.addEventListener('click', (e) => {
+            if (e.target === elements.deleteBookModal) closeDeleteBookModal();
+        });
+    }
 
     // Original listeners
     elements.backButton.addEventListener('click', goBack);
@@ -1740,6 +1828,7 @@ function setupEventListeners() {
             closeViewer();
             closeImportModal(); // MODIFIED: Also close import modal on escape
             closeDriveRegisterModal();
+            closeDeleteBookModal();
         }
     });
     const autorInput = document.getElementById('searchAutorInput');

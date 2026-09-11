@@ -757,6 +757,57 @@ textarea.form-control {
     }
 }
 
+.btn--danger {
+    background: #b91c1c;
+    border-color: #b91c1c;
+    color: #fff;
+}
+
+.btn--danger:hover:not(:disabled) {
+    background: #991b1b;
+    border-color: #991b1b;
+}
+
+.btn--danger:disabled {
+    cursor: wait;
+    opacity: .7;
+}
+
+.modal--delete {
+    max-width: 540px;
+}
+
+.delete-book-formats {
+    color: #64748b;
+    font-size: .92rem;
+}
+
+.delete-drive-option {
+    display: flex;
+    gap: .75rem;
+    align-items: flex-start;
+    margin-top: 1.35rem;
+    padding: 1rem;
+    border: 1px solid #fecaca;
+    border-radius: .5rem;
+    background: #fff7f7;
+    cursor: pointer;
+}
+
+.delete-drive-option input {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: .15rem;
+    accent-color: #b91c1c;
+}
+
+.delete-drive-option small {
+    display: block;
+    margin-top: .3rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
 @media (min-width: 769px) {
     .header {
         position: sticky;
