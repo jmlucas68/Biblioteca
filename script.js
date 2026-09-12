@@ -18,6 +18,42 @@ const UPLOAD_URL = `${PROXY_BASE_URL}/api/upload`;
 const REGISTER_DRIVE_FILE_URL = `${PROXY_BASE_URL}/api/register-drive-file`;
 const DELETE_BOOK_FILES_URL = `${PROXY_BASE_URL}/api/delete-book-files`;
 
+// Lanzamiento reversible: las notas viven únicamente en este navegador mientras
+// validamos la experiencia. Poner esta bandera a false las oculta sin tocar
+// Supabase ni las fichas de los libros.
+const BOOK_NOTES_ENABLED = true;
+const BOOK_NOTES_STORAGE_KEY = 'biblioteca.book-notes.v1';
+
+function getBookNotes() {
+    try {
+        const stored = localStorage.getItem(BOOK_NOTES_STORAGE_KEY);
+        const notes = stored ? JSON.parse(stored) : {};
+        return notes && typeof notes === 'object' ? notes : {};
+    } catch (error) {
+        console.warn('No se han podido leer las notas de libros.', error);
+        return {};
+    }
+}
+
+function getBookNote(bookId) {
+    return getBookNotes()[String(bookId)] || '';
+}
+
+function saveBookNote(bookId, note) {
+    try {
+        const notes = getBookNotes();
+        const key = String(bookId);
+        if (note) notes[key] = note;
+        else delete notes[key];
+        localStorage.setItem(BOOK_NOTES_STORAGE_KEY, JSON.stringify(notes));
+        return true;
+    } catch (error) {
+        console.error('No se ha podido guardar la nota del libro.', error);
+        alert('No se ha podido guardar la nota en este navegador.');
+        return false;
+    }
+}
+
 // --- Cookie Functions ---
 function setCookie(name, value, days) {
     let expires = "";
@@ -1379,7 +1415,30 @@ function showBookDetails(bookId) {
                 ${subseccionesHtml}
             </div>
         </div>
-        ${book.descripcion ? `<div class="modal-description"><div style="display: flex; justify-content: space-between; align-items: center;"><h3>Descripción</h3><button id="addNoteButton" class="btn btn--outline" style="padding: 4px 10px; font-size: 12px;">📝 Añadir Nota</button></div><div id="description-content"></div></div>` : ''}
+        ${BOOK_NOTES_ENABLED ? `
+            <section class="book-note" aria-labelledby="bookNoteTitle">
+                <div class="book-note__header">
+                    <div><h3 id="bookNoteTitle">Notas del libro</h3><p>Ideas generales, avance de lectura o cualquier recordatorio.</p></div>
+                    <button id="editBookNoteButton" class="btn btn--outline" type="button">📝 ${getBookNote(book.id) ? 'Editar nota' : 'Añadir nota'}</button>
+                </div>
+                <p id="bookNotePreview" class="book-note__preview" ${getBookNote(book.id) ? '' : 'hidden'}></p>
+                <p id="bookNoteEmpty" class="book-note__empty" ${getBookNote(book.id) ? 'hidden' : ''}>Aún no hay notas para este libro.</p>
+            </section>
+            <div id="bookNoteDialog" class="book-note-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="bookNoteDialogTitle">
+                <div class="book-note-dialog__panel">
+                    <h3 id="bookNoteDialogTitle">Nota sobre ${esc(book.titulo || 'este libro')}</h3>
+                    <p>Guarda ideas generales o tu punto de lectura. No está ligada a ningún texto de la descripción.</p>
+                    <label class="sr-only" for="bookNoteTextarea">Nota del libro</label>
+                    <textarea id="bookNoteTextarea" class="form-control" rows="7" placeholder="Ej.: Voy por la página 84. Revisar la idea del capítulo 3…"></textarea>
+                    <div class="book-note-dialog__actions">
+                        <button id="deleteBookNoteButton" class="btn btn--danger" type="button" ${getBookNote(book.id) ? '' : 'hidden'}>Eliminar nota</button>
+                        <span></span>
+                        <button id="cancelBookNoteButton" class="btn btn--outline" type="button">Cancelar</button>
+                        <button id="saveBookNoteButton" class="btn btn--primary" type="button">Guardar nota</button>
+                    </div>
+                </div>
+            </div>` : ''}
+        ${book.descripcion ? `<div class="modal-description"><h3>Descripción</h3><div id="description-content"></div></div>` : ''}
         ${formats.length > 0 ? `
             <div class="modal-formats">
                 ${formats.map(format => renderFormatLinks(format, book.titulo, true)).join('')}
@@ -1401,38 +1460,49 @@ function showBookDetails(bookId) {
             descriptionContainer.innerHTML = marked.parse(book.descripcion);
         }
 
-        const addNoteButton = document.getElementById('addNoteButton');
-        if (addNoteButton) {
-            addNoteButton.addEventListener('click', () => {
-                const selection = window.getSelection();
-                if (!selection.rangeCount || selection.isCollapsed) {
-                    alert('Por favor, selecciona el texto en la descripción donde quieres añadir la nota.');
-                    return;
-                }
+    }
 
-                const range = selection.getRangeAt(0);
-                const descriptionContentDiv = document.getElementById('description-content');
+    if (BOOK_NOTES_ENABLED) {
+        const dialog = document.getElementById('bookNoteDialog');
+        const textarea = document.getElementById('bookNoteTextarea');
+        const preview = document.getElementById('bookNotePreview');
+        const emptyState = document.getElementById('bookNoteEmpty');
+        const editButton = document.getElementById('editBookNoteButton');
+        const deleteButton = document.getElementById('deleteBookNoteButton');
 
-                if (!descriptionContentDiv.contains(range.commonAncestorContainer)) {
-                     alert('La nota solo se puede añadir sobre el texto de la descripción.');
-                     return;
-                }
+        const refreshNotePreview = () => {
+            const note = getBookNote(book.id);
+            preview.textContent = note;
+            preview.hidden = !note;
+            emptyState.hidden = Boolean(note);
+            editButton.textContent = `📝 ${note ? 'Editar nota' : 'Añadir nota'}`;
+            deleteButton.hidden = !note;
+        };
+        const closeBookNoteDialog = () => { dialog.hidden = true; };
 
-                const noteIndicator = document.createElement('span');
-                noteIndicator.className = 'note-indicator';
-                noteIndicator.title = 'Hay una nota aquí';
-                noteIndicator.textContent = '📝';
-
-                range.collapse(false);
-                range.insertNode(noteIndicator);
-
-                book.descripcion = descriptionContentDiv.innerHTML;
-                
-                selection.removeAllRanges();
-
-                alert('Icono de nota añadido.');
-            });
-        }
+        editButton.addEventListener('click', () => {
+            textarea.value = getBookNote(book.id);
+            dialog.hidden = false;
+            textarea.focus();
+        });
+        document.getElementById('cancelBookNoteButton').addEventListener('click', closeBookNoteDialog);
+        document.getElementById('saveBookNoteButton').addEventListener('click', () => {
+            if (!saveBookNote(book.id, textarea.value.trim())) return;
+            refreshNotePreview();
+            closeBookNoteDialog();
+        });
+        deleteButton.addEventListener('click', () => {
+            if (!saveBookNote(book.id, '')) return;
+            refreshNotePreview();
+            closeBookNoteDialog();
+        });
+        dialog.addEventListener('click', event => {
+            if (event.target === dialog) closeBookNoteDialog();
+        });
+        textarea.addEventListener('keydown', event => {
+            if (event.key === 'Escape') closeBookNoteDialog();
+        });
+        refreshNotePreview();
     }
     elements.bookModal.classList.add('show');
 }
