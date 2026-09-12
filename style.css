@@ -1309,6 +1309,12 @@ body.header-is-pinned {
     margin-top: 16px;
 }
 
+/* Los estilos globales de .btn usan display y anulan el comportamiento nativo. */
+.book-note [hidden],
+.book-note-dialog [hidden] {
+    display: none !important;
+}
+
 .sr-only {
     position: absolute;
     width: 1px;
