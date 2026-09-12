@@ -361,9 +361,23 @@ async function loadData() {
         if (booksError) throw booksError;
         allBooks = booksData || [];
 
-        const { data: formatsData, error: formatsError } = await supabaseClient.from('book_formats').select('*');
-        if (formatsError) throw formatsError;
-        allFormats = formatsData || [];
+        // Supabase limita cada consulta a 1.000 filas. Cargar todas las
+        // páginas garantiza que los formatos registrados recientemente también
+        // aparezcan en las tarjetas de los libros.
+        const pageSize = 1000;
+        const formats = [];
+        for (let from = 0; ; from += pageSize) {
+            const { data: page, error: formatsError } = await supabaseClient
+                .from('book_formats')
+                .select('*')
+                .order('id')
+                .range(from, from + pageSize - 1);
+            if (formatsError) throw formatsError;
+
+            formats.push(...(page || []));
+            if (!page || page.length < pageSize) break;
+        }
+        allFormats = formats;
 
         updateGlobalStats();
         elements.loading.style.display = 'none';
