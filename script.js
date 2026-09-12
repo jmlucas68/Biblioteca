@@ -9,8 +9,11 @@ const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
 // !!! IMPORTANTE: Reemplaza esta URL con la URL de tu propio proxy de Gemini desplegado. !!!
 // Puedes usar un servicio como Vercel para desplegar un proxy simple.
-const PROXY_BASE_URL = 'https://perplexity-proxy-backend.vercel.app'; 
-const GEMINI_PROXY_URL = 'https://perplexity-proxy-backend.vercel.app/api/proxy'; 
+const isLocalDevelopment = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const PROXY_BASE_URL = isLocalDevelopment
+    ? 'http://localhost:3000'
+    : 'https://perplexity-proxy-backend.vercel.app';
+const GEMINI_PROXY_URL = `${PROXY_BASE_URL}/api/proxy`;
 const UPLOAD_URL = `${PROXY_BASE_URL}/api/upload`;
 const REGISTER_DRIVE_FILE_URL = `${PROXY_BASE_URL}/api/register-drive-file`;
 const DELETE_BOOK_FILES_URL = `${PROXY_BASE_URL}/api/delete-book-files`;
@@ -1718,7 +1721,11 @@ function closeViewer() {
 
 // Helpers
 function getBookFormats(bookId) {
-    return allFormats.filter(format => format.book_id === bookId);
+    // Supabase normalmente devuelve ambos IDs como números, pero los registros
+    // creados o migrados pueden llegar como texto. Normalizarlos evita que un
+    // formato existente desaparezca de la tarjeta por una diferencia de tipo.
+    const normalizedBookId = String(bookId);
+    return allFormats.filter(format => String(format.book_id) === normalizedBookId);
 }
 
 function countBooksForSection(sectionKey) {
