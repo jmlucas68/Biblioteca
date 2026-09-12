@@ -685,10 +685,13 @@
                     if (error) throw error;
 
                     if (highlights) {
-                        allAnnotations = highlights; // Store in global variable
+                        // Las notas generales pertenecen a la ficha del libro,
+                        // no a una posición concreta del EPUB.
+                        const readerAnnotations = highlights.filter(h => h.cfi_range !== 'book:general-note');
+                        allAnnotations = readerAnnotations; // Store in global variable
                         renderAnnotationsList(); // Render the list
 
-                        highlights.forEach(h => {
+                        readerAnnotations.forEach(h => {
                             console.log("Rendering highlight from DB:", h);
                             const data = { highlightId: h.id };
                             if (h.note_content) {
@@ -705,7 +708,7 @@
                                 console.warn('Could not render annotation:', h, e);
                             }
                         });
-                        console.log(`Loaded ${highlights.length} highlights.`);
+                        console.log(`Loaded ${readerAnnotations.length} highlights.`);
                     }
                 } catch (error) {
                     console.error('Error fetching existing highlights from Supabase:', error);

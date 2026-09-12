@@ -1291,6 +1291,10 @@ body.header-is-pinned {
     background: rgba(15, 23, 42, 0.55);
 }
 
+.book-note-dialog[hidden] {
+    display: none !important;
+}
+
 .book-note-dialog__panel {
     width: min(560px, 100%);
     padding: 24px;

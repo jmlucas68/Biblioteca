@@ -18,39 +18,51 @@ const UPLOAD_URL = `${PROXY_BASE_URL}/api/upload`;
 const REGISTER_DRIVE_FILE_URL = `${PROXY_BASE_URL}/api/register-drive-file`;
 const DELETE_BOOK_FILES_URL = `${PROXY_BASE_URL}/api/delete-book-files`;
 
-// Lanzamiento reversible: las notas viven únicamente en este navegador mientras
-// validamos la experiencia. Poner esta bandera a false las oculta sin tocar
-// Supabase ni las fichas de los libros.
+// Lanzamiento reversible: una única nota general por libro. Usamos la tabla de
+// anotaciones ya existente, con un ancla reservada, para no cambiar el esquema.
+// Poner esta bandera a false oculta la función sin tocar las fichas de libros.
 const BOOK_NOTES_ENABLED = true;
-const BOOK_NOTES_STORAGE_KEY = 'biblioteca.book-notes.v1';
+const BOOK_NOTE_ANCHOR = 'book:general-note';
 
-function getBookNotes() {
+async function loadBookNote(bookId) {
     try {
-        const stored = localStorage.getItem(BOOK_NOTES_STORAGE_KEY);
-        const notes = stored ? JSON.parse(stored) : {};
-        return notes && typeof notes === 'object' ? notes : {};
+        const { data, error } = await supabaseClient
+            .from('annotations')
+            .select('id, note_content')
+            .eq('book_id', bookId)
+            .eq('cfi_range', BOOK_NOTE_ANCHOR)
+            .maybeSingle();
+        if (error) throw error;
+        return data || null;
     } catch (error) {
-        console.warn('No se han podido leer las notas de libros.', error);
-        return {};
+        console.error('No se ha podido cargar la nota del libro.', error);
+        throw new Error('No se ha podido cargar la nota del libro.');
     }
 }
 
-function getBookNote(bookId) {
-    return getBookNotes()[String(bookId)] || '';
-}
-
-function saveBookNote(bookId, note) {
+async function saveBookNote(bookId, currentNoteId, note) {
     try {
-        const notes = getBookNotes();
-        const key = String(bookId);
-        if (note) notes[key] = note;
-        else delete notes[key];
-        localStorage.setItem(BOOK_NOTES_STORAGE_KEY, JSON.stringify(notes));
-        return true;
+        if (!note && currentNoteId) {
+            const { error } = await supabaseClient.from('annotations').delete().eq('id', currentNoteId);
+            if (error) throw error;
+            return null;
+        }
+        if (!note) return null;
+
+        const payload = currentNoteId
+            ? await supabaseClient.from('annotations').update({ note_content: note }).eq('id', currentNoteId).select('id, note_content').single()
+            : await supabaseClient.from('annotations').insert([{
+                book_id: bookId,
+                cfi_range: BOOK_NOTE_ANCHOR,
+                highlighted_text: '',
+                color: 'yellow',
+                note_content: note
+            }]).select('id, note_content').single();
+        if (payload.error) throw payload.error;
+        return payload.data;
     } catch (error) {
         console.error('No se ha podido guardar la nota del libro.', error);
-        alert('No se ha podido guardar la nota en este navegador.');
-        return false;
+        throw new Error('No se ha podido guardar la nota del libro.');
     }
 }
 
@@ -1419,10 +1431,10 @@ function showBookDetails(bookId) {
             <section class="book-note" aria-labelledby="bookNoteTitle">
                 <div class="book-note__header">
                     <div><h3 id="bookNoteTitle">Notas del libro</h3><p>Ideas generales, avance de lectura o cualquier recordatorio.</p></div>
-                    <button id="editBookNoteButton" class="btn btn--outline" type="button">📝 ${getBookNote(book.id) ? 'Editar nota' : 'Añadir nota'}</button>
+                    <button id="editBookNoteButton" class="btn btn--outline" type="button">📝 Añadir nota</button>
                 </div>
-                <p id="bookNotePreview" class="book-note__preview" ${getBookNote(book.id) ? '' : 'hidden'}></p>
-                <p id="bookNoteEmpty" class="book-note__empty" ${getBookNote(book.id) ? 'hidden' : ''}>Aún no hay notas para este libro.</p>
+                <p id="bookNotePreview" class="book-note__preview" hidden></p>
+                <p id="bookNoteEmpty" class="book-note__empty">Cargando nota…</p>
             </section>
             <div id="bookNoteDialog" class="book-note-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="bookNoteDialogTitle">
                 <div class="book-note-dialog__panel">
@@ -1431,7 +1443,7 @@ function showBookDetails(bookId) {
                     <label class="sr-only" for="bookNoteTextarea">Nota del libro</label>
                     <textarea id="bookNoteTextarea" class="form-control" rows="7" placeholder="Ej.: Voy por la página 84. Revisar la idea del capítulo 3…"></textarea>
                     <div class="book-note-dialog__actions">
-                        <button id="deleteBookNoteButton" class="btn btn--danger" type="button" ${getBookNote(book.id) ? '' : 'hidden'}>Eliminar nota</button>
+                        <button id="deleteBookNoteButton" class="btn btn--danger" type="button" hidden>Eliminar nota</button>
                         <span></span>
                         <button id="cancelBookNoteButton" class="btn btn--outline" type="button">Cancelar</button>
                         <button id="saveBookNoteButton" class="btn btn--primary" type="button">Guardar nota</button>
@@ -1469,32 +1481,49 @@ function showBookDetails(bookId) {
         const emptyState = document.getElementById('bookNoteEmpty');
         const editButton = document.getElementById('editBookNoteButton');
         const deleteButton = document.getElementById('deleteBookNoteButton');
+        const saveButton = document.getElementById('saveBookNoteButton');
+        let storedNote = null;
 
         const refreshNotePreview = () => {
-            const note = getBookNote(book.id);
+            const note = storedNote?.note_content || '';
             preview.textContent = note;
             preview.hidden = !note;
             emptyState.hidden = Boolean(note);
+            emptyState.textContent = note ? '' : 'Aún no hay notas para este libro.';
             editButton.textContent = `📝 ${note ? 'Editar nota' : 'Añadir nota'}`;
             deleteButton.hidden = !note;
         };
         const closeBookNoteDialog = () => { dialog.hidden = true; };
 
         editButton.addEventListener('click', () => {
-            textarea.value = getBookNote(book.id);
+            textarea.value = storedNote?.note_content || '';
             dialog.hidden = false;
             textarea.focus();
         });
         document.getElementById('cancelBookNoteButton').addEventListener('click', closeBookNoteDialog);
-        document.getElementById('saveBookNoteButton').addEventListener('click', () => {
-            if (!saveBookNote(book.id, textarea.value.trim())) return;
-            refreshNotePreview();
-            closeBookNoteDialog();
+        saveButton.addEventListener('click', async () => {
+            const originalLabel = saveButton.textContent;
+            saveButton.disabled = true;
+            saveButton.textContent = 'Guardando…';
+            try {
+                storedNote = await saveBookNote(book.id, storedNote?.id, textarea.value.trim());
+                refreshNotePreview();
+                closeBookNoteDialog();
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = originalLabel;
+            }
         });
-        deleteButton.addEventListener('click', () => {
-            if (!saveBookNote(book.id, '')) return;
-            refreshNotePreview();
-            closeBookNoteDialog();
+        deleteButton.addEventListener('click', async () => {
+            try {
+                storedNote = await saveBookNote(book.id, storedNote?.id, '');
+                refreshNotePreview();
+                closeBookNoteDialog();
+            } catch (error) {
+                alert(error.message);
+            }
         });
         dialog.addEventListener('click', event => {
             if (event.target === dialog) closeBookNoteDialog();
@@ -1502,7 +1531,9 @@ function showBookDetails(bookId) {
         textarea.addEventListener('keydown', event => {
             if (event.key === 'Escape') closeBookNoteDialog();
         });
-        refreshNotePreview();
+        loadBookNote(book.id)
+            .then(note => { storedNote = note; refreshNotePreview(); })
+            .catch(error => { emptyState.textContent = error.message; });
     }
     elements.bookModal.classList.add('show');
 }
