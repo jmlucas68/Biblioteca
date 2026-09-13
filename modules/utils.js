@@ -48,9 +48,7 @@ export function resolveCoverThumb(urlPortada) {
 }
 
 export function isHTML(str) {
-    if (!str) return false;
-    const doc = new DOMParser().parseFromString(str, "text/html");
-    return Array.from(doc.body.childNodes).some(node => node.nodeType === 1);
+    return typeof str === 'string' && /^\s*(?:<|&lt;)div(?:\s|>|&gt;)/i.test(str);
 }
 
 export function normalizeText(str) {

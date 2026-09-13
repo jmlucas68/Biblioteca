@@ -147,9 +147,17 @@ function openClassificationEditor() {
 }
 
 function isHTML(str) {
-    if (!str) return false;
-    const doc = new DOMParser().parseFromString(str, "text/html");
-    return Array.from(doc.body.childNodes).some(node => node.nodeType === 1);
+    // Las descripciones importadas como HTML siempre se entregan dentro de un
+    // <div>. También pueden llegar escapadas desde la base de datos.
+    return typeof str === 'string' && /^\s*(?:<|&lt;)div(?:\s|>|&gt;)/i.test(str);
+}
+
+function decodeHtmlDescription(str) {
+    // Si la descripción ya contiene etiquetas reales, no hay que tocarla. Si
+    // llega como &lt;div&gt;..., se decodifica antes de renderizarla como HTML.
+    if (/^\s*</.test(str)) return str;
+    const doc = new DOMParser().parseFromString(str, 'text/html');
+    return doc.body.textContent || '';
 }
 
 async function enterAdminMode() {
@@ -1475,7 +1483,7 @@ function showBookDetails(bookId) {
     if (book.descripcion) {
         const descriptionContainer = document.getElementById('description-content');
         if (isHTML(book.descripcion)) {
-            descriptionContainer.innerHTML = book.descripcion;
+            descriptionContainer.innerHTML = decodeHtmlDescription(book.descripcion);
         } else {
             descriptionContainer.innerHTML = marked.parse(book.descripcion);
         }
