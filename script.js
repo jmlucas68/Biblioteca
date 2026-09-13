@@ -153,11 +153,15 @@ function isHTML(str) {
 }
 
 function decodeHtmlDescription(str) {
-    // Si la descripción ya contiene etiquetas reales, no hay que tocarla. Si
-    // llega como &lt;div&gt;..., se decodifica antes de renderizarla como HTML.
-    if (/^\s*</.test(str)) return str;
-    const doc = new DOMParser().parseFromString(str, 'text/html');
-    return doc.body.textContent || '';
+    // Si llega como &lt;div&gt;..., se decodifica antes de procesarla. Los estilos
+    // inline vienen del sitio de origen y fuerzan fondo blanco y texto negro,
+    // por lo que se eliminan para respetar el tema activo de la aplicación.
+    const source = /^\s*</.test(str)
+        ? str
+        : new DOMParser().parseFromString(str, 'text/html').body.textContent || '';
+    const doc = new DOMParser().parseFromString(source, 'text/html');
+    doc.body.querySelectorAll('[style]').forEach(element => element.removeAttribute('style'));
+    return doc.body.innerHTML;
 }
 
 async function enterAdminMode() {

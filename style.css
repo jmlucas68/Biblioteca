@@ -757,6 +757,18 @@ textarea.form-control {
     color: var(--color-text);
 }
 
+/* Las descripciones HTML importadas no deben imponer los colores del sitio
+   de origen; así permanecen legibles tanto en modo claro como oscuro. */
+#description-content,
+#description-content * {
+    color: inherit !important;
+    background: transparent !important;
+}
+
+#description-content {
+    color: var(--color-text-secondary) !important;
+}
+
 .modal-formats {
     display: flex;
     gap: 10px;
