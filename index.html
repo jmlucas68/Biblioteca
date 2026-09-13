@@ -11,7 +11,7 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=book-notes-v3">
+    <link rel="stylesheet" href="style.css?v=cover-editor-v1">
 </head>
 <body>
     <!-- Header -->
@@ -255,6 +255,22 @@
                 </div>
                 <div class="modal-body">
                     <form id="editForm">
+                        <section class="cover-editor" aria-labelledby="coverEditorTitle">
+                            <div class="cover-editor__preview">
+                                <img id="editCoverPreview" alt="Portada actual del libro">
+                                <span id="editCoverPlaceholder" aria-hidden="true">📖</span>
+                            </div>
+                            <div class="cover-editor__content">
+                                <h3 id="coverEditorTitle">Portada</h3>
+                                <p>Elige cómo quieres renovar la imagen de este libro.</p>
+                                <div class="cover-editor__actions">
+                                    <button type="button" class="btn btn--outline" id="extractPdfCoverButton">🖼️ Extraer del PDF</button>
+                                    <button type="button" class="btn btn--primary" id="searchWebCoverButton">🌐 Buscar en la web</button>
+                                    <button type="button" class="btn btn--outline" id="uploadCoverButton">⬆️ Subir imagen</button>
+                                </div>
+                                <p id="coverEditorStatus" class="cover-editor__status" aria-live="polite"></p>
+                            </div>
+                        </section>
                         <div class="form-group">
                             <label for="editTitulo">Título *</label>
                             <input
@@ -310,6 +326,7 @@
                         </div>
                         <div class="form-group">
                             <button type="button" class="btn btn--primary" id="aiDescriptionButton">Descripción IA</button>
+                        </div>
                         
                         <div class="form-group">
                             <label class="form-label" for="editCarpetaObra">Carpeta de obra</label>
@@ -327,13 +344,14 @@
 
     <!-- Elementos para la importación de archivos -->
     <input type="file" id="ebookImporter" accept=".epub,.mobi,.pdf,.azw3" style="display:none;" multiple>
+    <input type="file" id="coverImageUploader" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
     <div id="uploadStatus" class="upload-status"></div>
 
     <footer class="site-footer">
         <a href="privacidad.html">Política de privacidad</a>
     </footer>
 
-    <script src="script.js?v=delete-book-v2"></script>
+    <script src="script.js?v=cover-editor-v1"></script>
 
     <!-- Modal para Importar Libro -->
     <div id="importModal" class="modal">

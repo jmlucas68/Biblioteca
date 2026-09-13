@@ -17,6 +17,7 @@ const GEMINI_PROXY_URL = `${PROXY_BASE_URL}/api/proxy`;
 const UPLOAD_URL = `${PROXY_BASE_URL}/api/upload`;
 const REGISTER_DRIVE_FILE_URL = `${PROXY_BASE_URL}/api/register-drive-file`;
 const DELETE_BOOK_FILES_URL = `${PROXY_BASE_URL}/api/delete-book-files`;
+const BOOK_COVER_URL = `${PROXY_BASE_URL}/api/book-cover`;
 
 // Lanzamiento reversible: una única nota general por libro. Usamos la tabla de
 // anotaciones ya existente, con un ancla reservada, para no cambiar el esquema.
@@ -308,6 +309,13 @@ function populateElements() {
         closeModal: document.getElementById('closeModal'),
         editModal: document.getElementById('editModal'),
         aiDescriptionButton: document.getElementById('aiDescriptionButton'),
+        extractPdfCoverButton: document.getElementById('extractPdfCoverButton'),
+        searchWebCoverButton: document.getElementById('searchWebCoverButton'),
+        uploadCoverButton: document.getElementById('uploadCoverButton'),
+        coverImageUploader: document.getElementById('coverImageUploader'),
+        editCoverPreview: document.getElementById('editCoverPreview'),
+        editCoverPlaceholder: document.getElementById('editCoverPlaceholder'),
+        coverEditorStatus: document.getElementById('coverEditorStatus'),
         adminControls: document.getElementById('adminControls'),
         searchModal: document.getElementById('searchModal'),
         ebookImporter: document.getElementById('ebookImporter'),
@@ -1551,6 +1559,8 @@ function showEditModal(bookId) {
     form.elements.editFechaPublicacion.value = book.fecha_publicacion || '';
     form.elements.editDescripcion.value = book.descripcion || '';
     form.elements.editCarpetaObra.value = book.carpeta_obra || '';
+    updateCoverEditorPreview(book.url_portada);
+    setCoverEditorStatus('');
 
     // --- INICIO DE LA NUEVA LÓGICA DE GÉNEROS ---
     const bookGenres = (book.genero || '').split(',').map(g => g.trim()).filter(Boolean);
@@ -1617,6 +1627,165 @@ function showEditModal(bookId) {
     // --- FIN DE LA NUEVA LÓGICA DE GÉNEROS ---
 
     elements.editModal.classList.add('show');
+}
+
+function setCoverEditorStatus(message, type = '') {
+    if (!elements.coverEditorStatus) return;
+    elements.coverEditorStatus.textContent = message;
+    elements.coverEditorStatus.className = `cover-editor__status${type ? ` is-${type}` : ''}`;
+}
+
+function updateCoverEditorPreview(url) {
+    if (!elements.editCoverPreview || !elements.editCoverPlaceholder) return;
+    const source = resolveCoverThumb(url);
+    if (!source) {
+        elements.editCoverPreview.removeAttribute('src');
+        elements.editCoverPreview.classList.add('cover-editor__preview--empty');
+        elements.editCoverPlaceholder.hidden = false;
+        return;
+    }
+    elements.editCoverPreview.src = source;
+    elements.editCoverPreview.onerror = () => {
+        elements.editCoverPreview.removeAttribute('src');
+        elements.editCoverPreview.classList.add('cover-editor__preview--empty');
+        elements.editCoverPlaceholder.hidden = false;
+    };
+    elements.editCoverPreview.classList.remove('cover-editor__preview--empty');
+    elements.editCoverPlaceholder.hidden = true;
+}
+
+function setCoverEditorBusy(isBusy, message = '') {
+    [elements.extractPdfCoverButton, elements.searchWebCoverButton, elements.uploadCoverButton]
+        .filter(Boolean)
+        .forEach(button => { button.disabled = isBusy; });
+    if (message) setCoverEditorStatus(message);
+}
+
+function adminAuthorizationHeaders() {
+    const token = getCookie('libraryAdminToken');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function ensurePdfJsLoaded() {
+    if (typeof pdfjsLib !== 'undefined') return;
+    if (!window.pdfjsScriptLoading) {
+        window.pdfjsScriptLoading = true;
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        document.head.appendChild(script);
+        await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; });
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        return;
+    }
+    await new Promise((resolve, reject) => {
+        const started = Date.now();
+        const check = () => {
+            if (typeof pdfjsLib !== 'undefined') return resolve();
+            if (Date.now() - started > 15000) return reject(new Error('No se pudo cargar el lector de PDF.'));
+            setTimeout(check, 100);
+        };
+        check();
+    });
+}
+
+async function firstPageAsCover(pdfBlob) {
+    await ensurePdfJsLoaded();
+    const pdf = await pdfjsLib.getDocument(await pdfBlob.arrayBuffer()).promise;
+    if (!pdf.numPages) throw new Error('El PDF no contiene páginas.');
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('No se ha podido preparar la imagen de la portada.');
+    await page.render({ canvasContext: context, viewport }).promise;
+    return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('No se ha podido crear la imagen de portada.')), 'image/jpeg', 0.9));
+}
+
+async function persistCoverResponse(response) {
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'No se ha podido actualizar la portada.');
+    const url = result.viewUrl || result.coverUrl;
+    if (!url) throw new Error('El servicio no ha devuelto una portada válida.');
+    const updated = { url_portada: url, url_download_portada: result.downloadUrl || url };
+    const index = allBooks.findIndex(book => book.id === currentEditingBook.id);
+    if (index !== -1) allBooks[index] = { ...allBooks[index], ...updated };
+    currentEditingBook = { ...currentEditingBook, ...updated };
+    updateCoverEditorPreview(url);
+    return url;
+}
+
+async function uploadCoverImage(image, sourceName) {
+    if (!currentEditingBook) return;
+    if (!image || !String(image.type || '').startsWith('image/')) throw new Error('Selecciona una imagen válida.');
+    const formData = new FormData();
+    formData.append('action', 'upload');
+    formData.append('bookId', currentEditingBook.id);
+    formData.append('image', image, sourceName || 'portada.jpg');
+    const response = await fetch(BOOK_COVER_URL, { method: 'POST', headers: adminAuthorizationHeaders(), body: formData });
+    await persistCoverResponse(response);
+}
+
+async function extractCoverFromBookPdf() {
+    if (!currentEditingBook) return;
+    const pdf = getBookFormats(currentEditingBook.id).find(format => String(format.formato || '').trim().toLowerCase() === 'pdf');
+    if (!pdf) {
+        setCoverEditorStatus('Este libro no tiene un PDF del que extraer la primera página.', 'error');
+        return;
+    }
+    try {
+        setCoverEditorBusy(true, 'Leyendo la primera página del PDF…');
+        const response = await fetch(buildDownloadUrl(pdf.url_download || pdf.ruta_archivo || ''));
+        if (!response.ok) throw new Error('No se ha podido descargar el PDF del libro.');
+        const image = await firstPageAsCover(await response.blob());
+        setCoverEditorStatus('Guardando la portada…');
+        await uploadCoverImage(image, `${currentEditingBook.titulo || 'libro'}-portada.jpg`);
+        setCoverEditorStatus('Portada extraída y guardada.', 'success');
+    } catch (error) {
+        console.error('No se pudo extraer la portada del PDF:', error);
+        setCoverEditorStatus(error.message || 'No se ha podido extraer la portada del PDF.', 'error');
+    } finally {
+        setCoverEditorBusy(false);
+    }
+}
+
+async function searchAndSetWebCover() {
+    if (!currentEditingBook) return;
+    const form = document.getElementById('editForm');
+    const titulo = form.elements.editTitulo.value.trim() || currentEditingBook.titulo;
+    const autor = form.elements.editAutor.value.trim() || currentEditingBook.autor;
+    try {
+        setCoverEditorBusy(true, 'Buscando una portada en la web…');
+        const response = await fetch(BOOK_COVER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...adminAuthorizationHeaders() },
+            body: JSON.stringify({ action: 'search', bookId: currentEditingBook.id, titulo, autor })
+        });
+        await persistCoverResponse(response);
+        setCoverEditorStatus('Portada encontrada y guardada.', 'success');
+    } catch (error) {
+        console.error('No se pudo buscar la portada:', error);
+        setCoverEditorStatus(error.message || 'No se ha encontrado una portada.', 'error');
+    } finally {
+        setCoverEditorBusy(false);
+    }
+}
+
+async function uploadSelectedCover(event) {
+    const image = event.target.files?.[0];
+    if (!image) return;
+    try {
+        setCoverEditorBusy(true, 'Subiendo la portada…');
+        await uploadCoverImage(image, image.name);
+        setCoverEditorStatus('Portada subida y guardada.', 'success');
+    } catch (error) {
+        console.error('No se pudo subir la portada:', error);
+        setCoverEditorStatus(error.message || 'No se ha podido subir la portada.', 'error');
+    } finally {
+        event.target.value = '';
+        setCoverEditorBusy(false);
+    }
 }
 
 function renderGenrePills(genres) {
@@ -1988,6 +2157,17 @@ function setupEventListeners() {
             button.textContent = originalText;
         }
     });
+
+    if (elements.extractPdfCoverButton) {
+        elements.extractPdfCoverButton.onclick = () => void extractCoverFromBookPdf();
+    }
+    if (elements.searchWebCoverButton) {
+        elements.searchWebCoverButton.onclick = () => void searchAndSetWebCover();
+    }
+    if (elements.uploadCoverButton && elements.coverImageUploader) {
+        elements.uploadCoverButton.onclick = () => elements.coverImageUploader.click();
+        elements.coverImageUploader.onchange = event => void uploadSelectedCover(event);
+    }
 
     // Header pinning logic
     if (elements.pinHeaderButton && elements.header) {
