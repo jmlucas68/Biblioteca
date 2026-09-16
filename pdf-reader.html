@@ -47,8 +47,8 @@
         #stage { position:relative; min-width:0; min-height:0; overflow:auto; display:flex; justify-content:center; align-items:flex-start; padding:24px; background:var(--bg); }
         .pdf-page { position:relative; flex:0 0 auto; background:var(--paper); box-shadow:0 10px 30px var(--shadow); }
         .pdf-page canvas { position:absolute; inset:0; display:block; z-index:1; }
-        .textLayer { position:absolute; inset:0; z-index:2; overflow:hidden; line-height:1; text-size-adjust:none; forced-color-adjust:none; transform-origin:0 0; user-select:text; }
-        .textLayer span, .textLayer br { position:absolute; color:transparent; white-space:pre; cursor:text; transform-origin:0 0; user-select:text; }
+        .textLayer { position:absolute; inset:0; z-index:2; overflow:hidden; line-height:1; text-size-adjust:none; forced-color-adjust:none; transform-origin:0 0; user-select:text; -webkit-user-select:text; }
+        .textLayer span, .textLayer br { position:absolute; color:transparent; white-space:pre; cursor:text; transform-origin:0 0; user-select:text; -webkit-user-select:text; pointer-events:auto; }
         .textLayer ::selection { background:rgba(37,99,235,.32); }
         .textLayer br::selection { background:transparent; }
         .textLayer .endOfContent { position:absolute; inset:100% 0 0; z-index:-1; display:block; cursor:default; user-select:none; }
@@ -559,6 +559,12 @@
                 window.setTimeout(captureSelection, 0);
             });
             ui.stage.addEventListener('touchend', () => window.setTimeout(captureSelection, 0));
+            document.addEventListener('selectionchange', () => {
+                const selection = window.getSelection();
+                if (selection?.rangeCount && !selection.isCollapsed && pageForNode(selection.anchorNode)?.closest('#stage')) {
+                    window.setTimeout(captureSelection, 0);
+                }
+            });
             ui.progress.addEventListener('click', event => { if (!pdfDocument) return; const rect = ui.progress.getBoundingClientRect(); void showPage(Math.ceil(((event.clientX - rect.left) / rect.width) * pdfDocument.numPages)); });
             ui.progress.addEventListener('keydown', event => { if (event.key === 'ArrowLeft') { event.preventDefault(); void showPage(currentPage - 1); } if (event.key === 'ArrowRight') { event.preventDefault(); void showPage(currentPage + 1); } });
             document.addEventListener('keydown', event => {
