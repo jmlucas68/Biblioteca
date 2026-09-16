@@ -296,6 +296,7 @@ let classification = null;
 let currentObjectUrl = null; // For the book viewer
 let tagFilterLogic = 'OR'; // New global variable for tag filtering logic
 let selectedFileForImport = null;
+const SUPPORTED_IMPORT_EXTENSIONS = new Set(['epub', 'mobi', 'pdf', 'azw3', 'cbr']);
 
 // DOM elements
 let elements = {};
@@ -476,8 +477,15 @@ async function handleFileSelect(event) {
     if (!files.length) {
         return;
     }
-    selectedFileForImport = files[0];
-    const file = selectedFileForImport;
+    selectedFileForImport = null;
+    const file = files[0];
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    if (!SUPPORTED_IMPORT_EXTENSIONS.has(extension)) {
+        alert('Formato no compatible. Selecciona un archivo EPUB, MOBI, PDF, AZW3 o CBR.');
+        event.target.value = '';
+        return;
+    }
+    selectedFileForImport = file;
     const fileName = file.name.toLowerCase();
 
     // Get modal fields
@@ -727,8 +735,30 @@ async function extractAndSetCover(file, bookId) {
             coverImageBlob = await response.blob();
             book.destroy(); // Clean up memory
 
+        // --- CBR Cover Extraction ---
+        } else if (fileName.endsWith('.cbr')) {
+            console.log('Extrayendo portada de CBR...');
+            const [{ createExtractorFromData }, wasmResponse] = await Promise.all([
+                import('./vendor/node-unrar-js/index.esm.js'),
+                fetch('./vendor/node-unrar-js/js/unrar.wasm')
+            ]);
+            if (!wasmResponse.ok) throw new Error('No se pudo iniciar el descompresor CBR.');
+            const extractor = await createExtractorFromData({
+                data: await file.arrayBuffer(),
+                wasmBinary: await wasmResponse.arrayBuffer()
+            });
+            const imagePattern = /\.(?:avif|bmp|gif|jpe?g|png|webp)$/i;
+            const archive = extractor.extract({ files: header => !header.flags.directory && imagePattern.test(header.name) });
+            const pages = [...archive.files]
+                .filter(page => page.extraction && imagePattern.test(page.fileHeader.name))
+                .sort((a, b) => a.fileHeader.name.localeCompare(b.fileHeader.name, 'es', { numeric: true, sensitivity: 'base' }));
+            if (!pages.length) throw new Error('El CBR no contiene imágenes compatibles.');
+            const extension = pages[0].fileHeader.name.split('.').pop().toLowerCase();
+            const mimeType = ({ avif:'image/avif', bmp:'image/bmp', gif:'image/gif', jpeg:'image/jpeg', jpg:'image/jpeg', png:'image/png', webp:'image/webp' })[extension] || 'image/jpeg';
+            coverImageBlob = new Blob([pages[0].extraction], { type: mimeType });
+
         } else {
-            console.log(`El archivo no es un PDF o EPUB (${fileName}), se omitirá la extracción de portada.`);
+            console.log(`El archivo no es un PDF, EPUB o CBR (${fileName}), se omitirá la extracción de portada.`);
             return;
         }
 
@@ -1955,10 +1985,15 @@ function buildDownloadUrl(fileUrl) {
 async function openViewer(event, formatUrl, bookTitle, formatName) {
     event.preventDefault();
     event.stopPropagation();
-    // EPUB conserva su lector propio; PDF usa este visor clásico salvo que se pulse el acceso anotable.
+    // EPUB y CBR conservan lectores propios; PDF usa este visor clásico salvo que se pulse el acceso anotable.
     const normalizedFormat = String(formatName || '').toLowerCase();
     if (normalizedFormat === 'epub') {
         const readerUrl = `epub-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
+        window.open(readerUrl, '_blank', 'noopener');
+        return;
+    }
+    if (normalizedFormat === 'cbr') {
+        const readerUrl = `cbr-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(buildDownloadUrl(formatUrl || ''))}`;
         window.open(readerUrl, '_blank', 'noopener');
         return;
     }
@@ -1971,7 +2006,7 @@ async function openViewer(event, formatUrl, bookTitle, formatName) {
     viewerIframe.src = 'about:blank';
     viewerModal.style.display = 'flex';
     viewerDownloadLink.href = buildDownloadUrl(formatUrl);
-    viewerDownloadLink.download = `${String(bookTitle || 'libro').trim() || 'libro'}${String(formatName || '').toLowerCase() === 'pdf' ? '.pdf' : ''}`;
+    viewerDownloadLink.download = `${String(bookTitle || 'libro').trim() || 'libro'}${normalizedFormat ? `.${normalizedFormat}` : ''}`;
 
     let embedUrl = formatUrl; // Default to original URL
     const googleDriveIdMatch = formatUrl.match(/id=([a-zA-Z0-9_-]+)/);

@@ -343,7 +343,7 @@
     </div>
 
     <!-- Elementos para la importación de archivos -->
-    <input type="file" id="ebookImporter" accept=".epub,.mobi,.pdf,.azw3" style="display:none;" multiple>
+    <input type="file" id="ebookImporter" accept=".epub,.mobi,.pdf,.azw3,.cbr,application/vnd.rar,application/x-rar-compressed" style="display:none;" multiple>
     <input type="file" id="coverImageUploader" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
     <div id="uploadStatus" class="upload-status"></div>
 
@@ -351,7 +351,7 @@
         <a href="privacidad.html">Política de privacidad</a>
     </footer>
 
-    <script src="script.js?v=cover-editor-v1"></script>
+    <script src="script.js?v=cbr-reader-v1"></script>
 
     <!-- Modal para Importar Libro -->
     <div id="importModal" class="modal">
@@ -380,7 +380,7 @@
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h2>Registrar archivo de Drive</h2>
-            <p class="modal-help">Sube primero el PDF a la carpeta de Drive <strong>Pendientes</strong> y pega aquí su enlace. El archivo se moverá a la biblioteca sin volver a subirse.</p>
+            <p class="modal-help">Sube primero el archivo a la carpeta de Drive <strong>Pendientes</strong> y pega aquí su enlace. Se admiten PDF, EPUB y CBR, entre otros formatos compatibles.</p>
             <form id="driveRegisterForm">
                 <label for="driveFileUrl">Enlace de Google Drive:</label>
                 <input type="url" id="driveFileUrl" placeholder="https://drive.google.com/file/d/.../view" required>
