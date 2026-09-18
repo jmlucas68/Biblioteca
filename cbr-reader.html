@@ -26,12 +26,12 @@
         .divider { width:1px; height:24px; margin:0 4px; background:var(--border); }
         #stage { min-height:0; overflow:auto; overscroll-behavior:contain; background:radial-gradient(circle at 50% 10%,#252a35 0,#12151c 58%,#090b10 100%); scrollbar-color:#535c6c #151922; }
         #pages { min-height:100%; }
-        .comic-page { margin:0 auto; transition:width .18s ease; }
+        .comic-page { margin:0 auto; transition:width .18s ease, height .18s ease, max-width .18s ease; }
         .comic-page img { display:block; width:100%; height:auto; background:white; box-shadow:0 12px 38px #0009; }
         .comic-page figcaption { padding:9px 0 20px; color:#838c9b; text-align:center; font-size:11px; }
         body.single #pages { height:100%; display:flex; align-items:flex-start; justify-content:center; padding:26px; }
-        body.single .comic-page { height:100%; max-width:1100px; display:flex; align-items:flex-start; justify-content:center; }
-        body.single .comic-page img { width:auto; max-width:100%; height:100%; max-height:100%; object-fit:contain; }
+        body.single .comic-page { flex:none; height:100%; width:auto; max-width:none; display:flex; align-items:flex-start; justify-content:center; }
+        body.single .comic-page img { width:auto; max-width:none; height:100%; max-height:none; object-fit:contain; }
         body.single .comic-page figcaption { display:none; }
         body.continuous #pages { padding:24px 0 56px; }
         body.continuous .comic-page { max-width:1100px; }
@@ -143,7 +143,17 @@
             for (const { page, index } of visiblePages) {
                 const figure = document.createElement('figure');
                 figure.className = 'comic-page';
-                figure.style.width = `${zoom * 100}%`;
+                if (continuous) {
+                    figure.style.width = `${zoom * 100}%`;
+                    figure.style.maxWidth = `${1100 * zoom}px`;
+                } else {
+                    // En vista única la página parte de la altura disponible.
+                    // Escalar esa altura conserva la proporción y deja que el
+                    // contenedor se desplace al ampliar la imagen.
+                    figure.style.width = 'auto';
+                    figure.style.maxWidth = 'none';
+                    figure.style.height = `${zoom * 100}%`;
+                }
                 const image = document.createElement('img');
                 image.src = page.url;
                 image.alt = `Página ${index + 1}: ${page.name}`;

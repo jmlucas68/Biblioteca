@@ -2032,7 +2032,7 @@ async function openViewer(event, formatUrl, bookTitle, formatName) {
         return;
     }
     if (normalizedFormat === 'cbr') {
-        const readerUrl = `cbr-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(buildDownloadUrl(formatUrl || ''))}`;
+        const readerUrl = `cbr-reader.html?v=cbr-zoom-v2&title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(buildDownloadUrl(formatUrl || ''))}`;
         window.open(readerUrl, '_blank', 'noopener');
         return;
     }
