@@ -322,7 +322,7 @@ function populateElements() {
         closeModal: document.getElementById('closeModal'),
         editModal: document.getElementById('editModal'),
         aiDescriptionButton: document.getElementById('aiDescriptionButton'),
-        extractPdfCoverButton: document.getElementById('extractPdfCoverButton'),
+        extractFileCoverButton: document.getElementById('extractFileCoverButton'),
         searchWebCoverButton: document.getElementById('searchWebCoverButton'),
         uploadCoverButton: document.getElementById('uploadCoverButton'),
         coverImageUploader: document.getElementById('coverImageUploader'),
@@ -1697,7 +1697,7 @@ function updateCoverEditorPreview(url) {
 }
 
 function setCoverEditorBusy(isBusy, message = '') {
-    [elements.extractPdfCoverButton, elements.searchWebCoverButton, elements.uploadCoverButton]
+    [elements.extractFileCoverButton, elements.searchWebCoverButton, elements.uploadCoverButton]
         .filter(Boolean)
         .forEach(button => { button.disabled = isBusy; });
     if (message) setCoverEditorStatus(message);
@@ -1745,6 +1745,39 @@ async function firstPageAsCover(pdfBlob) {
     return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('No se ha podido crear la imagen de portada.')), 'image/jpeg', 0.9));
 }
 
+async function firstCbrPageAsCover(cbrBlob) {
+    const [{ createExtractorFromData }, wasmResponse] = await Promise.all([
+        import('./vendor/node-unrar-js/index.esm.js'),
+        fetch('./vendor/node-unrar-js/js/unrar.wasm'),
+    ]);
+    if (!wasmResponse.ok) throw new Error('No se ha podido iniciar el descompresor CBR.');
+
+    const extractor = await createExtractorFromData({
+        data: await cbrBlob.arrayBuffer(),
+        wasmBinary: await wasmResponse.arrayBuffer(),
+    });
+    const imagePattern = /\.(?:avif|bmp|gif|jpe?g|png|webp)$/i;
+    const { fileHeaders } = extractor.getFileList();
+    const [firstImage] = [...fileHeaders]
+        .filter(header => !header.flags.directory && imagePattern.test(header.name))
+        .sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true, sensitivity: 'base' }));
+    if (!firstImage) throw new Error('El CBR no contiene imágenes compatibles.');
+
+    const { files } = extractor.extract({ files: [firstImage.name] });
+    const [extracted] = [...files];
+    if (!extracted?.extraction) throw new Error('No se ha podido extraer la primera página del CBR.');
+
+    const extension = firstImage.name.split('.').pop().toLowerCase();
+    const mimeType = ({
+        avif: 'image/avif', bmp: 'image/bmp', gif: 'image/gif',
+        jpeg: 'image/jpeg', jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+    })[extension] || 'image/jpeg';
+    return {
+        image: new Blob([extracted.extraction], { type: mimeType }),
+        extension,
+    };
+}
+
 async function persistCoverResponse(response) {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'No se ha podido actualizar la portada.');
@@ -1769,24 +1802,30 @@ async function uploadCoverImage(image, sourceName) {
     await persistCoverResponse(response);
 }
 
-async function extractCoverFromBookPdf() {
+async function extractCoverFromBookFile() {
     if (!currentEditingBook) return;
-    const pdf = getBookFormats(currentEditingBook.id).find(format => String(format.formato || '').trim().toLowerCase() === 'pdf');
-    if (!pdf) {
-        setCoverEditorStatus('Este libro no tiene un PDF del que extraer la primera página.', 'error');
+    const formats = getBookFormats(currentEditingBook.id);
+    const source = formats.find(format => String(format.formato || '').trim().toLowerCase() === 'pdf')
+        || formats.find(format => String(format.formato || '').trim().toLowerCase() === 'cbr');
+    if (!source) {
+        setCoverEditorStatus('Este libro no tiene un PDF ni un CBR del que extraer la primera página.', 'error');
         return;
     }
+    const format = String(source.formato || '').trim().toLowerCase();
+    const isCbr = format === 'cbr';
     try {
-        setCoverEditorBusy(true, 'Leyendo la primera página del PDF…');
-        const response = await fetch(buildDownloadUrl(pdf.url_download || pdf.ruta_archivo || ''));
-        if (!response.ok) throw new Error('No se ha podido descargar el PDF del libro.');
-        const image = await firstPageAsCover(await response.blob());
+        setCoverEditorBusy(true, isCbr ? 'Extrayendo la primera página del CBR…' : 'Leyendo la primera página del PDF…');
+        const response = await fetch(buildDownloadUrl(source.url_download || source.ruta_archivo || ''));
+        if (!response.ok) throw new Error(`No se ha podido descargar el ${isCbr ? 'CBR' : 'PDF'} del libro.`);
+        const result = isCbr
+            ? await firstCbrPageAsCover(await response.blob())
+            : { image: await firstPageAsCover(await response.blob()), extension: 'jpg' };
         setCoverEditorStatus('Guardando la portada…');
-        await uploadCoverImage(image, `${currentEditingBook.titulo || 'libro'}-portada.jpg`);
+        await uploadCoverImage(result.image, `${currentEditingBook.titulo || 'libro'}-portada.${result.extension}`);
         setCoverEditorStatus('Portada extraída y guardada.', 'success');
     } catch (error) {
-        console.error('No se pudo extraer la portada del PDF:', error);
-        setCoverEditorStatus(error.message || 'No se ha podido extraer la portada del PDF.', 'error');
+        console.error('No se pudo extraer la portada del archivo:', error);
+        setCoverEditorStatus(error.message || 'No se ha podido extraer la portada del PDF o CBR.', 'error');
     } finally {
         setCoverEditorBusy(false);
     }
@@ -2205,8 +2244,8 @@ function setupEventListeners() {
         }
     });
 
-    if (elements.extractPdfCoverButton) {
-        elements.extractPdfCoverButton.onclick = () => void extractCoverFromBookPdf();
+    if (elements.extractFileCoverButton) {
+        elements.extractFileCoverButton.onclick = () => void extractCoverFromBookFile();
     }
     if (elements.searchWebCoverButton) {
         elements.searchWebCoverButton.onclick = () => void searchAndSetWebCover();
