@@ -1139,6 +1139,53 @@ function performSearch() {
     renderSearchResults(results);
 }
 
+async function showRecentlyReadBooks() {
+    const container = document.getElementById('searchResults');
+    const button = document.getElementById('recentlyReadButton');
+    const maximumBooks = 10;
+    const pageSize = 1000;
+    const recentBookIds = [];
+    const seenBookIds = new Set();
+
+    try {
+        if (button) button.disabled = true;
+        container.innerHTML = '<div class="loading" style="display: flex;">Buscando últimos libros leídos...</div>';
+
+        // Las anotaciones más recientes determinan el orden. Se recorren las
+        // páginas necesarias porque un mismo libro puede tener muchas de ellas.
+        for (let from = 0; recentBookIds.length < maximumBooks; from += pageSize) {
+            const { data: annotations, error } = await supabaseClient
+                .from('annotations')
+                .select('book_id, created_at')
+                .order('created_at', { ascending: false })
+                .range(from, from + pageSize - 1);
+            if (error) throw error;
+
+            for (const annotation of annotations || []) {
+                if (annotation.book_id && !seenBookIds.has(annotation.book_id)) {
+                    seenBookIds.add(annotation.book_id);
+                    recentBookIds.push(annotation.book_id);
+                    if (recentBookIds.length === maximumBooks) break;
+                }
+            }
+
+            if (!annotations || annotations.length < pageSize) break;
+        }
+
+        const booksById = new Map(allBooks.map(book => [String(book.id), book]));
+        const recentBooks = recentBookIds
+            .map(bookId => booksById.get(String(bookId)))
+            .filter(Boolean);
+
+        renderSearchResults(recentBooks, 'Últimos libros leídos');
+    } catch (error) {
+        console.error('No se han podido cargar los últimos libros leídos:', error);
+        container.innerHTML = '<div class="empty-state"><h3>No se han podido cargar los últimos libros leídos</h3></div>';
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
 function filterBooks() {
     const searchTerm = normalizeText(elements.searchInput.value);
     currentBooks = !searchTerm ? [...filteredBooks] : filteredBooks.filter(book => {
@@ -1165,13 +1212,16 @@ function renderBooks() {
     elements.booksGrid.innerHTML = currentBooks.length > 0 ? currentBooks.map(renderBook).join('') : '<div class="empty-state"><h3>No se encontraron libros</h3></div>';
 }
 
-function renderSearchResults(results) {
+function renderSearchResults(results, heading = null) {
     const container = document.getElementById('searchResults');
     if (results.length === 0) {
-        container.innerHTML = '<div class="empty-state"><h3>No se encontraron libros</h3></div>';
+        container.innerHTML = heading
+            ? `<div class="empty-state"><h3>No hay libros leídos con anotaciones</h3></div>`
+            : '<div class="empty-state"><h3>No se encontraron libros</h3></div>';
         return;
     }
-    container.innerHTML = `<h3 style="margin-bottom: 16px;">${results.length} libro(s) encontrado(s)</h3><div class="grid grid--books">${results.map(renderBook).join('')}</div>`;
+    const title = heading || `${results.length} libro(s) encontrado(s)`;
+    container.innerHTML = `<h3 style="margin-bottom: 16px;">${title}</h3><div class="grid grid--books">${results.map(renderBook).join('')}</div>`;
 }
 
 function renderFormatLinks(format, bookTitle, detailed = false) {
