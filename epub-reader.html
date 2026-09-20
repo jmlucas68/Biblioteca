@@ -382,6 +382,7 @@
         }
 
         const bookUrl = getParam('url');
+        const databaseBookId = getParam('bookId');
         const bookTitle = decodeURIComponent(getParam('title')) || 'Lector EPUB';
         document.getElementById('bookTitle').textContent = bookTitle;
         document.getElementById('downloadLink').href = resolveDriveDownloadUrl(bookUrl);
@@ -442,7 +443,9 @@
 
         (async () => {
             console.log('bookUrl:', bookUrl);
-            const bookId = extractDriveId(bookUrl);
+            const legacyBookId = extractDriveId(bookUrl);
+            const bookId = databaseBookId || legacyBookId;
+            const annotationBookIds = [...new Set([bookId, legacyBookId].filter(Boolean))];
             if (!bookId) {
                 document.body.innerHTML = '<div style="padding:20px;">Error: No se pudo obtener el ID del libro de la URL.</div>';
                 return;
@@ -680,7 +683,7 @@
                     const { data: highlights, error } = await supabaseClient
                         .from('annotations')
                         .select('*')
-                        .eq('book_id', bookId);
+                        .in('book_id', annotationBookIds);
 
                     if (error) throw error;
 

@@ -148,7 +148,9 @@
         const params = new URL(window.location.href).searchParams;
         const bookUrl = params.get('url') || '';
         const bookTitle = params.get('title') || 'Lector PDF';
-        const bookId = extractDriveId(bookUrl) || `pdf-url-${stableId(bookUrl)}`;
+        const legacyBookId = extractDriveId(bookUrl) || `pdf-url-${stableId(bookUrl)}`;
+        const bookId = params.get('bookId') || legacyBookId;
+        const annotationBookIds = [...new Set([bookId, legacyBookId].filter(Boolean))];
         let pdfDocument = null;
         let currentPage = 1;
         let currentZoom = 1;
@@ -481,7 +483,7 @@
 
         async function loadAnnotations() {
             if (!bookId) return;
-            const { data, error } = await supabaseClient.from('annotations').select('*').eq('book_id', bookId).like('cfi_range', 'pdf:%');
+            const { data, error } = await supabaseClient.from('annotations').select('*').in('book_id', annotationBookIds).like('cfi_range', 'pdf:%');
             if (error) throw error;
             annotations = (data || []).filter(parsedAnchor);
             renderAnnotationsList();

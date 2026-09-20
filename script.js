@@ -1144,8 +1144,9 @@ async function showRecentlyReadBooks() {
     const button = document.getElementById('recentlyReadButton');
     const maximumBooks = 10;
     const pageSize = 1000;
-    const recentBookIds = [];
+    const recentBooks = [];
     const seenBookIds = new Set();
+    const booksByAnnotationId = buildAnnotationBookLookup();
 
     try {
         if (button) button.disabled = true;
@@ -1155,7 +1156,7 @@ async function showRecentlyReadBooks() {
         // remarcado o nota de texto y se actualiza con cada modificación.
         // Se recorren las páginas necesarias porque un libro puede tener varias
         // anotaciones recientes.
-        for (let from = 0; recentBookIds.length < maximumBooks; from += pageSize) {
+        for (let from = 0; recentBooks.length < maximumBooks; from += pageSize) {
             const { data: annotations, error } = await supabaseClient
                 .from('annotations')
                 .select('book_id, updated_at')
@@ -1164,20 +1165,16 @@ async function showRecentlyReadBooks() {
             if (error) throw error;
 
             for (const annotation of annotations || []) {
-                if (annotation.book_id && !seenBookIds.has(annotation.book_id)) {
-                    seenBookIds.add(annotation.book_id);
-                    recentBookIds.push(annotation.book_id);
-                    if (recentBookIds.length === maximumBooks) break;
-                }
+                const book = booksByAnnotationId.get(String(annotation.book_id));
+                if (!book || seenBookIds.has(String(book.id))) continue;
+
+                seenBookIds.add(String(book.id));
+                recentBooks.push(book);
+                if (recentBooks.length === maximumBooks) break;
             }
 
             if (!annotations || annotations.length < pageSize) break;
         }
-
-        const booksById = new Map(allBooks.map(book => [String(book.id), book]));
-        const recentBooks = recentBookIds
-            .map(bookId => booksById.get(String(bookId)))
-            .filter(Boolean);
 
         renderSearchResults(recentBooks, 'Últimos libros leídos');
     } catch (error) {
@@ -1232,16 +1229,17 @@ function renderFormatLinks(format, bookTitle, detailed = false) {
     const formatName = esc(format.formato);
     const escapedUrl = esc(downloadUrl);
     const escapedTitle = esc(bookTitle);
+    const escapedBookId = esc(format.book_id);
     const disabledClass = !hasValidUrl ? ' format-link--disabled' : '';
     const size = detailed && format.tamano_mb ? ` (${format.tamano_mb} MB)` : '';
     const prefix = detailed ? '📄 ' : '';
-    const standardLink = `<a href="#" onclick="openViewer(event, '${escapedUrl}', '${escapedTitle}', '${formatName}')" class="format-link${disabledClass}">${prefix}${formatName}${size}</a>`;
+    const standardLink = `<a href="#" onclick="openViewer(event, '${escapedUrl}', '${escapedTitle}', '${formatName}', '${escapedBookId}')" class="format-link${disabledClass}">${prefix}${formatName}${size}</a>`;
 
     if (String(format.formato || '').trim().toLowerCase() !== 'pdf') {
         return standardLink;
     }
 
-    return `${standardLink}<a href="#" onclick="openPdfReader(event, '${escapedUrl}', '${escapedTitle}')" class="format-link${disabledClass}">${detailed ? '✍ ' : ''}PDF nuevo · anotable</a>`;
+    return `${standardLink}<a href="#" onclick="openPdfReader(event, '${escapedUrl}', '${escapedTitle}', '${escapedBookId}')" class="format-link${disabledClass}">${detailed ? '✍ ' : ''}PDF nuevo · anotable</a>`;
 }
 
 function renderBook(book) {
@@ -2073,13 +2071,13 @@ function buildDownloadUrl(fileUrl) {
     return url;
 }
 
-async function openViewer(event, formatUrl, bookTitle, formatName) {
+async function openViewer(event, formatUrl, bookTitle, formatName, bookId) {
     event.preventDefault();
     event.stopPropagation();
     // EPUB y CBR conservan lectores propios; PDF usa este visor clásico salvo que se pulse el acceso anotable.
     const normalizedFormat = String(formatName || '').toLowerCase();
     if (normalizedFormat === 'epub') {
-        const readerUrl = `epub-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
+        const readerUrl = `epub-reader.html?v=annotation-book-id-v1&bookId=${encodeURIComponent(bookId || '')}&title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl || '')}`;
         window.open(readerUrl, '_blank', 'noopener');
         return;
     }
@@ -2124,12 +2122,12 @@ async function openViewer(event, formatUrl, bookTitle, formatName) {
     };
 }
 
-function openPdfReader(event, formatUrl, bookTitle) {
+function openPdfReader(event, formatUrl, bookTitle, bookId) {
     event.preventDefault();
     event.stopPropagation();
     if (!formatUrl || formatUrl === '#') return;
 
-    const readerUrl = `pdf-reader.html?title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl)}`;
+    const readerUrl = `pdf-reader.html?v=annotation-book-id-v1&bookId=${encodeURIComponent(bookId || '')}&title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(formatUrl)}`;
     window.open(readerUrl, '_blank', 'noopener');
 }
 
@@ -2148,6 +2146,35 @@ function getBookFormats(bookId) {
     // formato existente desaparezca de la tarjeta por una diferencia de tipo.
     const normalizedBookId = String(bookId);
     return allFormats.filter(format => String(format.book_id) === normalizedBookId);
+}
+
+function stableReaderBookId(value) {
+    let hash = 2166136261;
+    for (const character of String(value || '')) {
+        hash ^= character.charCodeAt(0);
+        hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(36);
+}
+
+function buildAnnotationBookLookup() {
+    const booksById = new Map(allBooks.map(book => [String(book.id), book]));
+    const lookup = new Map(booksById);
+
+    allFormats.forEach(format => {
+        const book = booksById.get(String(format.book_id));
+        if (!book) return;
+
+        [format.url_download, format.ruta_archivo, format.url]
+            .filter(Boolean)
+            .forEach(formatUrl => {
+                const driveId = extractDriveId(formatUrl);
+                if (driveId) lookup.set(String(driveId), book);
+                lookup.set(`pdf-url-${stableReaderBookId(formatUrl)}`, book);
+            });
+    });
+
+    return lookup;
 }
 
 function countBooksForSection(sectionKey) {
