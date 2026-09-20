@@ -51,7 +51,12 @@ async function saveBookNote(bookId, currentNoteId, note) {
         if (!note) return null;
 
         const payload = currentNoteId
-            ? await supabaseClient.from('annotations').update({ note_content: note }).eq('id', currentNoteId).select('id, note_content').single()
+            ? await supabaseClient.from('annotations').update({
+                note_content: note,
+                // La tabla no dispone de updated_at. created_at representa la
+                // última actividad para poder ordenar los libros leídos.
+                created_at: new Date().toISOString()
+            }).eq('id', currentNoteId).select('id, note_content').single()
             : await supabaseClient.from('annotations').insert([{
                 book_id: bookId,
                 cfi_range: BOOK_NOTE_ANCHOR,
@@ -1151,8 +1156,10 @@ async function showRecentlyReadBooks() {
         if (button) button.disabled = true;
         container.innerHTML = '<div class="loading" style="display: flex;">Buscando últimos libros leídos...</div>';
 
-        // Las anotaciones más recientes determinan el orden. Se recorren las
-        // páginas necesarias porque un mismo libro puede tener muchas de ellas.
+        // created_at representa la última actividad: se actualiza al editar la
+        // nota general y se asigna al crear cualquier remarcado o nota de texto.
+        // Se recorren las páginas necesarias porque un libro puede tener varias
+        // anotaciones recientes.
         for (let from = 0; recentBookIds.length < maximumBooks; from += pageSize) {
             const { data: annotations, error } = await supabaseClient
                 .from('annotations')
