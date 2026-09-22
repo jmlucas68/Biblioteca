@@ -622,6 +622,22 @@
                 });
                 observer.observe(view.document.body, { childList: true, subtree: true });
 
+                view.document.addEventListener('click', event => {
+                    if (event.defaultPrevented || event.button !== 0) return;
+                    const target = event.target;
+                    if (!target || typeof target.closest !== 'function') return;
+                    if (target.closest('a, button, input, select, textarea, [role="button"], .epubjs-hl')) return;
+
+                    const selectedText = view.document.getSelection()?.toString().trim();
+                    if (selectedText) return;
+
+                    const viewportWidth = view.document.defaultView?.innerWidth || view.document.documentElement.clientWidth;
+                    if (!viewportWidth) return;
+
+                    if (event.clientX <= viewportWidth / 3) rendition.prev();
+                    else if (event.clientX >= (viewportWidth * 2) / 3) rendition.next();
+                });
+
                 view.document.body.addEventListener('mouseup', () => {
                     setTimeout(() => {
                         const selection = view.document.getSelection();
