@@ -1139,6 +1139,22 @@ function performSearch() {
     renderSearchResults(results);
 }
 
+function showRecentlyAddedBooks() {
+    const maximumBooks = 10;
+    const getAddedAt = (book) => {
+        const timestamp = Date.parse(book.created_at || '');
+        // Las bibliotecas anteriores a la columna created_at conservan el
+        // identificador autoincremental, que también refleja el alta.
+        return Number.isNaN(timestamp) ? Number(book.id) || 0 : timestamp;
+    };
+
+    const recentBooks = [...allBooks]
+        .sort((first, second) => getAddedAt(second) - getAddedAt(first))
+        .slice(0, maximumBooks);
+
+    renderSearchResults(recentBooks, 'Últimos 10 libros añadidos');
+}
+
 async function showRecentlyReadBooks() {
     const container = document.getElementById('searchResults');
     const button = document.getElementById('recentlyReadButton');
