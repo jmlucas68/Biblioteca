@@ -2098,7 +2098,7 @@ async function openViewer(event, formatUrl, bookTitle, formatName, bookId) {
         return;
     }
     if (normalizedFormat === 'cbr') {
-        const readerUrl = `cbr-reader.html?v=cbr-zoom-v2&title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(buildDownloadUrl(formatUrl || ''))}`;
+        const readerUrl = `cbr-reader.html?v=reading-progress-v1&bookId=${encodeURIComponent(bookId || '')}&title=${encodeURIComponent(bookTitle || '')}&url=${encodeURIComponent(buildDownloadUrl(formatUrl || ''))}`;
         window.open(readerUrl, '_blank', 'noopener');
         return;
     }

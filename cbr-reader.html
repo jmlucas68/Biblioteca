@@ -79,6 +79,8 @@
         <button type="button" id="next"><span>Siguiente</span> ›</button>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./modules/reading-progress.js"></script>
     <script type="module">
         import { createExtractorFromData } from './vendor/node-unrar-js/index.esm.js';
 
@@ -87,6 +89,9 @@
         const params = new URLSearchParams(location.search);
         const title = params.get('title') || 'Lector CBR';
         const sourceUrl = params.get('url') || '';
+        const supabaseClient = supabase.createClient('https://fanyuclarbgwraiwbcmr.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhbnl1Y2xhcmJnd3JhaXdiY21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYwNTczMzIsImV4cCI6MjA3MTYzMzMzMn0.AzELqTp0swLGcUxHqF_E7E6UZJcEKUdNcXFiPrMGr-Q');
+        const readingProgress = createReadingProgress(supabaseClient, params.get('bookId') || sourceUrl, 'cbr');
         const elements = {
             title:document.getElementById('bookTitle'), info:document.getElementById('bookInfo'), pages:document.getElementById('pages'),
             stage:document.getElementById('stage'), pagination:document.getElementById('pagination'), pageNumber:document.getElementById('pageNumber'),
@@ -135,6 +140,7 @@
             elements.next.disabled = currentPage >= pages.length - 1;
             elements.pageNumber.value = String(currentPage + 1);
             elements.pageCount.textContent = `de ${pages.length}`;
+            if (pages.length) readingProgress.save({ page: currentPage + 1 });
         }
 
         function render() {
@@ -143,6 +149,7 @@
             for (const { page, index } of visiblePages) {
                 const figure = document.createElement('figure');
                 figure.className = 'comic-page';
+                figure.dataset.page = String(index);
                 if (continuous) {
                     figure.style.width = `${zoom * 100}%`;
                     figure.style.maxWidth = `${1100 * zoom}px`;
@@ -192,6 +199,8 @@
                 }).sort((a, b) => collator.compare(a.name, b.name));
                 if (!pages.length) throw new Error('El archivo CBR no contiene imágenes compatibles.');
                 elements.info.textContent = `${pages.length} páginas`;
+                const saved = await readingProgress.load();
+                currentPage = Math.min(pages.length - 1, (saved?.page || 1) - 1);
                 render();
             } catch (error) {
                 const message = String(error?.message || error || 'No se ha podido abrir el archivo.');
@@ -201,12 +210,22 @@
 
         elements.previous.onclick = () => { currentPage = Math.max(0, currentPage - 1); render(); };
         elements.next.onclick = () => { currentPage = Math.min(pages.length - 1, currentPage + 1); render(); };
-        elements.pageNumber.onchange = () => { currentPage = Math.min(pages.length - 1, Math.max(0, Number(elements.pageNumber.value) - 1)); render(); };
+        elements.pageNumber.onchange = () => { currentPage = Math.min(pages.length - 1, Math.max(0, Math.floor(Number(elements.pageNumber.value) || 1) - 1)); render(); };
         elements.zoomOut.onclick = () => { zoom = Math.max(.5, Math.round((zoom - .1) * 10) / 10); render(); };
         elements.zoomIn.onclick = () => { zoom = Math.min(2, Math.round((zoom + .1) * 10) / 10); render(); };
         elements.singleMode.onclick = () => { continuous = false; render(); };
         elements.continuousMode.onclick = () => { continuous = true; render(); };
         elements.fullscreen.onclick = async () => { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); else await document.exitFullscreen(); };
+        elements.stage.addEventListener('scroll', () => {
+            if (!continuous || !pages.length) return;
+            const top = elements.stage.getBoundingClientRect().top;
+            const figures = [...elements.pages.children];
+            const visible = figures.find(figure => figure.getBoundingClientRect().bottom > top + 40);
+            if (visible?.dataset.page !== undefined) {
+                currentPage = Number(visible.dataset.page);
+                updateControls();
+            }
+        }, { passive: true });
         addEventListener('keydown', event => {
             if (continuous) return;
             if (event.key === 'ArrowLeft' && currentPage > 0) { currentPage--; render(); }

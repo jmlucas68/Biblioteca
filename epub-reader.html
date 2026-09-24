@@ -366,6 +366,7 @@
         </div>
     </div>
 
+    <script src="./modules/reading-progress.js"></script>
     <script>
         // Supabase Configuration
         const { createClient } = supabase;
@@ -445,6 +446,7 @@
             console.log('bookUrl:', bookUrl);
             const legacyBookId = extractDriveId(bookUrl);
             const bookId = databaseBookId || legacyBookId;
+            const readingProgress = createReadingProgress(supabaseClient, bookId, 'epub');
             const annotationBookIds = [...new Set([bookId, legacyBookId].filter(Boolean))];
             if (!bookId) {
                 document.body.innerHTML = '<div style="padding:20px;">Error: No se pudo obtener el ID del libro de la URL.</div>';
@@ -656,7 +658,10 @@
             const storedKey = 'epub-pos:' + bookUrl;
             const storedFontKey = 'epub-font:' + bookUrl;
 
-            function saveLocation(cfi) { try { localStorage.setItem(storedKey, cfi); } catch (e) { } }
+            function saveLocation(cfi) {
+                try { localStorage.setItem(storedKey, cfi); } catch (e) { }
+                readingProgress.save({ cfi });
+            }
             function loadLocation() { try { return localStorage.getItem(storedKey); } catch (e) { return null; } }
 
             function showNote(noteText, id, cfiRange) {
@@ -673,8 +678,13 @@
             }
 
             async function init() {
-                const startCfi = loadLocation();
-                await rendition.display(startCfi || undefined);
+                const saved = await readingProgress.load();
+                const startCfi = saved?.cfi || loadLocation();
+                try { await rendition.display(startCfi || undefined); }
+                catch (error) {
+                    if (!startCfi) throw error;
+                    await rendition.display();
+                }
 
                 try {
                     const toc = await book.loaded.navigation;

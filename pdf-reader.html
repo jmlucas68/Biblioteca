@@ -137,6 +137,7 @@
         <div class="modal"><h2 id="displayNoteHeading">Anotación</h2><p id="displaySelection"></p><div id="displayNoteContent" style="white-space:pre-wrap;line-height:1.6"></div><div class="modal-actions"><button id="deleteNoteBtn" class="danger">Eliminar</button><div class="right"><button id="closeDisplayNoteBtn">Cerrar</button></div></div></div>
     </div>
 
+    <script src="./modules/reading-progress.js"></script>
     <script>
         const { createClient } = supabase;
         const supabaseUrl = ['https://fanyuclarbgwraiwbcmr', 'supabase.co'].join('.');
@@ -150,6 +151,7 @@
         const bookTitle = params.get('title') || 'Lector PDF';
         const legacyBookId = extractDriveId(bookUrl) || `pdf-url-${stableId(bookUrl)}`;
         const bookId = params.get('bookId') || legacyBookId;
+        const readingProgress = createReadingProgress(supabaseClient, bookId, 'pdf');
         const annotationBookIds = [...new Set([bookId, legacyBookId].filter(Boolean))];
         let pdfDocument = null;
         let currentPage = 1;
@@ -429,9 +431,10 @@
 
         async function showPage(pageNumber) {
             if (!pdfDocument) return;
-            const next = Math.max(1, Math.min(pdfDocument.numPages, Number(pageNumber) || 1));
+            const next = Math.max(1, Math.min(pdfDocument.numPages, Math.floor(Number(pageNumber) || 1)));
             if (next !== currentPage) currentPage = next;
             await renderPage();
+            readingProgress.save({ page: currentPage });
             ui.stage.scrollTop = 0;
         }
 
@@ -597,7 +600,8 @@
             const data = await fetchPdf();
             pdfDocument = await pdfjsLib.getDocument({ data }).promise;
             await loadAnnotations();
-            await showPage(1);
+            const saved = await readingProgress.load();
+            await showPage(saved?.page || 1);
         }
 
         init().catch(error => {
