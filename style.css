@@ -625,6 +625,25 @@ textarea.form-control {
     padding: 24px;
 }
 
+/* Colores exclusivos del detalle del libro. Se mantienen separados de los
+   enlaces globales para que los datos del libro conserven contraste en ambos
+   temas. */
+#bookModal {
+    --book-detail-title: #f8fafc;
+    --book-detail-text: #e2e8f0;
+    --book-detail-muted: #cbd5e1;
+    --book-detail-link: #93c5fd;
+    --book-detail-link-hover: #dbeafe;
+}
+
+body.light-mode #bookModal {
+    --book-detail-title: #0f172a;
+    --book-detail-text: #1e293b;
+    --book-detail-muted: #334155;
+    --book-detail-link: #1d4ed8;
+    --book-detail-link-hover: #1e40af;
+}
+
 .cover-editor {
     display: flex;
     gap: 18px;
@@ -734,16 +753,33 @@ textarea.form-control {
 .modal-info h2 {
     margin-bottom: 12px;
     font-size: 24px;
-    color: var(--color-text);
+    color: var(--book-detail-title);
 }
 
 .modal-info p {
     margin-bottom: 8px;
-    color: var(--color-text-secondary);
+    color: var(--book-detail-text);
 }
 
 .modal-info p strong {
-    color: var(--color-text);
+    color: var(--book-detail-title);
+}
+
+#bookModal .book-detail-link,
+#bookModal .book-detail-section,
+#bookModal .book-detail-subsection {
+    color: var(--book-detail-link);
+    font-weight: 600;
+}
+
+#bookModal .book-detail-link:hover,
+#bookModal .book-detail-section:hover,
+#bookModal .book-detail-subsection:hover {
+    color: var(--book-detail-link-hover);
+}
+
+#bookModal .book-detail-empty {
+    color: var(--book-detail-muted);
 }
 
 .modal-description {
@@ -755,7 +791,7 @@ textarea.form-control {
 .modal-description h3 {
     margin-bottom: 12px;
     font-size: 18px;
-    color: var(--color-text);
+    color: var(--book-detail-title);
 }
 
 /* Las descripciones HTML importadas no deben imponer los colores del sitio
@@ -767,7 +803,7 @@ textarea.form-control {
 }
 
 #description-content {
-    color: var(--color-text-secondary) !important;
+    color: var(--book-detail-text) !important;
 }
 
 .modal-formats {
@@ -1123,7 +1159,7 @@ body.light-mode {
     --color-primary-light: #3b82f6;
     --color-secondary: #64748b;
     --color-background: #f8fafc;
-n    --color-surface: #ffffff;
+    --color-surface: #ffffff;
     --color-surface-light: #f1f5f9;
     --color-text: #1e293b;
     --color-text-secondary: #64748b;
