@@ -29,6 +29,7 @@ test('reopens a PDF on its saved page, including backward navigation', async () 
     progress.save({ page: 12 });
     progress.save({ page: 3 });
     await settle();
+    assert.ok(db.rows.get('pdf-test:pdf').last_page_changed_at);
     values.clear();
     assert.equal((await createReadingProgress(db, 'pdf-test', 'pdf').load()).page, 3);
 });
@@ -44,9 +45,9 @@ test('isolates books and formats, stores exact EPUB locations', async () => {
     assert.equal((await createReadingProgress(db, 'b', 'cbr').load()).page, 20);
 });
 test('restores the newer device copy and synchronizes it', async () => {
-    const old = { book_id:'offline', format:'pdf', page:2, updated_at:'2026-09-20T10:00:00Z' };
+    const old = { book_id:'offline', format:'pdf', page:2, updated_at:'2026-09-20T10:00:00Z', last_page_changed_at:'2026-09-20T10:00:00Z' };
     const db = database([old]);
-    values.set('reading-progress:pdf:offline', JSON.stringify({ ...old, page:9, updated_at:'2026-09-21T10:00:00Z' }));
+    values.set('reading-progress:pdf:offline', JSON.stringify({ ...old, page:9, updated_at:'2026-09-21T10:00:00Z', last_page_changed_at:'2026-09-21T10:00:00Z' }));
     assert.equal((await createReadingProgress(db, 'offline', 'pdf').load()).page, 9);
     await settle();
     assert.equal(db.rows.get('offline:pdf').page, 9);

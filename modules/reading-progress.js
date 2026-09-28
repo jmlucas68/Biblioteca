@@ -51,7 +51,9 @@
             try {
                 const { data, error } = await client.from('reading_progress').select('*').eq('book_id', bookId).eq('format', format).maybeSingle();
                 if (error) throw error;
-                if (valid(data) && (!current || Date.parse(data.updated_at) >= Date.parse(current.updated_at))) current = data;
+                const dataTimestamp = Date.parse(data?.last_page_changed_at || data?.updated_at || '');
+                const currentTimestamp = Date.parse(current?.last_page_changed_at || current?.updated_at || '');
+                if (valid(data) && (!current || dataTimestamp >= currentTimestamp)) current = data;
                 else if (current) pending = current;
             } catch (error) {
                 console.warn('No se ha podido recuperar el progreso de lectura:', error);
@@ -66,7 +68,11 @@
         function save(position) {
             if (!loaded || !valid(position)) return;
             if (current && current.page === (position.page ?? null) && current.cfi === (position.cfi ?? null)) return;
-            current = { book_id: String(bookId), format, page: position.page ?? null, cfi: position.cfi ?? null, updated_at: new Date().toISOString() };
+            const changedAt = new Date().toISOString();
+            current = {
+                book_id: String(bookId), format, page: position.page ?? null, cfi: position.cfi ?? null,
+                last_page_changed_at: changedAt, updated_at: changedAt
+            };
             cache(current);
             pending = current;
             void flush();

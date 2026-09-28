@@ -1162,11 +1162,55 @@ async function showRecentlyReadBooks() {
     const pageSize = 1000;
     const recentBooks = [];
     const seenBookIds = new Set();
-    const booksByAnnotationId = buildAnnotationBookLookup();
+    const booksById = new Map(allBooks.map(book => [String(book.id), book]));
 
     try {
         if (button) button.disabled = true;
         container.innerHTML = '<div class="loading" style="display: flex;">Buscando últimos libros leídos...</div>';
+
+        // Un libro puede tener progreso en varios formatos. Se conservan los
+        // diez identificadores distintos con los cambios de página más recientes.
+        for (let from = 0; recentBooks.length < maximumBooks; from += pageSize) {
+            const { data: progressEntries, error } = await supabaseClient
+                .from('reading_progress')
+                .select('book_id, last_page_changed_at')
+                .order('last_page_changed_at', { ascending: false })
+                .range(from, from + pageSize - 1);
+            if (error) throw error;
+
+            for (const entry of progressEntries || []) {
+                const book = booksById.get(String(entry.book_id));
+                if (!book || seenBookIds.has(String(book.id))) continue;
+
+                seenBookIds.add(String(book.id));
+                recentBooks.push(book);
+                if (recentBooks.length === maximumBooks) break;
+            }
+
+            if (!progressEntries || progressEntries.length < pageSize) break;
+        }
+
+        renderSearchResults(recentBooks, 'Últimos 10 libros leídos', 'No hay libros con páginas leídas todavía');
+    } catch (error) {
+        console.error('No se han podido cargar los últimos libros leídos:', error);
+        container.innerHTML = '<div class="empty-state"><h3>No se han podido cargar los últimos libros leídos</h3></div>';
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
+async function showRecentlyStudiedBooks() {
+    const container = document.getElementById('searchResults');
+    const button = document.getElementById('recentlyStudiedButton');
+    const maximumBooks = 10;
+    const pageSize = 1000;
+    const recentBooks = [];
+    const seenBookIds = new Set();
+    const booksByAnnotationId = buildAnnotationBookLookup();
+
+    try {
+        if (button) button.disabled = true;
+        container.innerHTML = '<div class="loading" style="display: flex;">Buscando últimos libros estudiados...</div>';
 
         // updated_at representa la última actividad: se inicializa al crear un
         // remarcado o nota de texto y se actualiza con cada modificación.
@@ -1192,10 +1236,10 @@ async function showRecentlyReadBooks() {
             if (!annotations || annotations.length < pageSize) break;
         }
 
-        renderSearchResults(recentBooks, 'Últimos libros leídos');
+        renderSearchResults(recentBooks, 'Últimos 10 libros estudiados', 'No hay libros estudiados con anotaciones');
     } catch (error) {
-        console.error('No se han podido cargar los últimos libros leídos:', error);
-        container.innerHTML = '<div class="empty-state"><h3>No se han podido cargar los últimos libros leídos</h3></div>';
+        console.error('No se han podido cargar los últimos libros estudiados:', error);
+        container.innerHTML = '<div class="empty-state"><h3>No se han podido cargar los últimos libros estudiados</h3></div>';
     } finally {
         if (button) button.disabled = false;
     }
@@ -1227,11 +1271,11 @@ function renderBooks() {
     elements.booksGrid.innerHTML = currentBooks.length > 0 ? currentBooks.map(renderBook).join('') : '<div class="empty-state"><h3>No se encontraron libros</h3></div>';
 }
 
-function renderSearchResults(results, heading = null) {
+function renderSearchResults(results, heading = null, emptyMessage = null) {
     const container = document.getElementById('searchResults');
     if (results.length === 0) {
         container.innerHTML = heading
-            ? `<div class="empty-state"><h3>No hay libros leídos con anotaciones</h3></div>`
+            ? `<div class="empty-state"><h3>${emptyMessage || 'No hay libros leídos con anotaciones'}</h3></div>`
             : '<div class="empty-state"><h3>No se encontraron libros</h3></div>';
         return;
     }
